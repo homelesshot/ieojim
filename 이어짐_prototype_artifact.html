@@ -1,0 +1,236 @@
+<style>
+  :root{
+    --bg:#f5f7f9; --surface:#ffffff; --surface-2:#fafbfc;
+    --ink:#171a20; --mut:#586170; --line:#e2e6ec;
+    --accent:#16708a; --accent-soft:#e6f0f3; --accent-ink:#0d4c5e;
+    --ok:#1f7a4d; --ok-bg:#e7f4ec; --warn:#8a5a10; --warn-bg:#fbf0db; --bad:#a3342f; --bad-bg:#f8e8e6;
+    --radius:14px;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#11131a; --surface:#1a1d25; --surface-2:#181b22;
+      --ink:#eef1f6; --mut:#9aa2b1; --line:#2a2e39;
+      --accent:#4fb3c9; --accent-soft:#12303a; --accent-ink:#c2e8f0;
+      --ok:#5cc98a; --ok-bg:#123021; --warn:#e0a94a; --warn-bg:#332611; --bad:#e0817a; --bad-bg:#331c1b;
+    }
+  }
+  :root[data-theme="light"]{ --bg:#f5f7f9; --surface:#fff; --surface-2:#fafbfc; --ink:#171a20; --mut:#586170; --line:#e2e6ec; --accent:#16708a; --accent-soft:#e6f0f3; --accent-ink:#0d4c5e; --ok:#1f7a4d; --ok-bg:#e7f4ec; --warn:#8a5a10; --warn-bg:#fbf0db; --bad:#a3342f; --bad-bg:#f8e8e6; }
+  :root[data-theme="dark"]{ --bg:#11131a; --surface:#1a1d25; --surface-2:#181b22; --ink:#eef1f6; --mut:#9aa2b1; --line:#2a2e39; --accent:#4fb3c9; --accent-soft:#12303a; --accent-ink:#c2e8f0; --ok:#5cc98a; --ok-bg:#123021; --warn:#e0a94a; --warn-bg:#332611; --bad:#e0817a; --bad-bg:#331c1b; }
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',system-ui,-apple-system,sans-serif;line-height:1.62;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:760px;margin:0 auto;padding:28px 18px 72px}
+  .num{font-variant-numeric:tabular-nums}
+
+  header{margin-bottom:8px}
+  .eyebrow{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;letter-spacing:.02em;color:var(--accent-ink);background:var(--accent-soft);padding:4px 11px;border-radius:20px}
+  .eyebrow .dot{width:7px;height:7px;border-radius:50%;background:var(--accent)}
+  h1{font-size:23px;letter-spacing:-.01em;margin:12px 0 4px;text-wrap:balance}
+  header p{margin:0;color:var(--mut);font-size:14.5px;max-width:60ch}
+
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin:16px 0;box-shadow:0 1px 2px rgba(20,24,40,.03)}
+  .step{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:700;color:var(--mut);margin:0 0 14px;padding-bottom:11px;border-bottom:1px solid var(--line);text-transform:none}
+  .step b{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:7px;background:var(--accent);color:#fff;font-size:12px}
+
+  .field{margin:12px 0}
+  .field > .lab{display:block;font-size:13px;color:var(--mut);margin-bottom:6px;font-weight:600}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 18px}
+  select,input[type=number]{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;font-size:14px;background:var(--surface-2);color:var(--ink);font-family:inherit}
+  select:focus,input:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+  .chk{display:flex;flex-wrap:wrap;gap:7px}
+  .chk label{display:inline-flex;align-items:center;gap:7px;font-size:13.5px;background:var(--surface-2);border:1px solid var(--line);padding:7px 11px;border-radius:9px;cursor:pointer;transition:border-color .12s,background .12s}
+  .chk label:hover{border-color:var(--accent)}
+  .chk input{accent-color:var(--accent);width:15px;height:15px}
+
+  .btn{width:100%;background:var(--accent);color:#fff;border:0;border-radius:11px;padding:13px 20px;font-size:15px;font-weight:700;cursor:pointer;margin-top:14px;font-family:inherit;transition:filter .12s}
+  .btn:hover{filter:brightness(1.07)}
+  .btn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+
+  .result{display:none}
+  .verdict{display:flex;align-items:center;gap:12px;font-size:17px;font-weight:800;padding:14px 16px;border-radius:11px;border-left:5px solid;margin-bottom:14px;text-wrap:balance}
+  .verdict .tag{font-size:11px;font-weight:800;letter-spacing:.03em;padding:3px 8px;border-radius:6px;white-space:nowrap;text-transform:uppercase}
+  .v-ok{background:var(--ok-bg);color:var(--ok);border-color:var(--ok)} .v-ok .tag{background:var(--ok);color:var(--surface)}
+  .v-warn{background:var(--warn-bg);color:var(--warn);border-color:var(--warn)} .v-warn .tag{background:var(--warn);color:var(--surface)}
+  .v-bad{background:var(--bad-bg);color:var(--bad);border-color:var(--bad)} .v-bad .tag{background:var(--bad);color:var(--surface)}
+
+  .sub{font-size:12.5px;font-weight:700;color:var(--mut);letter-spacing:.02em;margin:14px 0 6px}
+  ul.basis{margin:0;padding-left:2px;list-style:none;font-size:14px}
+  ul.basis li{margin:5px 0;padding-left:16px;position:relative}
+  ul.basis li::before{content:"";position:absolute;left:2px;top:9px;width:5px;height:5px;border-radius:50%;background:var(--accent)}
+  .pill{display:inline-block;font-size:13px;font-weight:600;padding:5px 11px;border-radius:8px;margin:4px 5px 0 0;background:var(--accent-soft);color:var(--accent-ink)}
+  .pill.ex{background:var(--surface-2);color:var(--mut);text-decoration:line-through;border:1px solid var(--line)}
+  .note{font-size:12.5px;color:var(--mut);margin-top:9px}
+
+  pre.doc{white-space:pre-wrap;word-break:break-word;background:var(--surface-2);border:1px solid var(--line);border-radius:11px;padding:16px;font-size:13px;font-family:inherit;line-height:1.65;margin:0}
+  .safebox{border-radius:9px;padding:11px 13px;font-size:13px;margin-top:12px;border-left:4px solid var(--bad);background:var(--bad-bg);color:var(--bad)}
+
+  .disclaimer{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:12px 14px;font-size:12.5px;color:var(--mut);margin-top:18px;line-height:1.6}
+  .disclaimer b{color:var(--ink)}
+  @media (max-width:560px){ .grid{grid-template-columns:1fr} h1{font-size:21px} }
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow"><span class="dot"></span>프로토타입 · 가상 데이터</span>
+    <h1>이어짐 — 위기가구 긴급복지 예비판단 도우미</h1>
+    <p>노숙인·쪽방 주민 등 위기 이웃을 상담할 때, 받을 수 있는 긴급복지를 즉시 예비판단하고 사유서 초안까지 만들어 주는 상담원용 도구입니다.</p>
+  </header>
+
+  <div class="card">
+    <div class="step"><b>1</b> 위기가구 정보 입력</div>
+    <div class="field">
+      <span class="lab">위기사유 — 해당하는 것 모두 선택 (긴급복지지원법 제2조·보건복지부 고시 기준)</span>
+      <div class="chk" id="crisis">
+        <label><input type="checkbox" value="중한 질병·부상"/>중한 질병·부상</label>
+        <label><input type="checkbox" value="화재 등 주거 곤란"/>화재 등 주거 곤란</label>
+        <label><input type="checkbox" value="노숙 등 주거 상실"/>노숙 등 주거 상실</label>
+        <label><input type="checkbox" value="가정·성폭력 피해"/>가정·성폭력 피해</label>
+        <label><input type="checkbox" value="주소득자 실직·휴폐업"/>실직·휴폐업</label>
+        <label><input type="checkbox" value="이혼으로 소득 감소"/>이혼으로 소득 감소</label>
+        <label><input type="checkbox" value="방임·유기·학대"/>방임·유기·학대</label>
+      </div>
+    </div>
+    <div class="grid">
+      <div class="field"><span class="lab">거주지역</span>
+        <select id="region"><option value="대도시">대도시(특별·광역시)</option><option value="중소도시">중소도시</option><option value="농어촌">농어촌</option></select>
+      </div>
+      <div class="field"><span class="lab">가구원수 (피해자는 가해자 제외)</span>
+        <select id="size"><option value="1">1인</option><option value="2">2인</option><option value="3">3인</option><option value="4">4인</option></select>
+      </div>
+      <div class="field"><span class="lab">월 소득 (원, 대략)</span>
+        <input type="number" id="income" class="num" placeholder="예: 330000" min="0"/>
+      </div>
+      <div class="field"><span class="lab">기존 복지 수급 (중복지원 방지)</span>
+        <div class="chk" id="dup">
+          <label><input type="checkbox" value="생계"/>생계급여</label>
+          <label><input type="checkbox" value="의료"/>의료급여</label>
+          <label><input type="checkbox" value="주거"/>주거급여</label>
+        </div>
+      </div>
+    </div>
+    <div class="field"><span class="lab">특수상황 — 안전·정확도 (해당 시 선택)</span>
+      <div class="chk" id="special">
+        <label><input type="checkbox" value="무주소·무신분"/>무주소·주민등록 말소</label>
+        <label><input type="checkbox" value="주소 비공개(피해자)"/>비공개 쉼터 거주(피해자)</label>
+        <label><input type="checkbox" value="외국인 체류 미확정"/>외국인 체류자격 미확정</label>
+      </div>
+    </div>
+    <button class="btn" onclick="run()">예비판단 실행</button>
+  </div>
+
+  <div class="card result" id="result">
+    <div class="step"><b>2</b> 예비판단 결과</div>
+    <div id="verdict" class="verdict"></div>
+    <div class="sub">판단 근거</div>
+    <ul class="basis" id="basis"></ul>
+    <div class="sub">신청 가능 지원항목</div>
+    <div id="items"></div>
+    <div class="note" id="dupnote"></div>
+    <div id="specialwarn"></div>
+  </div>
+
+  <div class="card result" id="docwrap">
+    <div class="step"><b>3</b> 사유서 초안 (자동 생성)</div>
+    <pre class="doc" id="doc"></pre>
+    <div class="note">개인식별정보(성명·주민번호·주소)는 [___]로 두었습니다. 실제 기입은 담당자가 오프라인에서 처리합니다.</div>
+  </div>
+
+  <div class="disclaimer">
+    본 도구는 <b>예비판단·초안 생성</b>까지만 하며, <b>최종 결정은 사람</b>(1단계 기관 담당자, 2단계 지자체)이 합니다.
+    소득·재산 기준은 2026년 값(팀 확정 대상)이며, 화면의 사례·수치는 <b>가상·예시</b>입니다.
+    법적 근거는 국가법령정보센터에서, 정확한 기준은 보건복지부 「긴급복지지원 사업안내」로 최종 확인해야 합니다.
+  </div>
+</div>
+
+<script>
+  // 2026 긴급복지 소득기준(기준중위소득 75%) — 팀 최종확정 대상
+  const INCOME_STD = {1:1923179, 2:3149469, 3:4019277, 4:4871054};
+  const won = n => n.toLocaleString('ko-KR') + '원';
+  const getChecked = id => [...document.querySelectorAll('#'+id+' input:checked')].map(e=>e.value);
+
+  function mapItems(crisis){
+    const s = new Set();
+    crisis.forEach(c=>{
+      if(c.includes('질병')||c.includes('폭력')) s.add('의료');
+      if(c.includes('화재')||c.includes('노숙')||c.includes('폭력')) s.add('주거');
+      if(c.includes('실직')||c.includes('이혼')||c.includes('폭력')||c.includes('방임')) s.add('생계');
+    });
+    if(s.size===0) s.add('생계');
+    return [...s];
+  }
+
+  function run(){
+    const crisis = getChecked('crisis');
+    const region = document.getElementById('region').value;
+    const size = +document.getElementById('size').value;
+    const income = +document.getElementById('income').value || 0;
+    const dup = getChecked('dup');
+    const special = getChecked('special');
+
+    const std = INCOME_STD[size];
+    const incomeOk = income <= std;
+    const crisisMet = crisis.length>0;
+
+    let cls='v-warn', verdict='추가 확인 필요', tag='확인';
+    if(!crisisMet){ cls='v-bad'; verdict='위기사유 미해당 — 담당자 확인 필요'; tag='미해당'; }
+    else if(special.length){ cls='v-warn'; verdict='추가 확인 필요 — 특수상황(담당자·전문기관 경로)'; tag='확인'; }
+    else if(incomeOk){ cls='v-ok'; verdict='긴급복지 예비 대상 가능'; tag='대상 가능'; }
+    else { cls='v-warn'; verdict='추가 확인 필요 — 소득 기준 초과(긴급성 시 자체지원 검토)'; tag='확인'; }
+
+    const v = document.getElementById('verdict');
+    v.className = 'verdict '+cls;
+    v.innerHTML = '<span class="tag">'+tag+'</span><span>'+verdict+'</span>';
+
+    const basis = document.getElementById('basis'); basis.innerHTML='';
+    const add = t => { const li=document.createElement('li'); li.innerHTML=t; basis.appendChild(li); };
+    add('위기사유: ' + (crisisMet ? '해당 — '+crisis.join(', ') : '선택된 위기사유 없음'));
+    add('소득: 월 <span class="num">'+won(income)+'</span> '+(incomeOk?'≤':'＞')+' '+size+'인 기준 <span class="num">'+won(std)+'</span> → '+(incomeOk?'충족':'초과'));
+    add('거주지역: '+region+' (재산 기준·주거용재산 공제는 2단계에서 산정)');
+
+    let items = mapItems(crisis);
+    const excluded = items.filter(i=>dup.includes(i));
+    const box = document.getElementById('items'); box.innerHTML='';
+    items.forEach(i=>{
+      const sp=document.createElement('span');
+      const ex = dup.includes(i);
+      sp.className='pill'+(ex?' ex':''); sp.textContent=(i==='생계'?'생계지원':i==='의료'?'의료지원':'주거지원');
+      box.appendChild(sp);
+    });
+    document.getElementById('dupnote').textContent = excluded.length
+      ? '중복지원 방지: '+excluded.map(e=>e+'급여').join(', ')+' 기존 수급으로 해당 항목 제외' : '';
+
+    const sw = document.getElementById('specialwarn');
+    if(special.includes('주소 비공개(피해자)')){
+      sw.innerHTML = '<div class="safebox">🔒 <b>피해자 소재 비밀 보호</b> — 쉼터 주소·위치는 노출·저장하지 않으며, 서류는 주소 비공개 처리·관할 경유로 생성합니다.</div>';
+    } else if(special.length){
+      sw.innerHTML = '<div class="note">특수상황('+special.join(', ')+') → 공적 지원은 단정하지 않고 담당자·전문기관 확인 경로로 안내합니다.</div>';
+    } else sw.innerHTML='';
+
+    const today = new Date().toISOString().slice(0,10);
+    const itemTxt = items.map(i=>(i==='생계'?'생계지원':i==='의료'?'의료지원':'주거지원')).join('·');
+    const doc = `[긴급복지 지원 요청 사유서 — 초안]
+
+성명: [___]        연락처: [___]        가구원수: ${size}인
+거주지역: ${region}
+
+1. 위기상황
+   ${crisisMet ? crisis.map(c=>'- '+c).join('\n   ') : '- (위기사유 확인 필요)'}
+
+2. 현재 생계 곤란
+   월 소득 약 ${won(income)}으로 ${size}인 가구 긴급복지 소득기준(${won(std)}) ${incomeOk?'이하이며':'수준이며'}, 생계 유지가 곤란함.
+
+3. 요청 지원항목
+   ${itemTxt}${excluded.length? '  (※ '+excluded.map(e=>e+'급여').join(', ')+' 기존 수급으로 중복 항목 제외)':''}
+
+4. 근거
+   긴급복지지원법 제2조(위기상황)·제9조(지원의 종류)에 근거하여 긴급지원을 요청함.
+   ※ 최종 지원 여부는 담당 기관/지자체의 조사·결정에 따름.
+
+작성일: ${today}    작성: [담당 상담원]`;
+    document.getElementById('doc').textContent = doc;
+
+    document.getElementById('result').style.display='block';
+    document.getElementById('docwrap').style.display='block';
+    document.getElementById('result').scrollIntoView({behavior:'smooth',block:'start'});
+  }
+</script>
