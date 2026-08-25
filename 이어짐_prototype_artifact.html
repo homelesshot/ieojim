@@ -376,6 +376,7 @@
     const byType = types.map(t=>[t, stats[t].total||0]).sort((a,b)=>b[1]-a[1]);
     const topCrisis = Object.entries(crisisAgg).sort((a,b)=>b[1]-a[1]).slice(0,5);
     let s = '총 처리 건수: '+total+'건';
+    const tt = loadTime(); if(tt.count>0){ s += '\n평균 처리시간: '+fmtDur(tt.sum/tt.count)+' · 최근 '+fmtDur(tt.last)+' ('+tt.count+'건 측정)'; }
     s += '\n\n[대상유형별]\n' + byType.map(([t,n])=>'· '+t+': '+n+'건').join('\n');
     s += '\n\n[자주 나온 위기사유 Top5]\n' + (topCrisis.length? topCrisis.map(([k,n])=>'· '+k+': '+n+'회').join('\n') : '· (없음)');
     s += '\n\n※ 도입 후 실제 사용 데이터(이 기기 기준). baseline(도입 전)과 비교하면 "변화"가 됩니다.';
@@ -393,6 +394,12 @@
   function usageFallbackCopy(txt){
     try{ const ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); alert('사용 현황 요약을 복사했습니다.'); }catch(e){ alert('복사 실패 — 요약을 직접 선택해 복사하세요.'); }
   }
+  // ---------- 옵션2: 처리시간 측정(입력 시작~판정) ----------
+  let caseStartTime = null;
+  function loadTime(){ try{ return JSON.parse(localStorage.getItem('ieojim_time_stats_v1')) || {sum:0,count:0,last:0}; }catch(e){ return {sum:0,count:0,last:0}; } }
+  function saveTime(t){ try{ localStorage.setItem('ieojim_time_stats_v1', JSON.stringify(t)); }catch(e){} }
+  function recordProcessingTime(ms){ const t=loadTime(); t.sum+=ms; t.count++; t.last=ms; saveTime(t); }
+  function fmtDur(ms){ const s=Math.max(0,Math.round(ms/1000)); const m=Math.floor(s/60); const r=s%60; return (m>0? m+'분 ':'')+r+'초'; }
   function getCrisisOrder(targetType){
     const stats = loadStats();
     const preset = CRISIS_PRESET[targetType] || CRISIS_PRESET['기타'];
@@ -988,6 +995,7 @@ ${d.memo ? '\n메모: '+d.memo : ''}
     buildDoc();
 
     recordStats(targetType, crisis);
+    if(caseStartTime!==null){ recordProcessingTime(Date.now()-caseStartTime); caseStartTime=null; }
     renderCrisis(); // 통계 반영 후 순서 갱신(자동정렬 전환 시 즉시 표시)
     renderUsageSummary();
     renderHomelessSection();
@@ -1002,4 +1010,6 @@ ${d.memo ? '\n메모: '+d.memo : ''}
   renderAgeGender(true);
   renderHomelessSection();
   renderUsageSummary();
+  // 옵션2: 첫 입력 시 처리시간 측정 시작(판정 시 종료)
+  document.addEventListener('input', function(){ if(caseStartTime===null) caseStartTime=Date.now(); }, true);
 </script>
