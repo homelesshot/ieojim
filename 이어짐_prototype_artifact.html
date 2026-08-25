@@ -577,7 +577,7 @@
     box.innerHTML = ''
       + '<div class="weatherbox" id="weatherBox">'
       + '  <b>노숙인 대상 전용 — 실시간 날씨 기반 추가 지원물품</b>'
-      + '  <div class="note">현재 위치·날씨를 불러와 계절·기온에 맞는 지원물품을 추천합니다. 위치는 매번 브라우저 권한 동의를 받으며, <b>서버에 저장하거나 어디에도 전송하지 않고</b> 이 화면에서만 사용합니다(공개 기상 API 호출에만 좌표를 1회 사용).</div>'
+      + '  <div class="note">현재 위치·날씨를 불러와 계절·기온에 맞는 지원물품을 추천합니다. 여기서 위치는 <b>상담원 기기의 위치이며 대상자 정보가 아닙니다.</b> 매번 브라우저 권한 동의를 받아, 공개 기상·지역 API(open-meteo·bigdatacloud)에 <b>좌표만 1회 전송</b>해 날씨를 조회합니다. 대상자 개인정보(실명·주민번호·주소)는 저장·전송하지 않습니다.</div>'
       + '  <button class="btn small" onclick="fetchWeatherSupport()">현재 위치·날씨로 지원물품 확인</button>'
       + '  <div id="weatherResult"></div>'
       + '</div>';
