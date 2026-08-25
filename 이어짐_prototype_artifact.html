@@ -1,3 +1,5 @@
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
 <meta name="robots" content="noindex, nofollow"/>
 <title>이어짐 — 위기가구 긴급복지 예비판단 도우미</title>
 <style>
@@ -296,6 +298,14 @@
     <div class="note" id="hwpxNote">※ <b>.hwpx</b>는 한글 프로그램에서 곧바로 열리는 정식 개방형 한글 형식이에요(더블클릭하면 한글이 실행됩니다). 브라우저가 오래됐거나 특수한 환경이면 아래에 오류가 표시될 수 있는데, 그럴 땐 .txt나 .rtf를 대신 써주세요. .rtf는 한글의 <b>파일 → 불러오기</b> 메뉴로 열어 편집할 수 있는 범용 서식 파일입니다.</div>
   </div>
 
+  <div class="card" id="usageBox">
+    <div style="font-weight:800;margin-bottom:.4rem">📊 사용 현황(누적) — 도입 후 변화 근거
+      <button type="button" class="btn small" onclick="renderUsageSummary()">새로고침</button>
+      <button type="button" class="btn small secondary" onclick="copyUsageSummary()">요약 복사</button>
+    </div>
+    <div id="usageSummary" class="note" style="white-space:pre-wrap"></div>
+  </div>
+
   <div class="disclaimer">
     본 도구는 <b>예비판단·초안 생성</b>까지만 하며, <b>최종 결정은 사람</b>(1단계 기관 담당자, 2단계 지자체)이 합니다.
     소득·재산 기준은 2026년 값(팀 확정 대상)이며, 화면의 사례·수치는 <b>가상·예시</b>입니다.
@@ -356,6 +366,32 @@
     stats[targetType].total++;
     crisisChecked.forEach(v=>{ stats[targetType].counts[v] = (stats[targetType].counts[v]||0)+1; });
     saveStats(stats);
+  }
+  function buildUsageText(){
+    const stats = loadStats();
+    const types = Object.keys(stats);
+    if(types.length===0) return '아직 사용 기록이 없습니다. (판정을 실행하면 누적됩니다)';
+    let total = 0; const crisisAgg = {};
+    types.forEach(t=>{ total += stats[t].total||0; Object.entries(stats[t].counts||{}).forEach(([k,v])=>{ crisisAgg[k]=(crisisAgg[k]||0)+v; }); });
+    const byType = types.map(t=>[t, stats[t].total||0]).sort((a,b)=>b[1]-a[1]);
+    const topCrisis = Object.entries(crisisAgg).sort((a,b)=>b[1]-a[1]).slice(0,5);
+    let s = '총 처리 건수: '+total+'건';
+    s += '\n\n[대상유형별]\n' + byType.map(([t,n])=>'· '+t+': '+n+'건').join('\n');
+    s += '\n\n[자주 나온 위기사유 Top5]\n' + (topCrisis.length? topCrisis.map(([k,n])=>'· '+k+': '+n+'회').join('\n') : '· (없음)');
+    s += '\n\n※ 도입 후 실제 사용 데이터(이 기기 기준). baseline(도입 전)과 비교하면 "변화"가 됩니다.';
+    return s;
+  }
+  function renderUsageSummary(){
+    const el = document.getElementById('usageSummary');
+    if(el) el.textContent = buildUsageText();
+  }
+  function copyUsageSummary(){
+    const txt = buildUsageText();
+    if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(function(){ alert('사용 현황 요약을 복사했습니다.'); }, function(){ usageFallbackCopy(txt); }); }
+    else { usageFallbackCopy(txt); }
+  }
+  function usageFallbackCopy(txt){
+    try{ const ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); alert('사용 현황 요약을 복사했습니다.'); }catch(e){ alert('복사 실패 — 요약을 직접 선택해 복사하세요.'); }
   }
   function getCrisisOrder(targetType){
     const stats = loadStats();
@@ -953,6 +989,7 @@ ${d.memo ? '\n메모: '+d.memo : ''}
 
     recordStats(targetType, crisis);
     renderCrisis(); // 통계 반영 후 순서 갱신(자동정렬 전환 시 즉시 표시)
+    renderUsageSummary();
     renderHomelessSection();
 
     document.getElementById('result').style.display='block';
@@ -964,4 +1001,5 @@ ${d.memo ? '\n메모: '+d.memo : ''}
   renderCrisis();
   renderAgeGender(true);
   renderHomelessSection();
+  renderUsageSummary();
 </script>
