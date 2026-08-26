@@ -95,6 +95,8 @@
 
   .disclaimer{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:.65rem;padding:.85rem 1rem;font-size:.75rem;color:var(--mut);margin-top:1.2rem;line-height:1.6}
   .disclaimer b{color:var(--ink)}
+  .anonrisk{background:var(--bad-bg);color:var(--bad);border-radius:.25rem;padding:0 .2rem;font-weight:800}
+  code{background:var(--surface-2);border:1px solid var(--line);border-radius:.35rem;padding:.05rem .3rem;font-size:.85em}
   label.check-inline{display:flex;align-items:center;gap:.5rem;font-size:.85rem;font-weight:600;margin-top:.5rem}
   @media (max-width:620px){ .grid{grid-template-columns:1fr} h1{font-size:1.35rem} }
 </style>
@@ -105,6 +107,34 @@
     <h1>이어짐 — 위기가구 긴급복지 예비판단 도우미</h1>
     <p>위기 이웃을 만나면: ① 긴급복지 예비판단 → ② 지금 줄 수 있는 긴급 자체지원 → ③ 다음 단계 연계 안내 → ④ 사유서 초안까지 한 번에 만들어 주는 상담원용 도구입니다.</p>
   </header>
+
+  <div class="card" id="anonCard">
+    <div class="step" style="cursor:pointer;margin-bottom:0" onclick="toggleAnon()"><b>0</b> 가명화 도우미 — 녹음·인터뷰 기록에서 개인정보 지우기<span id="anonToggle" style="margin-left:auto;font-weight:800;color:var(--accent-ink)">열기 ▾</span></div>
+    <div id="anonBody" style="display:none;margin-top:1rem">
+      <div class="note" style="margin-bottom:.8rem">현장 녹음을 텍스트로 옮긴 원문에서 <b>실명·주민번호·전화·주소</b> 등을 지운 뒤, 정리용 외부 AI나 이어짐 기록에 넣기 위한 도구입니다. <b>모든 처리는 이 기기 안(오프라인)</b>에서만 이뤄지고 어디에도 전송·저장하지 않습니다.</div>
+
+      <div class="field"><span class="lab">① 녹음/인터뷰 원문 붙여넣기</span>
+        <textarea id="anonInput" rows="6" placeholder="STT(음성→텍스트) 결과를 여기에 붙여넣으세요." oninput="runAnon()"></textarea>
+      </div>
+
+      <div class="field"><span class="lab">② 실명·지명·시설명 → 바꿀 이름 (한 줄에 하나)</span>
+        <span class="hint">형식: <b>원래말=라벨</b> (라벨 생략 시 자동 번호). 예: <code>김영수=대상자</code> · <code>박철호=가해자</code> · <code>작전동=[비공개]</code></span>
+        <textarea id="anonNames" rows="3" placeholder="김영수=대상자&#10;박철호=가해자&#10;작전동=[비공개]" oninput="runAnon()"></textarea>
+      </div>
+
+      <label class="check-inline"><input type="checkbox" id="anonSix" checked onchange="runAnon()"/> 6자리 숫자(생년월일 앞자리 등)도 가리기</label>
+
+      <div class="field" style="margin-top:.6rem"><span class="lab">③ 가명화 결과 <span class="hint" style="display:inline">— <b style="color:var(--bad)">빨간 표시</b>는 남아있을 수 있는 정보이니 사람이 직접 확인·수정하세요</span></span>
+        <div id="anonOutput" class="doc" style="min-height:5rem"></div>
+      </div>
+      <div class="note" id="anonStats"></div>
+      <div class="btnrow">
+        <button class="btn small" onclick="copyAnon()">가명 텍스트 복사</button>
+        <button class="btn small secondary" onclick="clearAnon()">지우기</button>
+      </div>
+      <div class="disclaimer" style="margin-top:.8rem">⚠️ 자동 가리기는 <b>보조 도구</b>입니다. 사람 이름·주소는 놓칠 수 있으니 <b>외부 AI에 넣기 전 반드시 결과를 눈으로 확인</b>하세요. 가장 안전한 방법은 애초에 <b>가명으로만 기록</b>하는 것입니다.</div>
+    </div>
+  </div>
 
   <div class="card">
     <div class="step"><b>1</b> 위기가구 정보 입력</div>
@@ -400,6 +430,63 @@
   function saveTime(t){ try{ localStorage.setItem('ieojim_time_stats_v1', JSON.stringify(t)); }catch(e){} }
   function recordProcessingTime(ms){ const t=loadTime(); t.sum+=ms; t.count++; t.last=ms; saveTime(t); }
   function fmtDur(ms){ const s=Math.max(0,Math.round(ms/1000)); const m=Math.floor(s/60); const r=s%60; return (m>0? m+'분 ':'')+r+'초'; }
+
+  // ---------- 가명화 도우미(오프라인, 전송·저장 없음) ----------
+  let lastAnonText = '';
+  function toggleAnon(){
+    const b=document.getElementById('anonBody'), t=document.getElementById('anonToggle');
+    const open = b.style.display==='none';
+    b.style.display = open ? 'block' : 'none';
+    t.textContent = open ? '닫기 ▴' : '열기 ▾';
+  }
+  function escRe(s){ return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
+  function escHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function runAnon(){
+    let text = document.getElementById('anonInput').value || '';
+    if(!text.trim()){ lastAnonText=''; document.getElementById('anonOutput').innerHTML=''; document.getElementById('anonStats').textContent=''; return; }
+    let nameCount = 0, maskCount = 0;
+    // ② 실명·지명 목록 치환(사용자 지정)
+    const lines = (document.getElementById('anonNames').value||'').split(/\n/);
+    let auto = 0;
+    lines.forEach(function(line){
+      let orig = line.trim(), label = '';
+      if(!orig) return;
+      const eq = orig.indexOf('=');
+      if(eq>=0){ label = orig.slice(eq+1).trim(); orig = orig.slice(0,eq).trim(); }
+      if(!orig) return;
+      if(!label){ auto++; label = '[성명'+auto+']'; }
+      const re = new RegExp(escRe(orig),'g');
+      const before = text;
+      text = text.replace(re, label);
+      if(text!==before){ nameCount += (before.match(re)||[]).length; }
+    });
+    // ① 형식이 확실한 항목 자동 마스킹
+    const rules = [
+      [/[\w.+-]+@[\w-]+\.[\w.-]+/g, '[이메일]'],
+      [/\d{6}[-\s]?[1-4]\d{6}/g, '[주민번호]'],
+      [/\b\d{4}[-\s]\d{4}[-\s]\d{4}[-\s]\d{4}\b/g, '[카드번호]'],
+      [/01[016789][-\s.]?\d{3,4}[-\s.]?\d{4}/g, '[전화번호]'],
+      [/0\d{1,2}[-\s.]?\d{3,4}[-\s.]?\d{4}/g, '[전화번호]'],
+      [/\d{10,}/g, '[번호]']
+    ];
+    rules.forEach(function(r){ const m = text.match(r[0]); if(m){ maskCount += m.length; text = text.replace(r[0], r[1]); } });
+    if(document.getElementById('anonSix').checked){ const m=text.match(/\b\d{6}\b/g); if(m){ maskCount+=m.length; text=text.replace(/\b\d{6}\b/g,'[번호]'); } }
+    lastAnonText = text;
+    // ③ 남은 위험 하이라이트(주소패턴·4자리+ 숫자) — 사람 확인용
+    let riskCount = 0;
+    let html = escHtml(text).replace(/([가-힣]{2,}(?:동|읍|면|리|로|길)\s*\d+)|(\d+\s*(?:번지|호))|(\d+-\d+)|(\d{4,})/g, function(m){ riskCount++; return '<span class="anonrisk">'+m+'</span>'; });
+    document.getElementById('anonOutput').innerHTML = html;
+    document.getElementById('anonStats').textContent = '치환 '+(nameCount+maskCount)+'건(실명·지명 '+nameCount+' · 자동 '+maskCount+') · 사람 확인 필요 '+riskCount+'곳';
+  }
+  function copyAnon(){
+    if(!lastAnonText){ alert('먼저 원문을 붙여넣어 주세요.'); return; }
+    const done=function(){ const b=event&&event.target; if(b){ const t=b.textContent; b.textContent='복사됨 ✓'; setTimeout(function(){b.textContent=t;},1500); } };
+    if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(lastAnonText).then(done,function(){ anonFallbackCopy(); }); }
+    else anonFallbackCopy();
+  }
+  function anonFallbackCopy(){ const ta=document.createElement('textarea'); ta.value=lastAnonText; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy');}catch(e){} document.body.removeChild(ta); }
+  function clearAnon(){ document.getElementById('anonInput').value=''; document.getElementById('anonNames').value=''; lastAnonText=''; document.getElementById('anonOutput').innerHTML=''; document.getElementById('anonStats').textContent=''; }
+
   function getCrisisOrder(targetType){
     const stats = loadStats();
     const preset = CRISIS_PRESET[targetType] || CRISIS_PRESET['기타'];
@@ -1011,5 +1098,5 @@ ${d.memo ? '\n메모: '+d.memo : ''}
   renderHomelessSection();
   renderUsageSummary();
   // 옵션2: 첫 입력 시 처리시간 측정 시작(판정 시 종료)
-  document.addEventListener('input', function(){ if(caseStartTime===null) caseStartTime=Date.now(); }, true);
+  document.addEventListener('input', function(e){ if(e.target.closest && e.target.closest('#anonCard')) return; if(caseStartTime===null) caseStartTime=Date.now(); }, true);
 </script>
