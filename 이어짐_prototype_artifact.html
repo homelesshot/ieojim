@@ -2,6 +2,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <meta name="robots" content="noindex, nofollow"/>
 <title>이어짐 — 위기가구 긴급복지 예비판단 도우미</title>
+<!--
+  ⚠️ 이 파일을 코드로 수정하는 모든 AI/개발자에게: 어떤 수정이든(작은 것 포함) 반드시
+  본문 하단 스크립트의 `UPDATE_LOG` 배열에 오늘 날짜로 변경 내역을 한 줄씩 추가해 주세요.
+  협업자가 우측 상단 "업데이트 노트" 버튼으로 변경 이력을 확인하는 유일한 방법입니다.
+  같은 날짜에 여러 번 수정하면 그 날짜 항목 배열(items)에 계속 이어서 추가하면 됩니다.
+-->
 <style>
   :root{
     --bg:#f5f7f9; --surface:#ffffff; --surface-2:#fafbfc;
@@ -99,7 +105,20 @@
   code{background:var(--surface-2);border:1px solid var(--line);border-radius:.35rem;padding:.05rem .3rem;font-size:.85em}
   label.check-inline{display:flex;align-items:center;gap:.5rem;font-size:.85rem;font-weight:600;margin-top:.5rem}
   @media (max-width:620px){ .grid{grid-template-columns:1fr} h1{font-size:1.35rem} }
+
+  .updateLogBtn{position:fixed;top:1rem;right:1rem;z-index:200;background:var(--surface);color:var(--accent-ink);border:1.5px solid var(--line);border-radius:.7rem;padding:.55rem .85rem;font-size:.82rem;font-weight:700;cursor:pointer;box-shadow:0 1px 2px rgba(20,24,40,.08);font-family:inherit}
+  .updateLogBtn:hover{border-color:var(--accent)}
+  .updateLogPanel{position:fixed;top:3.6rem;right:1rem;z-index:200;width:min(22rem,calc(100vw - 2rem));max-height:70vh;overflow-y:auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:0 8px 28px rgba(20,24,40,.18);padding:1rem 1.1rem;display:none}
+  .updateLogPanel h2{font-size:.95rem;margin:0 0 .7rem;color:var(--ink)}
+  .updateLogPanel .entry{margin-bottom:.9rem}
+  .updateLogPanel .entry:last-child{margin-bottom:0}
+  .updateLogPanel .d{font-size:.72rem;font-weight:800;color:var(--accent-ink);background:var(--accent-soft);display:inline-block;padding:.2rem .55rem;border-radius:20px;margin-bottom:.4rem}
+  .updateLogPanel ul{margin:.2rem 0 0;padding-left:1.1rem}
+  .updateLogPanel li{font-size:.82rem;color:var(--ink);margin-bottom:.3rem;line-height:1.55}
 </style>
+
+<button class="updateLogBtn" id="updateLogBtn" onclick="toggleUpdateLog()" type="button">📋 업데이트 노트</button>
+<div class="updateLogPanel" id="updateLogPanel" onclick="event.stopPropagation()"></div>
 
 <div class="wrap">
   <header>
@@ -536,6 +555,59 @@
     b.style.display = open ? 'block' : 'none';
     t.textContent = open ? '닫기 ▴' : '열기 ▾';
   }
+  // ===== 업데이트 노트(협업자 확인용) =====
+  // ⚠️ 이 도구를 수정하는 모든 AI/개발자: 수정할 때마다 오늘 날짜로 반드시 항목을 추가하세요.
+  //    - 오늘 날짜 항목이 이미 있으면 그 items 배열 끝에 이어서 추가(자동으로 순번이 매겨짐)
+  //    - 오늘 날짜 항목이 없으면 배열 맨 앞에 새 날짜로 추가({ date:'YYYY-MM-DD', items:[...] })
+  const UPDATE_LOG = [
+    { date:'2026-08-27', items:[
+      '가명화 도우미 결과를 바탕으로 AI(Google Gemini, 무료 API)가 상담일지 초안을 자동으로 작성하는 기능 추가',
+      'AI가 만든 초안을 정식 한글파일(.hwpx)로 다운로드하는 기능 추가 (기존 표 형식 템플릿 재사용, 여러 줄 텍스트도 문단으로 정상 분리)',
+      'API 키 없이 Claude·ChatGPT 무료 앱에 수동으로 붙여넣을 수 있는 "지시문 만들기" 대체 경로 추가 (한도 초과·오류 시 자동 안내)',
+      'Gemini API 키를 주소(URL) 대신 보안 헤더로 전송하도록 개선 — 방문기록이나 요청 주소에 키가 남지 않음',
+      'API 키 저장 카드의 접기/펼치기 버튼 디자인을 다른 카드와 통일',
+      '우측 상단 "업데이트 노트" 팝업 추가',
+      '업데이트 노트를 날짜별 아코디언 방식으로 개선 — 날짜를 누르면 그날의 항목이 순번과 함께 펼쳐짐',
+      '업데이트 노트 안에서 날짜를 눌렀을 때 팝업 전체가 같이 닫혀버리던 오류 수정 (내용 다시 그릴 때 클릭 이벤트가 바깥 클릭으로 잘못 인식되던 문제)'
+    ]}
+  ];
+  let updateLogOpenDate = UPDATE_LOG.length ? UPDATE_LOG[0].date : null;
+  function toggleUpdateLogDate(date){
+    updateLogOpenDate = (updateLogOpenDate===date) ? null : date;
+    renderUpdateLog();
+  }
+  function renderUpdateLog(){
+    const panel = document.getElementById('updateLogPanel');
+    if(!panel) return;
+    let html = '<h2>업데이트 노트</h2>';
+    UPDATE_LOG.forEach(function(entry){
+      const open = updateLogOpenDate===entry.date;
+      html += '<div class="entry"><div class="d" style="cursor:pointer" onclick="event.stopPropagation();toggleUpdateLogDate(\''+entry.date+'\')">'+entry.date+' · '+entry.items.length+'건 '+(open?'▴':'▾')+'</div>';
+      if(open){
+        html += '<ul>';
+        entry.items.forEach(function(it,i){ html += '<li>'+(i+1)+'. '+escHtml(it)+'</li>'; });
+        html += '</ul>';
+      }
+      html += '</div>';
+    });
+    panel.innerHTML = html;
+  }
+  function toggleUpdateLog(){
+    const panel = document.getElementById('updateLogPanel');
+    const open = panel.style.display==='none' || !panel.style.display;
+    if(open) renderUpdateLog();
+    panel.style.display = open ? 'block' : 'none';
+  }
+  document.addEventListener('click', function(e){
+    const panel = document.getElementById('updateLogPanel'), btn = document.getElementById('updateLogBtn');
+    if(!panel || panel.style.display!=='block') return;
+    if(panel.contains(e.target) || (btn && btn.contains(e.target))) return;
+    panel.style.display='none';
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key==='Escape'){ const panel=document.getElementById('updateLogPanel'); if(panel) panel.style.display='none'; }
+  });
+
   function toggleAiFallback(){
     const b=document.getElementById('aiFallbackBody'), t=document.getElementById('aiFallbackToggle');
     const open = b.style.display==='none';
