@@ -571,7 +571,8 @@
       '업데이트 노트 안에서 날짜를 눌렀을 때 팝업 전체가 같이 닫혀버리던 오류 수정 (내용 다시 그릴 때 클릭 이벤트가 바깥 클릭으로 잘못 인식되던 문제)',
       'AI 초안 요청이 "Failed to fetch" 오류로 실패하던 문제 수정 — x-goog-api-key 헤더 방식이 브라우저 CORS 사전 확인에서 막히는 것으로 확인되어, 구글 공식 예제와 동일한 URL 쿼리 방식(?key=)으로 되돌림',
       '⚠ 보안 참고: 위 되돌림으로 API 키가 다시 요청 주소(URL)에 노출됩니다 — 이 컴퓨터의 브라우저 방문기록·개발자 도구에서 키가 보일 수 있음(전송 중 HTTPS 암호화로 외부 가로채기는 안 됨, "이 컴퓨터에 접근 가능한 사람"으로 위험 범위 한정). 새로 생긴 위험이 아니라 헤더 방식 도입 전 원래 상태로 되돌아간 것.',
-      'AI 요청 실패 시 구글 서버가 알려주는 정확한 오류 사유가 함께 표시되도록 개선'
+      'AI 요청 실패 시 구글 서버가 알려주는 정확한 오류 사유가 함께 표시되도록 개선',
+      'AI 초안 모델을 gemini-2.5-flash → gemini-3.6-flash로 변경 (구글이 2.5-flash를 신규 사용자에게 더 이상 제공하지 않는다고 공지, HTTP 404로 확인됨)'
     ]}
   ];
   let updateLogOpenDate = UPDATE_LOG.length ? UPDATE_LOG[0].date : null;
@@ -669,7 +670,7 @@
     try{
       // 참고: x-goog-api-key 같은 커스텀 헤더는 브라우저의 CORS 사전 확인(preflight)에서
       // 막힐 수 있어(Failed to fetch), 구글 공식 예제와 동일하게 URL 쿼리로 키를 전달합니다.
-      const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+encodeURIComponent(key), {
+      const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key='+encodeURIComponent(key), {
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body: JSON.stringify({contents:[{parts:[{text:prompt}]}]})
