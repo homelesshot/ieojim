@@ -741,26 +741,32 @@
   };
   var URGENCY_KEYWORDS = { today:['오늘','지금','당장','즉시'], week:['이번주','이번 주'], month:['이번달','이번 달'] };
 
-  function applyFreeTextHints(txt){
-    if(!txt) return;
-    var matched = [];
+  function matchFreeText(txt){
+    var matched = [], urgency = null;
+    if(!txt) return {matched:matched, urgency:urgency};
     Object.keys(CRISIS_KEYWORDS).forEach(function(v){
       var hit = CRISIS_KEYWORDS[v].some(function(kw){ return txt.indexOf(kw) !== -1; });
-      if(hit){
-        var box = document.querySelector('#crisis input[value="'+v+'"]');
-        if(box){ box.checked = true; matched.push(v); }
-      }
+      if(hit) matched.push(v);
     });
     Object.keys(URGENCY_KEYWORDS).forEach(function(u){
       var hit = URGENCY_KEYWORDS[u].some(function(kw){ return txt.indexOf(kw) !== -1; });
-      if(hit){ var sel = document.getElementById('urgency'); if(sel) sel.value = u; }
+      if(hit) urgency = u;
     });
-    var note = document.getElementById('freeTextNote');
-    if(note){
-      note.innerHTML = matched.length
-        ? '💬 입력하신 내용에서 <b>'+matched.map(function(v){var it=CRISIS_ALL.find(function(c){return c.v===v;}); return it?it.l:v;}).join(', ')+'</b>를 미리 체크해드렸어요. 맞는지 확인하고 필요하면 수정해주세요.'
-        : '💬 입력하신 내용에서 자동으로 매칭되는 위기사유를 찾지 못했어요. 아래에서 직접 선택해주세요. (원문은 4단계 메모에 남겨둘게요)';
-    }
+    return {matched:matched, urgency:urgency};
+  }
+
+  function freeTextHintText(matched){
+    return matched.length
+      ? '💬 입력하신 내용에서 <b>'+matched.map(function(v){var it=CRISIS_ALL.find(function(c){return c.v===v;}); return it?it.l:v;}).join(', ')+'</b>를 미리 체크해드렸어요. 맞는지 확인하고 필요하면 수정해주세요.'
+      : '💬 입력하신 내용에서 자동으로 매칭되는 위기사유를 찾지 못했어요. 아래에서 직접 선택해주세요. (원문은 4단계 메모에 남겨둘게요)';
+  }
+
+  function applyFreeTextChecks(matched, urgency){
+    matched.forEach(function(v){
+      var box = document.querySelector('#crisis input[value="'+v+'"]');
+      if(box) box.checked = true;
+    });
+    if(urgency){ var sel = document.getElementById('urgency'); if(sel) sel.value = urgency; }
   }
 
   /* 보내기 → 단계 흐름 (실제 판정엔진 연동) */
@@ -769,11 +775,13 @@
     if(!txt){ el.focus(); return; }
     hideWelcome(); userMsg(txt); el.value=''; autogrow(el);
     lastFreeText = txt;
+    var hint = matchFreeText(txt);
     botTyping(function(){
       var t=document.getElementById('targetType').value;
-      botCard('① 위기사유·긴급성', '<div style="font-size:.85rem;color:var(--mut);margin-bottom:10px">긴급성과 해당하는 위기사유를 선택해 주세요.</div><div class="note" id="freeTextNote" style="margin-bottom:8px"></div>' + TPL_CRISIS, '다음 ▸', ()=>goHousehold());
+      botMsgHTML(freeTextHintText(hint.matched));
+      botCard('① 위기사유·긴급성', '<div style="font-size:.85rem;color:var(--mut);margin-bottom:10px">긴급성과 해당하는 위기사유를 선택해 주세요.</div>' + TPL_CRISIS, '다음 ▸', ()=>goHousehold());
       renderCrisis();
-      applyFreeTextHints(lastFreeText);
+      applyFreeTextChecks(hint.matched, hint.urgency);
     });
   }
 
@@ -849,6 +857,7 @@
   function userMsg(t){ addMsg('user','<div class="bubble"></div>', t); }
   function userMsgHTML(h){ var w=document.createElement('div'); w.className='msg user'; w.innerHTML='<div class="bubble">'+h+'</div>'; chat.appendChild(w); scroll(); }
   function addMsg(cls, tpl, text){ var w=document.createElement('div'); w.className='msg '+cls; w.innerHTML=(cls==='bot'?'<div class="av">'+LOGO_HTML+'</div>':'')+tpl; w.querySelector('.bubble').textContent=text; chat.appendChild(w); scroll(); }
+  function botMsgHTML(html){ var w=document.createElement('div'); w.className='msg bot'; w.innerHTML='<div class="av">'+LOGO_HTML+'</div><div class="bubble">'+html+'</div>'; chat.appendChild(w); scroll(); }
   function botCard(label, html, btnText, onNext, stepNum){
     var w=document.createElement('div'); w.className='msg bot';
     var inner='<div class="av">'+LOGO_HTML+'</div><div class="card">'+(label?'<div class="lab">'+label+'</div>':'')+html;
