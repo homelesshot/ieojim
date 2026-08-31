@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<meta name="robots" content="noindex, nofollow"/>
+<title>이어짐 — 챗봇형 UI 시안</title>
+<style>
+  :root{
+    --bg:#f3f6f7; --surface:#ffffff; --surface-2:#f6f9f9; --side:#0f2a33;
+    --ink:#15242a; --mut:#5d6f75; --line:#e0e7e9;
+    --accent:#147089; --accent-ink:#0b4658; --accent-soft:#e3eff2;
+    --user:#147089; --user-ink:#ffffff;
+    --ok:#1f7a4d; --ok-bg:#e7f4ec; --radius:16px;
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --bg:#0d1418; --surface:#17222700; --surface:#172227; --surface-2:#131c20; --side:#0a1a20;
+    --ink:#e8eff1; --mut:#93a3a7; --line:#26343a; --accent:#48b0c9; --accent-ink:#bfe7f0; --accent-soft:#123039;
+    --user:#2b7d94; --user-ink:#ffffff; --ok:#5cc98a; --ok-bg:#123021;
+  }}
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased}
+  .app{display:flex;height:100dvh;overflow:hidden}
+
+  /* ---- 사이드바 ---- */
+  .side{width:264px;flex:none;background:var(--side);color:#dbe7ea;display:flex;flex-direction:column;transition:margin-left .22s ease;padding:14px 12px}
+  .side.closed{margin-left:-264px}
+  .side .brand{display:flex;align-items:center;gap:9px;font-weight:800;font-size:1.05rem;color:#fff;padding:8px 8px 14px}
+  .side .brand .logo{width:26px;height:26px;border-radius:8px;background:var(--accent);display:grid;place-items:center;font-size:.9rem}
+  .side .newbtn{display:flex;align-items:center;gap:8px;background:var(--accent);color:#fff;border:0;border-radius:11px;padding:11px 12px;font-size:.92rem;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:14px}
+  .side .grp{font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:#7f959b;margin:12px 8px 6px;font-weight:700}
+  .side .item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;color:#cddbde;font-size:.9rem;cursor:pointer;border:0;background:none;width:100%;text-align:left;font-family:inherit}
+  .side .item:hover{background:rgba(255,255,255,.07)}
+  .side .item .ic{width:18px;text-align:center;opacity:.85}
+  .side .foot{margin-top:auto;font-size:.72rem;color:#6f868c;padding:10px 8px;border-top:1px solid rgba(255,255,255,.08)}
+
+  /* ---- 메인 ---- */
+  .main{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--bg)}
+  .top{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--surface)}
+  .iconbtn{background:none;border:0;cursor:pointer;color:var(--ink);width:38px;height:38px;border-radius:10px;font-size:1.1rem;display:grid;place-items:center}
+  .iconbtn:hover{background:var(--surface-2)}
+  .top .title{font-weight:800;font-size:1rem}
+  .top .sub{font-size:.75rem;color:var(--mut);font-weight:500}
+  .top .steps{margin-left:auto;display:flex;gap:5px}
+  .top .steps .s{width:26px;height:6px;border-radius:6px;background:var(--line)}
+  .top .steps .s.on{background:var(--accent)}
+  .top .steps .s.done{background:var(--ok)}
+
+  /* ---- 대화 영역 ---- */
+  .chat{flex:1;overflow-y:auto;padding:22px 16px 12px;display:flex;flex-direction:column;gap:14px}
+  .chat-inner{width:100%;max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+  .welcome{text-align:center;color:var(--mut);margin:6vh 0 2vh}
+  .welcome h1{color:var(--ink);font-size:1.5rem;margin:0 0 6px;font-weight:800}
+  .welcome p{margin:0;font-size:.95rem}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:18px}
+  .chips .c{background:var(--surface);border:1.5px solid var(--line);border-radius:20px;padding:8px 14px;font-size:.88rem;cursor:pointer;color:var(--ink);font-family:inherit}
+  .chips .c:hover{border-color:var(--accent);color:var(--accent-ink);background:var(--accent-soft)}
+
+  .msg{display:flex;gap:10px;max-width:100%}
+  .msg.user{justify-content:flex-end}
+  .bubble{padding:11px 15px;border-radius:15px;font-size:.94rem;max-width:80%;white-space:pre-wrap;word-break:break-word}
+  .msg.user .bubble{background:var(--user);color:var(--user-ink);border-bottom-right-radius:5px}
+  .msg.bot .bubble{background:var(--surface);border:1px solid var(--line);border-bottom-left-radius:5px}
+  .msg.bot .av{width:30px;height:30px;flex:none;border-radius:9px;background:var(--accent);display:grid;place-items:center;color:#fff;font-size:.8rem;font-weight:800}
+
+  /* 단계 카드 */
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;max-width:80%}
+  .card .lab{font-size:.7rem;font-weight:800;letter-spacing:.04em;color:var(--accent-ink);background:var(--accent-soft);display:inline-block;padding:3px 9px;border-radius:20px;margin-bottom:10px}
+  .card h3{margin:0 0 8px;font-size:1rem}
+  .card .row{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:8px 0}
+  .card label{font-size:.78rem;color:var(--mut);display:block;margin-bottom:3px}
+  .card input,.card textarea{width:100%;padding:9px 10px;border:1.5px solid var(--line);border-radius:9px;background:var(--surface-2);color:var(--ink);font-family:inherit;font-size:.9rem}
+  .verdict{background:var(--ok-bg);border:1px solid var(--ok);color:var(--ok);border-radius:11px;padding:11px 13px;font-weight:700;margin:6px 0}
+  .card ul{margin:6px 0 0;padding-left:18px;font-size:.9rem} .card li{margin:3px 0}
+  .nextbtn{background:var(--accent);color:#fff;border:0;border-radius:10px;padding:10px 16px;font-size:.9rem;font-weight:700;cursor:pointer;margin-top:12px;font-family:inherit}
+  .nextbtn.ghost{background:var(--accent-soft);color:var(--accent-ink)}
+
+  /* ---- 입력 바 ---- */
+  .composer{padding:10px 16px 16px;background:var(--bg)}
+  .composer-inner{max-width:760px;margin:0 auto;background:var(--surface);border:1.5px solid var(--line);border-radius:22px;padding:8px 8px 8px 10px;box-shadow:0 2px 10px rgba(16,32,38,.05)}
+  .typerow{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+  .typesel{position:relative}
+  .typesel select{appearance:none;-webkit-appearance:none;background:var(--accent-soft);color:var(--accent-ink);border:0;border-radius:16px;padding:7px 30px 7px 13px;font-size:.83rem;font-weight:700;font-family:inherit;cursor:pointer}
+  .typesel::after{content:"▾";position:absolute;right:12px;top:7px;color:var(--accent-ink);pointer-events:none;font-size:.75rem}
+  .typehint{font-size:.75rem;color:var(--mut)}
+  .inrow{display:flex;align-items:flex-end;gap:6px}
+  .inrow textarea{flex:1;border:0;background:none;resize:none;font-family:inherit;font-size:.98rem;color:var(--ink);padding:8px 6px;max-height:120px;line-height:1.4}
+  .inrow textarea:focus{outline:none}
+  .cbtn{width:40px;height:40px;flex:none;border-radius:50%;border:0;cursor:pointer;display:grid;place-items:center;font-size:1.1rem;background:var(--surface-2);color:var(--ink)}
+  .cbtn:hover{background:var(--accent-soft);color:var(--accent-ink)}
+  .cbtn.send{background:var(--accent);color:#fff}
+  .cbtn.mic.rec{background:#c0392b;color:#fff;animation:pulse 1s infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(192,57,43,.5)}50%{box-shadow:0 0 0 7px rgba(192,57,43,0)}}
+  .plusmenu{position:relative}
+  .menu{position:absolute;bottom:48px;left:0;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 24px rgba(16,32,38,.18);padding:6px;display:none;min-width:180px;z-index:20}
+  .menu.open{display:block}
+  .menu button{display:flex;align-items:center;gap:9px;width:100%;background:none;border:0;padding:9px 11px;border-radius:8px;font-size:.88rem;color:var(--ink);cursor:pointer;font-family:inherit;text-align:left}
+  .menu button:hover{background:var(--surface-2)}
+  .rectimer{font-size:.8rem;color:#c0392b;font-weight:700;margin-right:2px;display:none}
+  .rectimer.on{display:inline}
+  .foothint{max-width:760px;margin:7px auto 0;text-align:center;font-size:.72rem;color:var(--mut)}
+  .backdrop{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;z-index:5}
+  @media (max-width:760px){
+    .side{position:fixed;z-index:10;height:100%}
+    .side.closed{margin-left:-264px}
+    .backdrop.on{display:block}
+    .bubble,.card{max-width:90%}
+    .card .row{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- 사이드바: 나머지 기능 숨김 -->
+  <aside class="side" id="side">
+    <div class="brand"><span class="logo">이</span> 이어짐</div>
+    <button class="newbtn" onclick="resetChat()"><span>＋</span> 새 상담 시작</button>
+    <div class="grp">기능</div>
+    <button class="item" onclick="sideInfo('긴급복지 예비판단')"><span class="ic">🧮</span> 긴급복지 판단</button>
+    <button class="item" onclick="sideInfo('가명화 도우미')"><span class="ic">🔒</span> 가명화 도우미</button>
+    <button class="item" onclick="sideInfo('문서(사유서) 생성')"><span class="ic">📄</span> 사유서·문서</button>
+    <button class="item" onclick="sideInfo('사용 현황·변화측정')"><span class="ic">📊</span> 사용 현황</button>
+    <div class="grp">기록</div>
+    <button class="item" onclick="sideInfo('최근 상담')"><span class="ic">🗂️</span> 최근 상담</button>
+    <button class="item" onclick="sideInfo('설정')"><span class="ic">⚙️</span> 설정</button>
+    <div class="foot">UI 시안 · 실제 판정 로직은 통합 시 연결<br>본선 데모용 · 가상 데이터</div>
+  </aside>
+  <div class="backdrop" id="backdrop" onclick="toggleSide()"></div>
+
+  <!-- 메인 -->
+  <main class="main">
+    <div class="top">
+      <button class="iconbtn" onclick="toggleSide()" title="메뉴">☰</button>
+      <div>
+        <div class="title">이어짐</div>
+        <div class="sub">위기가구 긴급지원 상담 도우미</div>
+      </div>
+      <div class="steps" id="steps">
+        <div class="s on" title="① 대상·상황"></div>
+        <div class="s" title="② 소득·재산"></div>
+        <div class="s" title="③ 예비판단"></div>
+        <div class="s" title="④ 지원·연계"></div>
+        <div class="s" title="⑤ 사유서"></div>
+      </div>
+    </div>
+
+    <div class="chat" id="chat">
+      <div class="chat-inner" id="chatInner">
+        <div class="welcome" id="welcome">
+          <h1>어떤 이웃을 만나셨나요?</h1>
+          <p>대상자 유형을 고르고, 상황을 <b>말하거나(🎤) 입력</b>하면<br>긴급지원 판단부터 사유서까지 단계별로 도와드려요.</p>
+          <div class="chips">
+            <div class="c" onclick="quickPick('거리 노숙인')">거리 노숙인</div>
+            <div class="c" onclick="quickPick('쪽방 주민')">쪽방 주민</div>
+            <div class="c" onclick="quickPick('가정폭력 피해자')">가정폭력 피해자</div>
+            <div class="c" onclick="quickPick('취약노인')">취약노인</div>
+            <div class="c" onclick="quickPick('외국인노동자')">외국인노동자</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 입력 바 -->
+    <div class="composer">
+      <div class="composer-inner">
+        <div class="typerow">
+          <div class="typesel">
+            <select id="targetType" onchange="syncType()">
+              <option value="거리 노숙인">거리 노숙인</option>
+              <option value="쪽방 주민">쪽방 주민</option>
+              <option value="가정폭력 피해자">가정폭력 피해자</option>
+              <option value="취약노인">취약노인</option>
+              <option value="외국인노동자">외국인노동자</option>
+              <option value="위기가구(일반)">위기가구(일반)</option>
+              <option value="기타">기타</option>
+            </select>
+          </div>
+          <span class="typehint">대상자 유형을 선택하세요</span>
+          <span class="rectimer" id="recTimer">● 00:00</span>
+        </div>
+        <div class="inrow">
+          <div class="plusmenu">
+            <button class="cbtn" onclick="toggleMenu(event)" title="추가">＋</button>
+            <div class="menu" id="menu">
+              <button onclick="pickFile()">🎧 녹음 파일 올리기</button>
+              <button onclick="sideInfo('사진·서류 첨부')">🖼️ 사진·서류 첨부</button>
+            </div>
+            <input type="file" id="fileIn" accept="audio/*" style="display:none" onchange="onFile(this)">
+          </div>
+          <textarea id="input" rows="1" placeholder="상황을 입력하거나, 오른쪽 🎤로 녹음하세요…" oninput="autogrow(this)" onkeydown="onKey(event)"></textarea>
+          <button class="cbtn mic" id="micBtn" onclick="toggleRec()" title="녹음">🎤</button>
+          <button class="cbtn send" onclick="send()" title="보내기">↑</button>
+        </div>
+      </div>
+      <div class="foothint">🎤 녹음은 이 기기에서만 처리됩니다 · 실명 대신 <b>가명</b>으로 · UI 시안</div>
+    </div>
+  </main>
+</div>
+
+<script>
+  var step = 0;                 // 진행 단계
+  var chat = document.getElementById('chatInner');
+  var welcome = document.getElementById('welcome');
+  var media = {rec:null, chunks:[], timer:null, secs:0};
+
+  /* 사이드바 */
+  function toggleSide(){
+    var s=document.getElementById('side'), b=document.getElementById('backdrop');
+    s.classList.toggle('closed');
+    b.classList.toggle('on', !s.classList.contains('closed') && window.innerWidth<=760);
+  }
+  function sideInfo(name){ botCard('사이드바 · '+name, '이 기능은 메인 화면을 단순하게 유지하려고 <b>사이드바에 숨겨</b> 두었습니다. 실제 통합 시 여기서 '+name+' 화면이 열립니다. <span style="color:var(--mut)">(UI 시안)</span>', null); if(window.innerWidth<=760 && !document.getElementById('side').classList.contains('closed')) toggleSide(); }
+
+  /* 유형 */
+  function quickPick(t){ document.getElementById('targetType').value=t; syncType(); document.getElementById('input').focus(); }
+  function syncType(){ /* 선택된 유형 반영(시안) */ }
+
+  /* 입력창 */
+  function autogrow(el){ el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,120)+'px'; }
+  function onKey(e){ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); send(); } }
+  function toggleMenu(e){ e.stopPropagation(); document.getElementById('menu').classList.toggle('open'); }
+  document.addEventListener('click', function(){ document.getElementById('menu').classList.remove('open'); });
+
+  /* + 파일 올리기 */
+  function pickFile(){ document.getElementById('fileIn').click(); }
+  function onFile(inp){
+    var f=inp.files[0]; if(!f) return;
+    hideWelcome();
+    userMsg('🎧 녹음 파일 첨부: '+f.name+' ('+Math.round(f.size/1024)+'KB)');
+    botTyping(function(){ botCard('음성 → 텍스트 변환(예정)', '올려주신 녹음을 <b>Whisper(STT)</b>로 자동 변환하는 기능이 여기 붙습니다. 변환된 텍스트는 <b>가명화</b> 후 다음 단계로 넘어갑니다. <span style="color:var(--mut)">(시안 — STT 연결 예정)</span>', '입력한 것으로 계속 ▸', ()=>gotoStep2()); });
+    inp.value='';
+  }
+
+  /* 🎤 녹음 */
+  async function toggleRec(){
+    var btn=document.getElementById('micBtn');
+    if(media.rec && media.rec.state==='recording'){ media.rec.stop(); return; }
+    try{
+      var stream=await navigator.mediaDevices.getUserMedia({audio:true});
+      media.chunks=[]; media.rec=new MediaRecorder(stream);
+      media.rec.ondataavailable=e=>{ if(e.data.size)media.chunks.push(e.data); };
+      media.rec.onstop=()=>{
+        clearInterval(media.timer); document.getElementById('recTimer').classList.remove('on');
+        btn.classList.remove('rec'); stream.getTracks().forEach(t=>t.stop());
+        var blob=new Blob(media.chunks,{type:'audio/webm'}); var url=URL.createObjectURL(blob);
+        hideWelcome();
+        userMsgHTML('🎤 녹음 완료 ('+fmt(media.secs)+')<br><audio controls src="'+url+'" style="margin-top:6px;max-width:220px"></audio>');
+        botTyping(function(){ botCard('음성 → 텍스트 변환(예정)', '방금 녹음을 <b>Whisper(STT)</b>로 자동 변환하는 기능이 여기 붙습니다. 변환 텍스트는 <b>가명화</b> 후 판단으로 이어집니다. <span style="color:var(--mut)">(시안 — STT 연결 예정)</span>', '이어서 판단 ▸', ()=>gotoStep2()); });
+      };
+      media.secs=0; media.rec.start();
+      btn.classList.add('rec'); var t=document.getElementById('recTimer'); t.classList.add('on'); t.textContent='● 00:00';
+      media.timer=setInterval(()=>{ media.secs++; t.textContent='● '+fmt(media.secs); }, 1000);
+    }catch(err){
+      hideWelcome();
+      botCard('마이크 권한 필요', '녹음을 하려면 브라우저의 <b>마이크 사용 권한</b>을 허용해야 합니다. (권한 거부됨 또는 지원 안 됨)<br><span style="color:var(--mut)">대신 ＋ → 녹음 파일 올리기, 또는 아래에 직접 입력하셔도 됩니다.</span>', null);
+    }
+  }
+  function fmt(s){ var m=Math.floor(s/60), r=s%60; return (m<10?'0':'')+m+':'+(r<10?'0':'')+r; }
+
+  /* 보내기 → 단계 흐름 */
+  function send(){
+    var el=document.getElementById('input'); var txt=el.value.trim();
+    if(!txt){ el.focus(); return; }
+    hideWelcome(); userMsg(txt); el.value=''; autogrow(el);
+    botTyping(function(){
+      var t=document.getElementById('targetType').value;
+      botCard('① 대상·상황 확인', '<b>'+t+'</b> 상담을 시작합니다. 긴급복지 예비판단을 위해 <b>소득·재산</b>만 간단히 확인할게요.', null);
+      gotoStep2();
+    });
+  }
+
+  /* 단계 UI (클릭해서 넘어가기) */
+  function gotoStep2(){
+    setStep(1);
+    botCard('② 소득·재산 (대략)', formRows([['월 소득(원)','예: 330,000'],['임차보증금(원)','예: 30,000,000'],['금융재산(원)','예: 1,500,000'],['부채(원)','예: 0']]), '예비판단 하기 ▸', ()=>gotoStep3(), '2');
+  }
+  function gotoStep3(){
+    setStep(2);
+    botTyping(function(){
+      var html='<div class="verdict">✔ 긴급복지 <b>대상 가능성 있음</b> — 담당자 확인 필요</div>'
+        +'<div style="font-size:.85rem;color:var(--mut)">기준중위소득 75% 이하 + 재산 산정 결과 요건 충족(예시). 규칙엔진 판정(LLM 아님).</div>';
+      botCard('③ 예비판단 결과', html, '지원항목·연계 보기 ▸', ()=>gotoStep4(), '3');
+    });
+  }
+  function gotoStep4(){
+    setStep(3);
+    var html='<b>신청 가능(공적)</b><ul><li>긴급복지 생계지원</li><li>긴급복지 의료지원</li></ul>'
+      +'<b style="display:inline-block;margin-top:8px">지금 줄 수 있는 자체지원</b><ul><li>응급 구호물품 · 겨울 방한용품</li></ul>'
+      +'<b style="display:inline-block;margin-top:8px">다음 단계 안내</b><ul><li>주민센터 긴급복지 신청 동행</li></ul>';
+    botCard('④ 지원항목 · 연계', html, '사유서 초안 만들기 ▸', ()=>gotoStep5(), '4');
+  }
+  function gotoStep5(){
+    setStep(4);
+    botTyping(function(){
+      var html='<textarea rows="6" style="width:100%">[대상자]는 '+document.getElementById('targetType').value+'로, 주거·생계의 어려움이 확인되어 긴급복지 지원이 필요함. … (규칙엔진 결과와 상담내용으로 자동 초안 — 시안)</textarea>'
+        +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">'
+        +'<button class="nextbtn" onclick="sideInfo(\'한글(.hwpx) 다운로드\')">한글파일(.hwpx) 다운로드</button>'
+        +'<button class="nextbtn ghost" onclick="resetChat()">새 상담 시작</button></div>';
+      botCard('⑤ 사유서 초안', html, null, null, '5');
+      markDone();
+    });
+  }
+
+  /* 렌더 도우미 */
+  function hideWelcome(){ if(welcome){ welcome.remove(); welcome=null; } }
+  function userMsg(t){ addMsg('user','<div class="bubble"></div>', t); }
+  function userMsgHTML(h){ var w=document.createElement('div'); w.className='msg user'; w.innerHTML='<div class="bubble">'+h+'</div>'; chat.appendChild(w); scroll(); }
+  function addMsg(cls, tpl, text){ var w=document.createElement('div'); w.className='msg '+cls; w.innerHTML=(cls==='bot'?'<div class="av">이</div>':'')+tpl; w.querySelector('.bubble').textContent=text; chat.appendChild(w); scroll(); }
+  function botCard(label, html, btnText, onNext, stepNum){
+    var w=document.createElement('div'); w.className='msg bot';
+    var inner='<div class="av">이</div><div class="card">'+(label?'<div class="lab">'+label+'</div>':'')+html;
+    if(btnText) inner+='<div><button class="nextbtn">'+btnText+'</button></div>';
+    inner+='</div>'; w.innerHTML=inner;
+    if(btnText && onNext){ w.querySelector('.nextbtn').onclick=function(){ this.disabled=true; this.style.opacity=.5; onNext(); }; }
+    chat.appendChild(w); scroll();
+  }
+  function botTyping(then){ var w=document.createElement('div'); w.className='msg bot'; w.innerHTML='<div class="av">이</div><div class="bubble" style="color:var(--mut)">입력 중…</div>'; chat.appendChild(w); scroll(); setTimeout(function(){ w.remove(); then(); }, 650); }
+  function scroll(){ var c=document.getElementById('chat'); c.scrollTop=c.scrollHeight; }
+
+  /* 단계 표시 */
+  function setStep(i){ step=i; var els=document.querySelectorAll('#steps .s'); els.forEach(function(s,idx){ s.classList.toggle('done', idx<i); s.classList.toggle('on', idx===i); }); }
+  function markDone(){ document.querySelectorAll('#steps .s').forEach(s=>{ s.classList.add('done'); s.classList.remove('on'); }); }
+
+  function formRows(pairs){ var h='<div class="row">'; pairs.forEach(function(p,i){ h+='<div><label>'+p[0]+'</label><input placeholder="'+p[1]+'"></div>'; if(i%2===1 && i<pairs.length-1) h+='</div><div class="row">'; }); h+='</div>'; return h; }
+
+  function resetChat(){
+    step=0; setStep(0); document.querySelectorAll('#steps .s').forEach((s,i)=>{s.classList.toggle('on',i===0); s.classList.remove('done');});
+    chat.innerHTML=''; var w=document.createElement('div'); w.className='welcome';
+    w.innerHTML='<h1>어떤 이웃을 만나셨나요?</h1><p>대상자 유형을 고르고, 상황을 <b>말하거나(🎤) 입력</b>하면 단계별로 도와드려요.</p>';
+    chat.appendChild(w); welcome=w;
+    if(window.innerWidth<=760 && !document.getElementById('side').classList.contains('closed')) toggleSide();
+  }
+
+  // 모바일에선 사이드바 기본 닫힘
+  if(window.innerWidth<=760){ document.getElementById('side').classList.add('closed'); }
+</script>
+</body>
+</html>
