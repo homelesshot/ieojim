@@ -210,11 +210,13 @@
   .card .grid{display:grid;grid-template-columns:1fr 1fr;gap:9px 10px}
   .card select{width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:10px;background:var(--surface-2);color:var(--ink);font-family:inherit;font-size:.88rem}
   .card select:focus{outline:none;border-color:var(--accent)}
-  .card .chk{display:flex;flex-wrap:wrap;gap:6px}
-  .card .chk label{display:inline-flex;align-items:center;gap:6px;font-size:.83rem;font-weight:600;background:var(--surface-2);border:1.5px solid var(--line);padding:7px 10px;border-radius:9px;cursor:pointer;transition:border-color .12s,background .12s}
+  .card .chk{display:flex;flex-wrap:wrap;gap:7px}
+  .card .chk label{position:relative;display:inline-flex;align-items:center;gap:6px;font-size:.83rem;font-weight:600;background:var(--surface-2);border:1.5px solid var(--line);padding:9px 13px;border-radius:20px;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;transition:border-color .12s,background .12s,transform .1s}
   .card .chk label:hover{border-color:var(--accent)}
-  .card .chk label:has(input:checked){border-color:var(--accent);background:var(--accent-soft);color:var(--accent-ink)}
-  .card .chk input{accent-color:var(--accent);width:1.05rem;height:1.05rem;flex:none}
+  .card .chk label:active{transform:scale(.97)}
+  .card .chk label:has(input:checked){border-color:var(--accent);background:var(--accent);color:#fff;font-weight:700}
+  .card .chk label:has(input:checked)::before{content:'✓';font-weight:800}
+  .card .chk input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
   .card .order-note{font-size:.68rem;color:var(--accent-ink);background:var(--accent-soft);display:inline-block;padding:3px 8px;border-radius:20px;margin-bottom:5px;font-weight:700}
   .card .reset-link{background:none;border:0;color:var(--mut);font-size:.68rem;text-decoration:underline;cursor:pointer;padding:0;margin-left:4px;font-family:inherit}
   .card .note{font-size:.74rem;color:var(--mut);margin-top:7px;line-height:1.55}
@@ -580,7 +582,7 @@
         </select>
       </div>
       <div class="field"><span class="lab">가구원수 (피해자는 가해자 제외)</span>
-        <select id="size"><option value="1">1인</option><option value="2">2인</option><option value="3">3인</option><option value="4">4인</option></select>
+        <select id="size"><option value="1">1인</option><option value="2">2인</option><option value="3">3인</option><option value="4">4인</option><option value="5">5인 이상</option></select>
       </div>
       <div class="field"><span class="lab">동반 미성년 자녀 수</span>
         <input type="number" id="children" class="num" placeholder="0" min="0"/>
@@ -607,22 +609,22 @@
 </div>`;
   var TPL_INCOME = `    <div class="grid">
       <div class="field"><span class="lab">월 소득 (원, 대략)</span>
-        <input type="text" inputmode="numeric" pattern="[0-9,]*" id="income" class="num" placeholder="예: 330,000" oninput="formatMoney(this)"/>
+        <input type="text" inputmode="numeric" pattern="[0-9,]*" id="income" class="num" placeholder="예: 330,000" oninput="formatMoney(this)" onkeydown="numKeydown(event)"/>
       </div>
       <div class="field"><span class="lab">임차보증금 (원)</span>
-        <input type="text" inputmode="numeric" pattern="[0-9,]*" id="deposit" class="num" placeholder="예: 30,000,000" oninput="formatMoney(this)"/>
+        <input type="text" inputmode="numeric" pattern="[0-9,]*" id="deposit" class="num" placeholder="예: 30,000,000" oninput="formatMoney(this)" onkeydown="numKeydown(event)"/>
       </div>
       <div class="field"><span class="lab">금융재산 (원)</span>
-        <input type="text" inputmode="numeric" pattern="[0-9,]*" id="fin" class="num" placeholder="예: 1,500,000" oninput="formatMoney(this)"/>
+        <input type="text" inputmode="numeric" pattern="[0-9,]*" id="fin" class="num" placeholder="예: 1,500,000" oninput="formatMoney(this)" onkeydown="numKeydown(event)"/>
       </div>
       <div class="field"><span class="lab">부채 (원)</span>
-        <input type="text" inputmode="numeric" pattern="[0-9,]*" id="debt" class="num" placeholder="예: 0" oninput="formatMoney(this)"/>
+        <input type="text" inputmode="numeric" pattern="[0-9,]*" id="debt" class="num" placeholder="예: 0" oninput="formatMoney(this)" onkeydown="numKeydown(event)"/>
       </div>
     </div>
 `;
   var TPL_HEALTH = `      <div class="field" style="grid-column:1/-1"><span class="lab">건강상태 — 해당하는 것 모두 선택</span>
         <div class="chk" id="health">
-          <label><input type="checkbox" value="해당없음"/>특이사항 없음</label>
+          <label><input type="checkbox" value="해당없음" data-none="1"/>특이사항 없음</label>
           <label><input type="checkbox" value="경증질환"/>경증질환</label>
           <label><input type="checkbox" value="중증질환"/>중증질환(산정특례 대상급)</label>
           <label><input type="checkbox" value="정신질환"/>정신질환(정신건강복지법상)</label>
@@ -779,7 +781,7 @@
     botTyping(function(){
       var t=document.getElementById('targetType').value;
       botMsgHTML(freeTextHintText(hint.matched));
-      botCard('① 위기사유·긴급성', '<div style="font-size:.85rem;color:var(--mut);margin-bottom:10px">긴급성과 해당하는 위기사유를 선택해 주세요.</div>' + TPL_CRISIS, '다음 ▸', ()=>goHousehold());
+      botCard('① 위기사유·긴급성', '<div style="font-size:.85rem;color:var(--mut);margin-bottom:10px">긴급성과 해당하는 위기사유를 선택해 주세요.</div>' + TPL_CRISIS, '다음 ▸', ()=>goHousehold(), 'crisis');
       renderCrisis();
       applyFreeTextChecks(hint.matched, hint.urgency);
     });
@@ -787,7 +789,7 @@
 
   function goHousehold(){
     setStep(1);
-    botCard('② 가구·거주·인적사항', TPL_HOUSEHOLD, '다음 ▸', ()=>goIncome());
+    botCard('② 가구·거주·인적사항', TPL_HOUSEHOLD, '다음 ▸', ()=>goIncome(), 'household');
     var t = document.getElementById('targetType').value;
     document.getElementById('livingType').value = LIVING_PRESET[t] || '기타·확인필요';
     renderAgeGender(true);
@@ -795,12 +797,12 @@
 
   function goIncome(){
     setStep(2);
-    botCard('③ 소득·재산 (대략)', TPL_INCOME, '다음 ▸', ()=>goHealth());
+    botCard('③ 소득·재산 (대략)', TPL_INCOME, '다음 ▸', ()=>goHealth(), 'income');
   }
 
   function goHealth(){
     setStep(3);
-    botCard('④ 건강·특수상황', TPL_HEALTH, '예비판단 실행 ▸', ()=>goResult());
+    botCard('④ 건강·특수상황', TPL_HEALTH, '예비판단 실행 ▸', ()=>goResult(), 'health');
     if(lastFreeText){
       var memo = document.getElementById('memo');
       if(memo && !memo.value) memo.value = '[상담원 최초 입력] ' + lastFreeText;
@@ -809,12 +811,15 @@
 
   function goResult(){
     botTyping(function(){
-      botCard('⑤ 예비판단 결과', TPL_RESULT1, null);
-      botCard('⑥ 지원·연계', TPL_RESULT2, null);
-      botCard('⑦ 사유서 초안', TPL_DOC, null);
+      var w1 = botCard('⑤ 예비판단 결과', TPL_RESULT1, null);
+      var w2 = botCard('⑥ 지원·연계', TPL_RESULT2, null);
+      var w3 = botCard('⑦ 사유서 초안', TPL_DOC, null);
+      resultCards = {r1:w1, r2:w2, r3:w3};
       run();               // 판정 + buildDoc + renderHomelessSection + 사용통계 기록까지 한번에
       initGeminiKeyNote();
       markDone();
+      resultDone = true;
+      w1.scrollIntoView({behavior:'smooth', block:'start'});
     });
   }
 
@@ -858,13 +863,91 @@
   function userMsgHTML(h){ var w=document.createElement('div'); w.className='msg user'; w.innerHTML='<div class="bubble">'+h+'</div>'; chat.appendChild(w); scroll(); }
   function addMsg(cls, tpl, text){ var w=document.createElement('div'); w.className='msg '+cls; w.innerHTML=(cls==='bot'?'<div class="av">'+LOGO_HTML+'</div>':'')+tpl; w.querySelector('.bubble').textContent=text; chat.appendChild(w); scroll(); }
   function botMsgHTML(html){ var w=document.createElement('div'); w.className='msg bot'; w.innerHTML='<div class="av">'+LOGO_HTML+'</div><div class="bubble">'+html+'</div>'; chat.appendChild(w); scroll(); }
-  function botCard(label, html, btnText, onNext, stepNum){
+  var STEP = {}; // stepKey -> {wrap, btn}
+  var NEXT_STEP_KEY = {crisis:'household', household:'income', income:'health'};
+  var resultDone = false; // 예비판단 실행이 최소 한 번 완료됐는지
+  var resultCards = null; // {r1,r2,r3} — 예비판단 결과 카드 3장(재실행 시 같은 카드를 갱신)
+
+  function botCard(label, html, btnText, onNext, stepKey){
     var w=document.createElement('div'); w.className='msg bot';
     var inner='<div class="av">'+LOGO_HTML+'</div><div class="card">'+(label?'<div class="lab">'+label+'</div>':'')+html;
     if(btnText) inner+='<div><button class="nextbtn">'+btnText+'</button></div>';
     inner+='</div>'; w.innerHTML=inner;
-    if(btnText && onNext){ w.querySelector('.nextbtn').onclick=function(){ this.disabled=true; this.style.opacity=.5; onNext(); }; }
-    chat.appendChild(w); scroll();
+    if(btnText && onNext){
+      var btn = w.querySelector('.nextbtn');
+      var origText = btnText;
+      btn.onclick = function(){ handleStepConfirm(stepKey, btn, onNext, origText); };
+      if(stepKey){ STEP[stepKey] = {wrap:w, btn:btn}; }
+    }
+    chat.appendChild(w);
+    w.scrollIntoView({behavior:'smooth', block:'start'});
+    return w;
+  }
+
+  /* 이미 확인한 단계를 나중에 수정하면 그 단계의 버튼만 다시 눌리게 하고,
+     재확인 시엔 중복 카드 생성 없이 — 예비판단을 이미 실행했다면 결과를 그 자리에서 다시 계산하고,
+     아직 실행 전이라면 이미 만들어둔 다음 단계 화면으로 되돌아가게 한다. */
+  function handleStepConfirm(stepKey, btn, onNext, origText){
+    var firstTime = btn.dataset.confirmed !== '1';
+    btn.dataset.confirmed = '1';
+    btn.disabled = true; btn.style.opacity = .5; btn.textContent = origText;
+    if(firstTime){
+      onNext();
+      return;
+    }
+    if(resultDone){
+      regenerateResult();
+      return;
+    }
+    var nextKey = NEXT_STEP_KEY[stepKey];
+    var nextWrap = nextKey && STEP[nextKey] && STEP[nextKey].wrap;
+    if(nextWrap){ nextWrap.scrollIntoView({behavior:'smooth', block:'start'}); }
+    else { onNext(); }
+  }
+
+  function markCardBody(wrap, label, html){
+    var card = wrap.querySelector('.card');
+    card.innerHTML = (label?'<div class="lab">'+label+'</div>':'') + html;
+  }
+
+  function regenerateResult(){
+    if(!resultCards) return;
+    botTyping(function(){
+      markCardBody(resultCards.r1, '⑤ 예비판단 결과', TPL_RESULT1);
+      markCardBody(resultCards.r2, '⑥ 지원·연계', TPL_RESULT2);
+      markCardBody(resultCards.r3, '⑦ 사유서 초안', TPL_DOC);
+      run();
+      initGeminiKeyNote();
+      resultCards.r1.scrollIntoView({behavior:'smooth', block:'start'});
+    });
+  }
+
+  /* "해당없음" 등 배타 선택지를 고르면 같은 그룹의 다른 선택지는 자동 해제(그 반대도 마찬가지) */
+  document.addEventListener('change', function(e){
+    var t = e.target;
+    if(!t || t.tagName !== 'INPUT' || t.type !== 'checkbox') return;
+    var group = t.closest('.chk'); if(!group) return;
+    if(!t.checked) return;
+    if(t.dataset.none){
+      group.querySelectorAll('input[type="checkbox"]').forEach(function(other){ if(other!==t) other.checked = false; });
+    } else {
+      var none = group.querySelector('input[data-none]');
+      if(none) none.checked = false;
+    }
+  }, true);
+
+  /* 이미 확인(다음/실행) 완료된 단계의 입력을 나중에 고치면 그 단계 버튼을 다시 눌리게 되돌린다 */
+  document.addEventListener('input', reenableEditedStep, true);
+  document.addEventListener('change', reenableEditedStep, true);
+  function reenableEditedStep(e){
+    var t = e.target; if(!t || !t.closest) return;
+    var wrap = t.closest('.msg.bot'); if(!wrap) return;
+    for(var k in STEP){
+      if(STEP[k].wrap === wrap && STEP[k].btn && STEP[k].btn.disabled){
+        STEP[k].btn.disabled = false; STEP[k].btn.style.opacity = 1;
+        STEP[k].btn.textContent = '수정사항 반영하고 계속 ▸';
+      }
+    }
   }
   function botTyping(then){ var w=document.createElement('div'); w.className='msg bot'; w.innerHTML='<div class="av">'+LOGO_HTML+'</div><div class="bubble" style="color:var(--mut)">입력 중…</div>'; chat.appendChild(w); scroll(); setTimeout(function(){ w.remove(); then(); }, 650); }
   function scroll(){ var c=document.getElementById('chat'); c.scrollTop=c.scrollHeight; }
@@ -893,7 +976,7 @@
      (판정엔진 · 가명화 · AI초안 · hwpx생성 · 날씨연동 · 사용통계)
      ================================================================ */
   // 2026 긴급복지 소득기준(기준중위소득 75%) — 팀 최종확정 대상
-  const INCOME_STD = {1:1923179, 2:3149469, 3:4019277, 4:4871054};
+  const INCOME_STD = {1:1923179, 2:3149469, 3:4019277, 4:4871054, 5:5722831}; // 5인은 3→4인 증가폭(851,777원)을 그대로 적용한 추정치 — 공식 고시 금액으로 재확인 필요
   const ASSET_LIMIT = {대도시:241000000, 중소도시:152000000, 농어촌:130000000};
   const HOUSE_DEDUCT = {대도시:69000000, 중소도시:42000000, 농어촌:35000000};
   const FIN_LIMIT = 5000000;
@@ -1286,6 +1369,14 @@
     el.value = digits ? Number(digits).toLocaleString('ko-KR') : '';
   }
   const getMoneyValue = id => +(document.getElementById(id).value.replace(/[^0-9]/g,'')) || 0;
+  /* 숫자 입력칸에서 숫자·이동/편집 키 외에는 아예 입력 자체를 막는다(모바일 숫자 키패드 + 붙여넣기 시엔 formatMoney가 정리) */
+  function numKeydown(e){
+    if(e.ctrlKey || e.metaKey) return; // 복사/붙여넣기/전체선택 등은 허용
+    var allow = ['Backspace','Delete','Tab','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End','Enter'];
+    if(allow.indexOf(e.key) !== -1) return;
+    if(/^[0-9]$/.test(e.key)) return;
+    e.preventDefault();
+  }
 
   // ---------- 거주지역 위치 자동 판별 ----------
   const REGION_ALIAS = [
@@ -1746,7 +1837,7 @@ ${d.memo ? '\n메모: '+d.memo : ''}
     add('대상유형: '+targetType+' · 긴급성: '+URGENCY_LABEL[urgency]+' · 연령대: '+AGE_LABEL[ageGroup]+' · 성별: '+gender+(children>0?' · 동반아동 '+children+'명':''));
     add('위기사유: ' + (crisisMet ? '해당 — '+crisis.join(', ') : '선택된 위기사유 없음'));
     if(health.length) add('건강상태: '+health.join(', '));
-    add('소득: 월 <span class="num">'+won(income)+'</span> '+(incomeOk?'≤':'＞')+' '+size+'인 기준 <span class="num">'+won(std)+'</span> → '+(incomeOk?'충족':'초과'));
+    add('소득: 월 <span class="num">'+won(income)+'</span> '+(incomeOk?'≤':'＞')+' '+size+'인 기준 <span class="num">'+won(std)+'</span> → '+(incomeOk?'충족':'초과')+(size>=5?' <span style="color:var(--warn)">(5인 이상 기준은 추정치 — 보건복지부 최신 고시 금액으로 재확인 필요)</span>':''));
     add('재산 산정액 <span class="num">'+won(assetCalc)+'</span>(보증금−공제+금융−부채) vs '+regionName+'('+regionTier+' 기준) 상한 <span class="num">'+won(assetLimit)+'</span> → '+(assetOk?'충족':'초과'));
     add('거주지역: '+regionName+' / 거주형태: '+livingType+' · 국적/체류: '+nationalityLabelMap[nationality]);
     if(reapplyFlag) add('<b style="color:var(--warn)">주의</b>: 최근 2년 내 동일사유 긴급지원 이력 — 긴급복지지원법상 재지원 제한 규정 검토 필요');
@@ -1792,8 +1883,10 @@ ${d.memo ? '\n메모: '+d.memo : ''}
     };
     buildDoc();
 
-    recordStats(targetType, crisis);
-    if(caseStartTime!==null){ recordProcessingTime(Date.now()-caseStartTime); caseStartTime=null; }
+    if(!resultDone){
+      recordStats(targetType, crisis);
+      if(caseStartTime!==null){ recordProcessingTime(Date.now()-caseStartTime); caseStartTime=null; }
+    }
     renderCrisis(); // 통계 반영 후 순서 갱신(자동정렬 전환 시 즉시 표시)
     renderUsageSummary();
     renderHomelessSection();
