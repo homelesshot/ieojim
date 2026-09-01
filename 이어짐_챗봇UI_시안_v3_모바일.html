@@ -470,6 +470,7 @@
       return;
     }
     lastFreeText = text;
+    autoRunAnonFromText(text);
     var hint = matchFreeText(text);
     var speakerNote = bySpeaker ? '<div style="font-size:.8rem;color:var(--mut);white-space:pre-wrap;margin-top:6px;padding:8px;border-radius:8px;background:rgba(127,127,127,.08)">'+bySpeaker.replace(/</g,'&lt;')+'</div>' : '';
     botMsgHTML('🎧 음성 인식 결과: <b>"'+text.replace(/</g,'&lt;')+'"</b>'+speakerNote);
@@ -820,6 +821,7 @@
     if(!txt){ el.focus(); return; }
     hideWelcome(); userMsg(txt); el.value=''; autogrow(el);
     lastFreeText = txt;
+    autoRunAnonFromText(txt);
     var hint = matchFreeText(txt);
     botTyping(function(){
       var t=document.getElementById('targetType').value;
@@ -1158,6 +1160,15 @@
   }
   function anonFallbackCopy(){ const ta=document.createElement('textarea'); ta.value=lastAnonText; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy');}catch(e){} document.body.removeChild(ta); }
   function clearAnon(){ document.getElementById('anonInput').value=''; document.getElementById('anonNames').value=''; lastAnonText=''; document.getElementById('anonOutput').innerHTML=''; document.getElementById('anonStats').textContent=''; }
+  /* 텍스트(타이핑 또는 STT 결과)가 들어오는 즉시 가명화 도우미 원문칸에 자동으로 채우고 1차 가명화를 미리 돌려둠.
+     이렇게 해두면 사용자가 가명화 도우미를 따로 열어 붙여넣지 않아도 "AI 초안 만들기"가 바로 동작함
+     (사람 확인은 여전히 필요 — 가명화 도우미 화면에서 빨간 표시된 부분은 직접 확인해달라고 안내). */
+  function autoRunAnonFromText(text){
+    var inp = document.getElementById('anonInput');
+    if(!inp) return;
+    inp.value = text;
+    runAnon();
+  }
 
   // ===== AI 초안(Gemini API, 무료 티어) =====
   const GEMINI_KEY_STORAGE = 'ieojim_gemini_key_v1';
