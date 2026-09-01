@@ -446,6 +446,39 @@
   var welcome = document.getElementById('welcome');
   var media = {rec:null, chunks:[], timer:null, secs:0};
 
+  /* ===== 음성→텍스트(STT) — Supabase Edge Function 프록시 경유, OpenAI gpt-4o-transcribe-diarize ===== */
+  var STT_URL = 'https://ueidoudgwhuanrtowudy.supabase.co/functions/v1/stt-transcribe';
+  var STT_ANON_KEY = 'sb_publishable_cnEU0Ly-lTtcR8Avmfjk7Q_wOEUT37s';
+  async function transcribeAudio(blob, filename){
+    var fd = new FormData();
+    fd.append('file', blob, filename || 'audio.webm');
+    var res = await fetch(STT_URL, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + STT_ANON_KEY },
+      body: fd
+    });
+    if(!res.ok){
+      var errTxt = await res.text().catch(function(){ return ''; });
+      throw new Error('STT 실패 ('+res.status+') ' + errTxt);
+    }
+    return res.json(); // { text, segments, bySpeaker, duration }
+  }
+  /* 변환된 텍스트를 기존 자유입력 처리 흐름(①위기사유 카드 자동체크)에 그대로 태움 */
+  function handleTranscribedText(text, bySpeaker){
+    if(!text || !text.trim()){
+      botCard('음성 인식 결과 없음', '녹음에서 텍스트를 찾지 못했어요. 너무 짧거나 조용했을 수 있어요. 다시 녹음하거나 직접 입력해주세요.', null);
+      return;
+    }
+    lastFreeText = text;
+    var hint = matchFreeText(text);
+    var speakerNote = bySpeaker ? '<div style="font-size:.8rem;color:var(--mut);white-space:pre-wrap;margin-top:6px;padding:8px;border-radius:8px;background:rgba(127,127,127,.08)">'+bySpeaker.replace(/</g,'&lt;')+'</div>' : '';
+    botMsgHTML('🎧 음성 인식 결과: <b>"'+text.replace(/</g,'&lt;')+'"</b>'+speakerNote);
+    botMsgHTML(freeTextHintText(hint.matched));
+    botCard('① 위기사유·긴급성', '<div style="font-size:.85rem;color:var(--mut);margin-bottom:10px">긴급성과 해당하는 위기사유를 선택해 주세요.</div>' + TPL_CRISIS, '다음 ▸', ()=>goHousehold(), 'crisis');
+    renderCrisis();
+    applyFreeTextChecks(hint.matched, hint.urgency);
+  }
+
   /* 사이드바 (기본 숨김 · 오버레이) */
   function toggleSide(){
     var s=document.getElementById('side'), b=document.getElementById('backdrop');
@@ -501,7 +534,12 @@
     var f=inp.files[0]; if(!f) return;
     hideWelcome();
     userMsg('🎧 녹음 파일 첨부: '+f.name+' ('+Math.round(f.size/1024)+'KB)');
-    botTyping(function(){ botCard('음성 → 텍스트 변환(예정)', '올려주신 녹음을 <b>Whisper(STT)</b>로 자동 변환하는 기능이 여기 붙습니다. 변환된 텍스트는 <b>가명화</b> 후 다음 단계로 넘어갑니다. <span style="color:var(--mut)">(시안 — STT 연결 예정)</span>', '입력한 것으로 계속 ▸', ()=>gotoStep2()); });
+    botTyping(function(){ botMsgHTML('음성을 텍스트로 변환하는 중이에요…'); });
+    transcribeAudio(f, f.name).then(function(r){
+      handleTranscribedText(r.text, r.bySpeaker);
+    }).catch(function(err){
+      botCard('음성 변환 실패', '텍스트 변환 중 오류가 발생했어요.<br><span style="color:var(--mut);font-size:.8rem">'+String(err.message||err).replace(/</g,'&lt;')+'</span><br>직접 아래에 입력해주셔도 됩니다.', null);
+    });
     inp.value='';
   }
 
@@ -519,7 +557,12 @@
         var blob=new Blob(media.chunks,{type:'audio/webm'}); var url=URL.createObjectURL(blob);
         hideWelcome();
         userMsgHTML(MICSVG+' 녹음 완료 ('+fmt(media.secs)+')<br><audio controls src="'+url+'" style="margin-top:6px;max-width:220px"></audio>');
-        botTyping(function(){ botCard('음성 → 텍스트 변환(예정)', '방금 녹음을 <b>Whisper(STT)</b>로 자동 변환하는 기능이 여기 붙습니다. 변환 텍스트는 <b>가명화</b> 후 판단으로 이어집니다. <span style="color:var(--mut)">(시안 — STT 연결 예정)</span>', '이어서 판단 ▸', ()=>gotoStep2()); });
+        botTyping(function(){ botMsgHTML('음성을 텍스트로 변환하는 중이에요…'); });
+        transcribeAudio(blob, 'recording.webm').then(function(r){
+          handleTranscribedText(r.text, r.bySpeaker);
+        }).catch(function(err){
+          botCard('음성 변환 실패', '텍스트 변환 중 오류가 발생했어요.<br><span style="color:var(--mut);font-size:.8rem">'+String(err.message||err).replace(/</g,'&lt;')+'</span><br>직접 아래에 입력해주셔도 됩니다.', null);
+        });
       };
       media.secs=0; media.rec.start();
       btn.classList.add('rec'); var t=document.getElementById('recTimer'); t.classList.add('on'); t.textContent='● 00:00';
