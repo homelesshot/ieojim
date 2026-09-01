@@ -165,6 +165,11 @@
   .cbtn:active{transform:scale(.94)}
   .cbtn.send{background:var(--accent);color:#fff}
   .cbtn.mic.rec{background:#c0392b;color:#fff;animation:pulse 1s infinite}
+  .composer.locked textarea:disabled,.composer.locked .cbtn:disabled{opacity:.4;cursor:not-allowed}
+  .composer.locked textarea:disabled{background:transparent}
+  .composer .lockhint{display:none;font-size:.72rem;color:var(--mut);text-align:center;margin-top:6px}
+  .composer.locked .lockhint{display:block}
+  .composer.locked .foothint{display:none}
   @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(192,57,43,.5)}50%{box-shadow:0 0 0 7px rgba(192,57,43,0)}}
   .plusmenu{position:relative}
   .menu{position:absolute;bottom:50px;left:0;background:var(--surface);border:1px solid var(--line);border-radius:13px;box-shadow:var(--shadow-md);padding:6px;display:none;min-width:184px;z-index:20}
@@ -373,6 +378,7 @@
         </div>
       </div>
       <div class="foothint"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Z"/><path d="M19 11a7 7 0 0 1-14 0"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg> 녹음은 이 기기에서만 처리됩니다 · 실명 대신 <b>가명</b>으로 · UI 시안</div>
+      <div class="lockhint">🔒 상담 진행 중에는 새 입력이 잠겨요. 위에서 항목을 수정하려면 해당 카드에서 바로 수정하세요 · 다른 사례를 시작하려면 사이드바의 "새 상담 시작"을 눌러주세요</div>
     </div>
   </main>
 
@@ -466,11 +472,13 @@
   /* 변환된 텍스트를 기존 자유입력 처리 흐름(①위기사유 카드 자동체크)에 그대로 태움 */
   function handleTranscribedText(text, bySpeaker){
     if(!text || !text.trim()){
+      unlockMainInput();
       botCard('음성 인식 결과 없음', '녹음에서 텍스트를 찾지 못했어요. 너무 짧거나 조용했을 수 있어요. 다시 녹음하거나 직접 입력해주세요.', null);
       return;
     }
     lastFreeText = text;
     autoRunAnonFromText(text);
+    lockMainInput();
     var hint = matchFreeText(text);
     var speakerNote = bySpeaker ? '<div style="font-size:.8rem;color:var(--mut);white-space:pre-wrap;margin-top:6px;padding:8px;border-radius:8px;background:rgba(127,127,127,.08)">'+bySpeaker.replace(/</g,'&lt;')+'</div>' : '';
     botMsgHTML('🎧 음성 인식 결과: <b>"'+text.replace(/</g,'&lt;')+'"</b>'+speakerNote);
@@ -535,10 +543,12 @@
     var f=inp.files[0]; if(!f) return;
     hideWelcome();
     userMsg('🎧 녹음 파일 첨부: '+f.name+' ('+Math.round(f.size/1024)+'KB)');
+    lockMainInput();
     botTyping(function(){ botMsgHTML('음성을 텍스트로 변환하는 중이에요…'); });
     transcribeAudio(f, f.name).then(function(r){
       handleTranscribedText(r.text, r.bySpeaker);
     }).catch(function(err){
+      unlockMainInput();
       botCard('음성 변환 실패', '텍스트 변환 중 오류가 발생했어요.<br><span style="color:var(--mut);font-size:.8rem">'+String(err.message||err).replace(/</g,'&lt;')+'</span><br>직접 아래에 입력해주셔도 됩니다.', null);
     });
     inp.value='';
@@ -558,11 +568,13 @@
         var blob=new Blob(media.chunks,{type:'audio/webm'}); var url=URL.createObjectURL(blob);
         hideWelcome();
         userMsgHTML(MICSVG+' 녹음 완료 ('+fmt(media.secs)+')<br><audio controls src="'+url+'" style="margin-top:6px;max-width:220px"></audio>');
+        lockMainInput();
         botTyping(function(){ botMsgHTML('음성을 텍스트로 변환하는 중이에요…'); });
         transcribeAudio(blob, 'recording.webm').then(function(r){
           handleTranscribedText(r.text, r.bySpeaker);
         }).catch(function(err){
-          botCard('음성 변환 실패', '텍스트 변환 중 오류가 발생했어요.<br><span style="color:var(--mut);font-size:.8rem">'+String(err.message||err).replace(/</g,'&lt;')+'</span><br>직접 아래에 입력해주셔도 됩니다.', null);
+          unlockMainInput();
+      botCard('음성 변환 실패', '텍스트 변환 중 오류가 발생했어요.<br><span style="color:var(--mut);font-size:.8rem">'+String(err.message||err).replace(/</g,'&lt;')+'</span><br>직접 아래에 입력해주셔도 됩니다.', null);
         });
       };
       media.secs=0; media.rec.start();
@@ -813,6 +825,7 @@
     hideWelcome(); userMsg(txt); el.value=''; autogrow(el);
     lastFreeText = txt;
     autoRunAnonFromText(txt);
+    lockMainInput();
     var hint = matchFreeText(txt);
     botTyping(function(){
       var t=document.getElementById('targetType').value;
@@ -1005,6 +1018,31 @@
     chat.appendChild(w); welcome=w;
     var s=document.getElementById('side');
     if(s.classList.contains('open')) toggleSide();
+    unlockMainInput();
+  }
+
+  /* 상담(위기사유 단계) 진행 중에는 채팅 입력창/마이크/파일첨부를 잠가서
+     실수로 새 텍스트를 넣었을 때 새로운 위기사유 흐름이 또 시작되는 걸 막음.
+     다시 열려면 "새 상담 시작"(resetChat) 눌러야 함. */
+  var mainInputLocked = false;
+  function lockMainInput(){
+    if(mainInputLocked) return;
+    mainInputLocked = true;
+    var inp=document.getElementById('input'), mic=document.getElementById('micBtn'), plus=document.querySelector('.plusmenu .cbtn'), send=document.querySelector('.cbtn.send');
+    if(inp){ inp.disabled=true; inp.placeholder='상담이 진행 중이에요 · 새 상담을 시작하려면 사이드바를 확인하세요'; }
+    if(mic) mic.disabled=true;
+    if(plus) plus.disabled=true;
+    if(send) send.disabled=true;
+    var composer=document.querySelector('.composer'); if(composer) composer.classList.add('locked');
+  }
+  function unlockMainInput(){
+    mainInputLocked = false;
+    var inp=document.getElementById('input'), mic=document.getElementById('micBtn'), plus=document.querySelector('.plusmenu .cbtn'), send=document.querySelector('.cbtn.send');
+    if(inp){ inp.disabled=false; inp.placeholder='상황을 입력하거나, 오른쪽 버튼으로 녹음하세요…'; }
+    if(mic) mic.disabled=false;
+    if(plus) plus.disabled=false;
+    if(send) send.disabled=false;
+    var composer=document.querySelector('.composer'); if(composer) composer.classList.remove('locked');
   }
 
   /* ================================================================
