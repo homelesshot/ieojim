@@ -506,6 +506,7 @@
      VERSION_LOG 배열 맨 앞에 새 항목을 추가할 것. 같은 날 여러 건이면 tag만 올려서(v0.x) 여러 줄 추가.
      "나중에 몰아서 기록"은 누락으로 이어지므로, 수정 직후 그 자리에서 바로 추가할 것. */
   var VERSION_LOG = [
+    {tag:'v0.13', date:'2026-09-01', title:'저장 후 위치 안내 토스트', desc:'파일이 공유시트 없이 다운로드로 저장될 때(브라우저가 파일 공유 미지원 시) "어디에 저장됐는지 모른다"던 문제 → 저장 직후 "휴대폰: 파일 앱>다운로드 / PC: 다운로드 폴더" 안내 토스트를 8초간 표시. (Claude)'},
     {tag:'v0.12', date:'2026-09-01', title:'완료 하단 고정바 + 모바일 저장(공유시트)', desc:'(1) 결과가 길어 완료 카드/새 상담 버튼이 화면 밖에 묻히던 문제 → 화면 하단에 항상 보이는 고정 바(📥 사유서 저장 / ＋ 새 상담) 추가. (2) 모바일에서 파일이 어디 저장됐는지 모르던 문제 → navigator.share(공유시트)로 "저장 위치 선택"이 뜨게, 미지원 시 다운로드 폴백. (3) run() 오류 시에도 완료 안내가 뜨도록 방어. (Claude)'},
     {tag:'v0.11', date:'2026-09-01', title:'완료 안내 + 사유서 저장 + 새 상담 버튼', desc:'7단계 끝에 "✅ 상담 완료" 카드 추가 — (1) 사유서 초안 저장 버튼(한글 .hwpx / 텍스트, 기존 download 함수 재사용)과 "다운로드 폴더에 저장됨" 안내, (2) "＋ 새 상담 시작" 버튼으로 링크 다시 열지 않고 바로 다음 상담(resetChat 재사용). (Claude)'},
     {tag:'v0.10', date:'2026-09-01', title:'상황 입력 없이 바로 진행 버튼', desc:'첫 화면에서 상황 입력/녹음 없이 "상황 입력 없이 바로 진행" 버튼으로 위기사유 단계부터 시작할 수 있게 추가. 녹음·텍스트 입력은 선택. (Claude)'},
@@ -1859,6 +1860,14 @@ ${d.memo ? '\n메모: '+d.memo : ''}
       DATE_LINE: '작성일: '+d.today+'    작성: [담당 상담원]'
     };
   }
+  // 저장 후 위치 안내 토스트
+  function showSaveToast(msg){
+    var t=document.getElementById('saveToast');
+    if(!t){ t=document.createElement('div'); t.id='saveToast'; t.style.cssText='position:fixed;left:12px;right:12px;bottom:82px;z-index:70;background:var(--ink);color:var(--surface);padding:13px 15px;border-radius:12px;font-size:.86rem;line-height:1.55;box-shadow:0 4px 18px rgba(0,0,0,.28);text-align:center'; document.body.appendChild(t); }
+    t.innerHTML=msg; t.style.display='block';
+    clearTimeout(t._t); t._t=setTimeout(function(){ t.style.display='none'; }, 8000);
+  }
+
   // 모바일: 공유시트로 저장 위치 선택 / 데스크톱·미지원: 다운로드 폴백
   async function saveBlob(blob, filename){
     try{
@@ -1866,7 +1875,7 @@ ${d.memo ? '\n메모: '+d.memo : ''}
         var file = new File([blob], filename, {type: blob.type || 'application/octet-stream'});
         if(navigator.canShare({files:[file]})){
           await navigator.share({files:[file], title: filename});
-          return;
+          return; // 공유시트에서 사용자가 저장 위치를 선택함
         }
       }
     }catch(e){
@@ -1877,6 +1886,7 @@ ${d.memo ? '\n메모: '+d.memo : ''}
     var a = document.createElement('a'); a.href=url; a.download=filename;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     setTimeout(function(){ URL.revokeObjectURL(url); }, 1500);
+    showSaveToast('📥 <b>'+filename+'</b> 저장됨<br>휴대폰: <b>‘파일’ 앱 &gt; 다운로드</b> · PC: <b>‘다운로드’ 폴더</b>에서 확인하세요');
   }
 
   // 결과가 길어 완료 카드가 화면 밖에 묻히는 문제 → 하단 고정 바로 항상 접근 가능하게
