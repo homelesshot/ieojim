@@ -506,6 +506,7 @@
      VERSION_LOG 배열 맨 앞에 새 항목을 추가할 것. 같은 날 여러 건이면 tag만 올려서(v0.x) 여러 줄 추가.
      "나중에 몰아서 기록"은 누락으로 이어지므로, 수정 직후 그 자리에서 바로 추가할 것. */
   var VERSION_LOG = [
+    {tag:'v0.12', date:'2026-09-01', title:'완료 하단 고정바 + 모바일 저장(공유시트)', desc:'(1) 결과가 길어 완료 카드/새 상담 버튼이 화면 밖에 묻히던 문제 → 화면 하단에 항상 보이는 고정 바(📥 사유서 저장 / ＋ 새 상담) 추가. (2) 모바일에서 파일이 어디 저장됐는지 모르던 문제 → navigator.share(공유시트)로 "저장 위치 선택"이 뜨게, 미지원 시 다운로드 폴백. (3) run() 오류 시에도 완료 안내가 뜨도록 방어. (Claude)'},
     {tag:'v0.11', date:'2026-09-01', title:'완료 안내 + 사유서 저장 + 새 상담 버튼', desc:'7단계 끝에 "✅ 상담 완료" 카드 추가 — (1) 사유서 초안 저장 버튼(한글 .hwpx / 텍스트, 기존 download 함수 재사용)과 "다운로드 폴더에 저장됨" 안내, (2) "＋ 새 상담 시작" 버튼으로 링크 다시 열지 않고 바로 다음 상담(resetChat 재사용). (Claude)'},
     {tag:'v0.10', date:'2026-09-01', title:'상황 입력 없이 바로 진행 버튼', desc:'첫 화면에서 상황 입력/녹음 없이 "상황 입력 없이 바로 진행" 버튼으로 위기사유 단계부터 시작할 수 있게 추가. 녹음·텍스트 입력은 선택. (Claude)'},
     {tag:'v0.9', date:'2026-09-01', title:'상담 진행 중 입력창 잠금', desc:'첫 입력(타이핑/음성/파일)으로 위기사유 진행이 시작되면 채팅 입력창·마이크·＋버튼을 잠가서, 진행 도중 새 텍스트를 넣어 위기사유가 처음부터 다시 시작되는 문제를 방지. "새 상담 시작"을 눌러야 다시 열림. 이미 만들어둔 카드 내용 수정은 기존과 동일하게 카드 안에서 가능.'},
@@ -883,10 +884,11 @@
       var w2 = botCard('⑥ 지원·연계', TPL_RESULT2, null);
       var w3 = botCard('⑦ 사유서 초안', TPL_DOC, null);
       resultCards = {r1:w1, r2:w2, r3:w3};
-      run();               // 판정 + buildDoc + renderHomelessSection + 사용통계 기록까지 한번에
+      try{ run(); }catch(e){ console.warn('run() 오류:', e); }  // 오류가 나도 완료 안내는 뜨게
       initGeminiKeyNote();
       markDone();
       resultDone = true;
+      showDoneBar();
       botCard('✅ 상담 완료', '<div style="font-size:.9rem;color:var(--ink);margin-bottom:8px">예비판단·지원 안내·사유서 초안이 모두 만들어졌어요.</div><div style="font-size:.82rem;color:var(--mut);margin-bottom:12px">📥 사유서 초안을 저장하세요. 파일은 휴대폰·컴퓨터의 <b>‘다운로드’ 폴더</b>에 저장됩니다.</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"><button onclick="downloadHwpx()" style="flex:1;min-width:120px;background:var(--accent);color:#fff;border:0;border-radius:10px;padding:11px;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit">한글(.hwpx) 저장</button><button onclick="downloadDoc(\'txt\')" style="flex:1;min-width:120px;background:var(--accent-soft);color:var(--accent-ink);border:1.5px solid var(--accent);border-radius:10px;padding:11px;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit">텍스트(.txt) 저장</button></div><button onclick="resetChat()" style="width:100%;background:var(--ink);color:var(--surface);border:0;border-radius:12px;padding:12px;font-size:.95rem;font-weight:800;cursor:pointer;font-family:inherit">＋ 새 상담 시작</button>', null);
       w1.scrollIntoView({behavior:'smooth', block:'start'});
     });
@@ -1039,6 +1041,7 @@
     var s=document.getElementById('side');
     if(s.classList.contains('open')) toggleSide();
     unlockMainInput();
+    hideDoneBar();
   }
 
   /* 상담(위기사유 단계) 진행 중에는 채팅 입력창/마이크/파일첨부를 잠가서
@@ -1856,6 +1859,40 @@ ${d.memo ? '\n메모: '+d.memo : ''}
       DATE_LINE: '작성일: '+d.today+'    작성: [담당 상담원]'
     };
   }
+  // 모바일: 공유시트로 저장 위치 선택 / 데스크톱·미지원: 다운로드 폴백
+  async function saveBlob(blob, filename){
+    try{
+      if(navigator.canShare){
+        var file = new File([blob], filename, {type: blob.type || 'application/octet-stream'});
+        if(navigator.canShare({files:[file]})){
+          await navigator.share({files:[file], title: filename});
+          return;
+        }
+      }
+    }catch(e){
+      if(e && e.name==='AbortError') return; // 사용자가 공유를 취소한 경우
+      // 그 외 오류는 아래 다운로드로 폴백
+    }
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a'); a.href=url; a.download=filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1500);
+  }
+
+  // 결과가 길어 완료 카드가 화면 밖에 묻히는 문제 → 하단 고정 바로 항상 접근 가능하게
+  (function(){
+    try{
+      var st=document.createElement('style');
+      st.textContent='#doneBar{position:fixed;left:0;right:0;bottom:0;z-index:60;background:var(--surface);border-top:1px solid var(--line);padding:10px 12px;display:none;gap:8px;box-shadow:0 -2px 12px rgba(0,0,0,.14)}#doneBar.on{display:flex}#doneBar button{flex:1;border-radius:11px;padding:13px;font-weight:800;font-family:inherit;font-size:.92rem;cursor:pointer;border:0}';
+      document.head.appendChild(st);
+      var bar=document.createElement('div'); bar.id='doneBar';
+      bar.innerHTML='<button onclick="downloadHwpx()" style="background:var(--accent-soft);color:var(--accent-ink);border:1.5px solid var(--accent)">📥 사유서 저장</button><button onclick="resetChat()" style="background:var(--accent);color:#fff">＋ 새 상담</button>';
+      document.body.appendChild(bar);
+    }catch(e){}
+  })();
+  function showDoneBar(){ var b=document.getElementById('doneBar'); if(b) b.classList.add('on'); }
+  function hideDoneBar(){ var b=document.getElementById('doneBar'); if(b) b.classList.remove('on'); }
+
   async function downloadHwpx(){
     const note = document.getElementById('hwpxNote');
     if(!window.DecompressionStream){
@@ -1872,9 +1909,7 @@ ${d.memo ? '\n메모: '+d.memo : ''}
       const orderedNames = ['mimetype', ...names.filter(n=>n!=='mimetype')];
       const outBytes = buildStoredZip(orderedNames, entries);
       const blob = new Blob([outBytes], {type:'application/hwp+zip'});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href=url; a.download='긴급복지_사유서초안.hwpx';
-      document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+      await saveBlob(blob, '긴급복지_사유서초안.hwpx');
     }catch(e){
       note.innerHTML = '⚠ .hwpx 파일 생성 중 오류가 발생했습니다(' + e.message + '). 대신 .txt 또는 .rtf 다운로드를 이용해 주세요.';
     }
@@ -1892,10 +1927,7 @@ ${d.memo ? '\n메모: '+d.memo : ''}
       blob = new Blob([text], {type:'text/plain;charset=utf-8'});
       filename = '긴급복지_사유서초안.txt';
     }
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = filename; document.body.appendChild(a); a.click();
-    document.body.removeChild(a); URL.revokeObjectURL(url);
+    saveBlob(blob, filename);
   }
 
   // ---------- 메인 판단 로직 ----------
