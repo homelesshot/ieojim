@@ -506,6 +506,7 @@
      VERSION_LOG 배열 맨 앞에 새 항목을 추가할 것. 같은 날 여러 건이면 tag만 올려서(v0.x) 여러 줄 추가.
      "나중에 몰아서 기록"은 누락으로 이어지므로, 수정 직후 그 자리에서 바로 추가할 것. */
   var VERSION_LOG = [
+    {tag:'v0.11', date:'2026-09-01', title:'완료 안내 + 사유서 저장 + 새 상담 버튼', desc:'7단계 끝에 "✅ 상담 완료" 카드 추가 — (1) 사유서 초안 저장 버튼(한글 .hwpx / 텍스트, 기존 download 함수 재사용)과 "다운로드 폴더에 저장됨" 안내, (2) "＋ 새 상담 시작" 버튼으로 링크 다시 열지 않고 바로 다음 상담(resetChat 재사용). (Claude)'},
     {tag:'v0.10', date:'2026-09-01', title:'상황 입력 없이 바로 진행 버튼', desc:'첫 화면에서 상황 입력/녹음 없이 "상황 입력 없이 바로 진행" 버튼으로 위기사유 단계부터 시작할 수 있게 추가. 녹음·텍스트 입력은 선택. (Claude)'},
     {tag:'v0.9', date:'2026-09-01', title:'상담 진행 중 입력창 잠금', desc:'첫 입력(타이핑/음성/파일)으로 위기사유 진행이 시작되면 채팅 입력창·마이크·＋버튼을 잠가서, 진행 도중 새 텍스트를 넣어 위기사유가 처음부터 다시 시작되는 문제를 방지. "새 상담 시작"을 눌러야 다시 열림. 이미 만들어둔 카드 내용 수정은 기존과 동일하게 카드 안에서 가능.'},
     {tag:'v0.8', date:'2026-09-01', title:'AI 초안(Gemini) 키도 서버 프록시화', desc:'Gemini API 키를 브라우저 localStorage에 직접 저장하던 방식을 없애고, OpenAI 키와 동일하게 Supabase Edge Function(`ai-draft`)이 서버에서만 보관된 키로 대신 호출하도록 변경. 화면의 "Gemini API 키 입력" 칸 제거.'},
@@ -886,6 +887,7 @@
       initGeminiKeyNote();
       markDone();
       resultDone = true;
+      botCard('✅ 상담 완료', '<div style="font-size:.9rem;color:var(--ink);margin-bottom:8px">예비판단·지원 안내·사유서 초안이 모두 만들어졌어요.</div><div style="font-size:.82rem;color:var(--mut);margin-bottom:12px">📥 사유서 초안을 저장하세요. 파일은 휴대폰·컴퓨터의 <b>‘다운로드’ 폴더</b>에 저장됩니다.</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"><button onclick="downloadHwpx()" style="flex:1;min-width:120px;background:var(--accent);color:#fff;border:0;border-radius:10px;padding:11px;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit">한글(.hwpx) 저장</button><button onclick="downloadDoc(\'txt\')" style="flex:1;min-width:120px;background:var(--accent-soft);color:var(--accent-ink);border:1.5px solid var(--accent);border-radius:10px;padding:11px;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit">텍스트(.txt) 저장</button></div><button onclick="resetChat()" style="width:100%;background:var(--ink);color:var(--surface);border:0;border-radius:12px;padding:12px;font-size:.95rem;font-weight:800;cursor:pointer;font-family:inherit">＋ 새 상담 시작</button>', null);
       w1.scrollIntoView({behavior:'smooth', block:'start'});
     });
   }
