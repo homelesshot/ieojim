@@ -339,6 +339,7 @@
             <div class="c" onclick="quickPick('취약노인')">취약노인</div>
             <div class="c" onclick="quickPick('외국인노동자')">외국인노동자</div>
           </div>
+          <button onclick="skipToFlow()" style="margin-top:16px;background:var(--accent-soft);color:var(--accent-ink);border:1.5px solid var(--accent);border-radius:22px;padding:10px 20px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit">상황 입력 없이 바로 진행 ▸</button>
         </div>
       </div>
     </div>
@@ -505,6 +506,7 @@
      VERSION_LOG 배열 맨 앞에 새 항목을 추가할 것. 같은 날 여러 건이면 tag만 올려서(v0.x) 여러 줄 추가.
      "나중에 몰아서 기록"은 누락으로 이어지므로, 수정 직후 그 자리에서 바로 추가할 것. */
   var VERSION_LOG = [
+    {tag:'v0.10', date:'2026-09-01', title:'상황 입력 없이 바로 진행 버튼', desc:'첫 화면에서 상황 입력/녹음 없이 "상황 입력 없이 바로 진행" 버튼으로 위기사유 단계부터 시작할 수 있게 추가. 녹음·텍스트 입력은 선택. (Claude)'},
     {tag:'v0.9', date:'2026-09-01', title:'상담 진행 중 입력창 잠금', desc:'첫 입력(타이핑/음성/파일)으로 위기사유 진행이 시작되면 채팅 입력창·마이크·＋버튼을 잠가서, 진행 도중 새 텍스트를 넣어 위기사유가 처음부터 다시 시작되는 문제를 방지. "새 상담 시작"을 눌러야 다시 열림. 이미 만들어둔 카드 내용 수정은 기존과 동일하게 카드 안에서 가능.'},
     {tag:'v0.8', date:'2026-09-01', title:'AI 초안(Gemini) 키도 서버 프록시화', desc:'Gemini API 키를 브라우저 localStorage에 직접 저장하던 방식을 없애고, OpenAI 키와 동일하게 Supabase Edge Function(`ai-draft`)이 서버에서만 보관된 키로 대신 호출하도록 변경. 화면의 "Gemini API 키 입력" 칸 제거.'},
     {tag:'v0.7', date:'2026-09-01', title:'음성 STT 실연결 + 가명화 자동연결', desc:'녹음/파일업로드가 "STT 연결 예정" 플레이스홀더였던 것을 실제 OpenAI gpt-4o-transcribe-diarize(Supabase Edge Function `stt-transcribe` 경유) 호출로 교체 — 화자분리된 텍스트가 실제로 나오고 위기사유가 자동 체크됨. 또한 타이핑/음성 텍스트가 들어오는 즉시 "가명화 도우미" 원문칸에 자동으로 채워 1차 가명화를 미리 실행 — 예전에 "AI 초안 만들기가 가명화 도우미를 거쳐야만 눌린다"던 막힘 문제 해결.'},
@@ -838,6 +840,17 @@
       botCard('① 위기사유·긴급성', '<div style="font-size:.85rem;color:var(--mut);margin-bottom:10px">긴급성과 해당하는 위기사유를 선택해 주세요.</div>' + TPL_CRISIS, '다음 ▸', ()=>goHousehold(), 'crisis');
       renderCrisis();
       applyFreeTextChecks(hint.matched, hint.urgency);
+    });
+  }
+
+  // 상황 입력/녹음 없이 버튼으로 바로 위기사유 단계부터 시작
+  function skipToFlow(){
+    hideWelcome();
+    lockMainInput();
+    botTyping(function(){
+      botMsgHTML('상황 입력 없이 진행합니다. 아래에서 긴급성·위기사유를 직접 선택해 주세요.');
+      botCard('① 위기사유·긴급성', '<div style="font-size:.85rem;color:var(--mut);margin-bottom:10px">긴급성과 해당하는 위기사유를 선택해 주세요.</div>' + TPL_CRISIS, '다음 ▸', ()=>goHousehold(), 'crisis');
+      renderCrisis();
     });
   }
 
