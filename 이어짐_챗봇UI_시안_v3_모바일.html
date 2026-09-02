@@ -205,6 +205,20 @@
     .side{box-shadow:none}
   }
 
+  /* ================= PC 전용: 사이드바를 펼치지 않아도 눌리는 축소 아이콘 레일 =================
+     모바일(760px 이하)에서는 기존처럼 사이드바가 완전히 숨겨진 오버레이 그대로 유지되고,
+     PC 폭에서만 이 얇은 아이콘 줄이 항상 보이면서 클릭 가능. */
+  .rail{display:none}
+  @media (min-width:761px){
+    .rail{position:fixed;top:0;left:0;bottom:0;width:56px;z-index:30;background:linear-gradient(180deg,var(--side),var(--side-2));display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:4px}
+    .rail.hide{display:none}
+    .main{left:56px}
+    .rail .ricon{width:38px;height:38px;border-radius:10px;border:0;background:none;color:#cfdde0;font-size:1.05rem;cursor:pointer;display:grid;place-items:center;transition:background .15s;font-family:inherit}
+    .rail .ricon:hover{background:rgba(255,255,255,.1);color:#fff}
+    .rail .rspacer{flex:1}
+    .rail .racct{width:34px;height:34px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:.8rem;font-weight:800;border:0;cursor:pointer;margin-bottom:2px;font-family:inherit}
+  }
+
   /* ================= 실제 판정엔진 포팅용 스타일 ================= */
   .card .sec{font-size:.66rem;font-weight:800;color:var(--mut);letter-spacing:.05em;margin:14px 0 7px;text-transform:uppercase}
   .card .sec:first-child{margin-top:0}
@@ -272,6 +286,17 @@
 </head>
 <body>
 <div class="app">
+  <!-- PC 전용 축소 아이콘 레일: 사이드바를 펼치지 않아도 바로 눌리도록. 모바일에서는 display:none -->
+  <div class="rail" id="rail">
+    <button class="ricon" onclick="toggleSide()" title="사이드바 펼치기">☰</button>
+    <button class="ricon" onclick="resetChat()" title="새 상담 시작">＋</button>
+    <button class="ricon" onclick="openAnon()" title="가명화 도우미">🔒</button>
+    <button class="ricon" onclick="goToDoc()" title="사유서·문서">📄</button>
+    <button class="ricon" onclick="openUsage()" title="사용 현황">📊</button>
+    <div class="rspacer"></div>
+    <button class="racct" id="railAcctAva" onclick="onAcctClick()" title="계정">?</button>
+    <button class="ricon" onclick="openSettings()" title="설정">⚙️</button>
+  </div>
   <!-- 사이드바: 기본 숨김, 햄버거로 오버레이 오픈 -->
   <aside class="side" id="side">
     <div class="side-head">
@@ -587,10 +612,11 @@
 
   /* 사이드바 (기본 숨김 · 오버레이) */
   function toggleSide(){
-    var s=document.getElementById('side'), b=document.getElementById('backdrop');
+    var s=document.getElementById('side'), b=document.getElementById('backdrop'), r=document.getElementById('rail');
     var opening = !s.classList.contains('open');
     s.classList.toggle('open', opening);
     b.classList.toggle('on', opening);
+    if(r) r.classList.toggle('hide', opening); // PC 아이콘 레일은 사이드바가 펼쳐진 동안만 숨김
   }
   function sideInfo(name){
     botCard('사이드바 · '+name, '이 기능은 메인 화면을 단순하게 유지하려고 <b>사이드바에 숨겨</b> 두었습니다. 실제 통합 시 여기서 '+name+' 화면이 열립니다. <span style="color:var(--mut)">(UI 시안)</span>', null);
@@ -629,10 +655,12 @@
   }
   function renderAcctUI(){
     var ava=document.getElementById('acctAva'), nm=document.getElementById('acctName'), role=document.getElementById('acctRole');
+    var railAva=document.getElementById('railAcctAva');
     var loggedOutBox=document.getElementById('authLoggedOut'), loggedInBox=document.getElementById('authLoggedIn'), whoName=document.getElementById('authWhoName'), authTitle=document.getElementById('authTitle');
     if(authSession && currentCounselor){
       var label = currentCounselor.display_name || (currentCounselor.email || '').split('@')[0] || '상담원';
       if(ava) ava.textContent = label.charAt(0) || '상';
+      if(railAva) railAva.textContent = label.charAt(0) || '상';
       if(nm) nm.textContent = label + ' 상담원';
       if(role) role.textContent = currentCounselor.email || '';
       if(loggedOutBox) loggedOutBox.style.display = 'none';
@@ -641,6 +669,7 @@
       if(authTitle) authTitle.textContent = '상담원 계정';
     } else {
       if(ava) ava.textContent = '?';
+      if(railAva) railAva.textContent = '?';
       if(nm) nm.textContent = '로그인';
       if(role) role.textContent = '눌러서 로그인/회원가입';
       if(loggedOutBox) loggedOutBox.style.display = '';
@@ -733,7 +762,10 @@
     if(!name){ if(note){ note.style.color='var(--bad)'; note.textContent = '이름을 입력해 주세요.'; } return; }
     if(note){ note.style.color='var(--mut)'; note.textContent = '저장 중…'; }
     try{
-      var r = await sb.from('counselor_profiles').update({display_name:name}).eq('id', currentCounselor.id);
+      // update가 아니라 upsert를 써야 함 — 이메일 인증이 필요했던 시절 가입한 계정 등은애초에
+      // counselor_profiles 행 자체가 없을 수 있는데, 없는 행을 update하면 조용히 0건 처리되고
+      // "저장했어요"만 뜨고 실제로는 반영이 안 됨(새로고침하면 이메일 앞부분으로 되돌아가 보이는 원인).
+      var r = await sb.from('counselor_profiles').upsert({id:currentCounselor.id, display_name:name});
       if(r.error) throw r.error;
       currentCounselor.display_name = name;
       renderAcctUI();
@@ -962,6 +994,9 @@
       var parsed = JSON.parse(decRes.data);
       restoreCaseState(parsed);
       currentCaseId = row.id;
+      // "완료" 카드의 버튼(다운로드/새 상담)은 chatInner 밖의 고정 하단바(#doneBar)라서
+      // innerHTML 복원만으로는 안 돌아옴 — 완료된 사례를 다시 열 때는 직접 다시 보여줘야 함.
+      if(row.status === 'completed') showDoneBar(); else hideDoneBar();
       var s=document.getElementById('side'); if(s.classList.contains('open')) toggleSide();
     }catch(e){
       console.warn('사례 이어하기 실패:', e);
@@ -973,6 +1008,10 @@
      VERSION_LOG 배열 맨 앞에 새 항목을 추가할 것. 같은 날 여러 건이면 tag만 올려서(v0.x) 여러 줄 추가.
      "나중에 몰아서 기록"은 누락으로 이어지므로, 수정 직후 그 자리에서 바로 추가할 것. */
   var VERSION_LOG = [
+    {tag:'v0.26', date:'2026-09-02', title:'PC 전용 축소 아이콘 레일 추가', desc:'760px 이하(모바일)는 기존과 동일하게 사이드바가 완전히 숨겨진 오버레이 그대로 유지. 761px 이상(PC) 화면에서는 사이드바를 펼치지 않아도 왼쪽에 얇은 아이콘 줄(레일)이 항상 보이고 바로 클릭 가능(새 상담 시작·가명화 도우미·사유서 문서·사용 현황·계정·설정) — 펼치기(☰) 누르면 기존처럼 전체 사이드바가 열리고 레일은 잠깐 숨겨짐. (Claude)'},
+    {tag:'v0.25', date:'2026-09-02', title:'완료된 사례 다시 열면 완료 버튼 사라지는 문제 수정', desc:'"상담 완료" 카드의 다운로드/새 상담 버튼은 화면 하단 고정바(#doneBar)인데, 다른 사례를 봤다가 사이드바에서 완료된 사례로 돌아와도(resumeCase) 이 고정바가 다시 표시되지 않던 문제 수정 — 이어하기 시 사례의 저장된 status가 완료(completed)면 다시 보여주고, 아니면 숨김. (Claude)'},
+    {tag:'v0.24', date:'2026-09-02', title:'"새 상담 시작" 눌러도 대상유형 버튼이 사라지던 문제 수정', desc:'resetChat()이 웰컴 화면을 다시 그릴 때 안내 문구만 넣고 대상자 유형 칩(거리 노숙인·쪽방주민 등)과 "상황 입력 없이 바로 진행" 버튼을 빠뜨리고 있었음 — 처음 화면과 동일하게 복원되도록 수정. (Claude)'},
+    {tag:'v0.23', date:'2026-09-02', title:'이름 저장이 새로고침 후 되돌아가던 문제 수정', desc:'saveNameChange가 update만 사용해서, counselor_profiles 행이 아직 없는 계정(이메일 인증이 필요했던 시절 가입 등)은 저장 버튼을 눌러도 실제로는 0건 반영되고 "저장했어요"만 뜨는 조용한 실패였음 — update 대신 upsert로 변경해서 행이 없으면 새로 만들고 있으면 갱신하도록 수정. (Claude)'},
     {tag:'v0.22', date:'2026-09-02', title:'계정 설정(이름·비밀번호 변경) 추가', desc:'사이드바 ⚙️ 설정 버튼을 실제 "계정 설정" 바텀시트로 연결(openSettings) — 이름은 바로 수정 후 "이름 저장"으로 counselor_profiles에 반영, 비밀번호는 "비밀번호 수정" 버튼을 눌러야 기존 비밀번호·새 비밀번호·새 비밀번호 확인 칸이 나타나고(openPwChange), 기존 비밀번호로 재인증에 성공해야만 새 비밀번호로 변경됨(savePwChange, signInWithPassword 재검증 후 auth.updateUser). 로그인 안 한 상태로 설정을 누르면 로그인부터 안내. (Claude)'},
     {tag:'v0.21', date:'2026-09-02', title:'회원가입 확인메일 안내 문구 제거', desc:'화면에 있던 "가입하면 확인 메일이 발송돼요" 안내를 없앰(당분간 이메일 인증 없이 바로 가입되게 하기로 함). 단, 이건 화면 문구만 바꾼 것 — 실제로 인증메일이 안 가려면 Supabase 대시보드 Authentication 설정에서 이메일 확인(Confirm email) 옵션을 꺼야 함(대시보드에서만 가능, 코드로는 변경 불가). 꺼져있지 않으면 가입 후 로그인이 안 될 수 있어서 안내 문구를 남겨둠. (Claude)'},
     {tag:'v0.20', date:'2026-09-02', title:'로그인/회원가입 바텀시트 모드 분리', desc:'한 화면에 같이 있던 로그인·회원가입 입력칸을 분리 — 기본은 로그인 칸만 보이고, 하단 "회원가입" 링크를 누르면 이름·비밀번호 확인 칸과 "가입하면 확인 메일이 발송된다"는 안내가 나타나는 회원가입 모드로 전환(switchAuthMode). 반대로 회원가입 화면에서 "로그인" 링크로 되돌아갈 수 있음. (Claude)'},
@@ -1522,7 +1561,15 @@
     resultDone = false; resultCards = null; lastFreeText = ''; STEP = {};
     step=0; setStep(0);
     chat.innerHTML=''; var w=document.createElement('div'); w.className='welcome';
-    w.innerHTML='<div class="wmark">'+LOGO_HTML+'</div><h1>어떤 이웃을 만나셨나요?</h1><p>대상자 유형을 고르고, 상황을 <b>말하거나('+MICSVG+') 입력</b>하면 단계별로 도와드려요.</p>';
+    w.innerHTML='<div class="wmark">'+LOGO_HTML+'</div><h1>어떤 이웃을 만나셨나요?</h1><p>대상자 유형을 고르고, 상황을 <b>말하거나('+MICSVG+') 입력</b>하면<br>긴급지원 판단부터 사유서까지 단계별로 도와드려요.</p>'
+      +'<div class="chips">'
+      +'<div class="c" onclick="quickPick(\'노숙인\')">거리 노숙인</div>'
+      +'<div class="c" onclick="quickPick(\'쪽방주민\')">쪽방 주민</div>'
+      +'<div class="c" onclick="quickPick(\'가정폭력피해\')">가정폭력 피해자</div>'
+      +'<div class="c" onclick="quickPick(\'취약노인\')">취약노인</div>'
+      +'<div class="c" onclick="quickPick(\'외국인노동자\')">외국인노동자</div>'
+      +'</div>'
+      +'<button onclick="skipToFlow()" style="margin-top:16px;background:var(--accent-soft);color:var(--accent-ink);border:1.5px solid var(--accent);border-radius:22px;padding:10px 20px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit">상황 입력 없이 바로 진행 ▸</button>';
     chat.appendChild(w); welcome=w;
     var s=document.getElementById('side');
     if(s.classList.contains('open')) toggleSide();
