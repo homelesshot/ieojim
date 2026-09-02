@@ -165,6 +165,10 @@
   .cbtn:active{transform:scale(.94)}
   .cbtn.send{background:var(--accent);color:#fff}
   .cbtn.mic.rec{background:#c0392b;color:#fff;animation:pulse 1s infinite}
+  .micwrap{position:relative;display:inline-flex}
+  .privBubble{position:absolute;bottom:52px;right:-8px;width:200px;background:var(--ink);color:var(--surface);font-size:.7rem;line-height:1.5;padding:8px 10px;border-radius:10px;box-shadow:var(--shadow-md);opacity:0;transform:translateY(4px);pointer-events:none;transition:opacity .18s,transform .18s;z-index:15}
+  .privBubble::after{content:'';position:absolute;bottom:-5px;right:16px;width:10px;height:10px;background:var(--ink);transform:rotate(45deg)}
+  .privBubble.show{opacity:1;transform:translateY(0)}
   .composer.locked textarea:disabled,.composer.locked .cbtn:disabled{opacity:.4;cursor:not-allowed}
   .composer.locked textarea:disabled{background:transparent}
   .composer .lockhint{display:none;font-size:.72rem;color:var(--mut);text-align:center;margin-top:6px}
@@ -395,9 +399,12 @@
             <input type="file" id="fileIn" accept="audio/*" style="display:none" onchange="onFile(this)">
           </div>
           <textarea id="input" rows="1" placeholder="상황을 입력하거나, 오른쪽 버튼으로 녹음하세요…" oninput="autogrow(this)" onkeydown="onKey(event)"></textarea>
-          <button class="cbtn mic" id="micBtn" onclick="toggleRec()" title="녹음">
-            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Z"/><path d="M19 11a7 7 0 0 1-14 0"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>
-          </button>
+          <span class="micwrap">
+            <div class="privBubble" id="micPrivBubble">🔒 서버로 전송되지만 학습에는 쓰이지 않고, 악용 방지 목적으로 최대 30일 후 삭제돼요(OpenAI)</div>
+            <button class="cbtn mic" id="micBtn" onclick="toggleRec()" title="녹음">
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Z"/><path d="M19 11a7 7 0 0 1-14 0"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>
+            </button>
+          </span>
           <button class="cbtn send" onclick="send()" title="보내기">↑</button>
         </div>
       </div>
@@ -1008,6 +1015,7 @@
      VERSION_LOG 배열 맨 앞에 새 항목을 추가할 것. 같은 날 여러 건이면 tag만 올려서(v0.x) 여러 줄 추가.
      "나중에 몰아서 기록"은 누락으로 이어지므로, 수정 직후 그 자리에서 바로 추가할 것. */
   var VERSION_LOG = [
+    {tag:'v0.27', date:'2026-09-02', title:'녹음·AI초안 개인정보 처리방침 안내 추가', desc:'녹음 버튼을 누르면(녹음 시작) 버튼 위 말풍선으로 OpenAI 공식 정책 요약을 보여줌: "서버로 전송되지만 학습에는 쓰이지 않고, 악용 방지 목적으로 최대 30일 후 삭제"(OpenAI API data usage/retention 정책 확인 — 2023.3.1부터 API 데이터는 기본적으로 학습에 미사용, 악용감지 로그는 기본 30일 보관). AI 초안 버튼 아래에는 Gemini 안내 상시 표시: 현재 무료(빌링 미연결) API 키라서 구글 정책상 응답 개선(사람 검토 포함)에 쓰일 수 있다고 명시 — 유료(빌링 연결) 전환 시에는 구글이 응답 개선에 쓰지 않는다고 공식 문서에 명시되어 있으므로, 전환 전까지는 있는 그대로(무료 티어 기준) 안내. (Claude)'},
     {tag:'v0.26', date:'2026-09-02', title:'PC 전용 축소 아이콘 레일 추가', desc:'760px 이하(모바일)는 기존과 동일하게 사이드바가 완전히 숨겨진 오버레이 그대로 유지. 761px 이상(PC) 화면에서는 사이드바를 펼치지 않아도 왼쪽에 얇은 아이콘 줄(레일)이 항상 보이고 바로 클릭 가능(새 상담 시작·가명화 도우미·사유서 문서·사용 현황·계정·설정) — 펼치기(☰) 누르면 기존처럼 전체 사이드바가 열리고 레일은 잠깐 숨겨짐. (Claude)'},
     {tag:'v0.25', date:'2026-09-02', title:'완료된 사례 다시 열면 완료 버튼 사라지는 문제 수정', desc:'"상담 완료" 카드의 다운로드/새 상담 버튼은 화면 하단 고정바(#doneBar)인데, 다른 사례를 봤다가 사이드바에서 완료된 사례로 돌아와도(resumeCase) 이 고정바가 다시 표시되지 않던 문제 수정 — 이어하기 시 사례의 저장된 status가 완료(completed)면 다시 보여주고, 아니면 숨김. (Claude)'},
     {tag:'v0.24', date:'2026-09-02', title:'"새 상담 시작" 눌러도 대상유형 버튼이 사라지던 문제 수정', desc:'resetChat()이 웰컴 화면을 다시 그릴 때 안내 문구만 넣고 대상자 유형 칩(거리 노숙인·쪽방주민 등)과 "상황 입력 없이 바로 진행" 버튼을 빠뜨리고 있었음 — 처음 화면과 동일하게 복원되도록 수정. (Claude)'},
@@ -1080,6 +1088,8 @@
   }
 
   /* 🎤 녹음 */
+  function showMicPrivBubble(){ var b=document.getElementById('micPrivBubble'); if(b) b.classList.add('show'); }
+  function hideMicPrivBubble(){ var b=document.getElementById('micPrivBubble'); if(b) b.classList.remove('show'); }
   async function toggleRec(){
     var btn=document.getElementById('micBtn');
     if(media.rec && media.rec.state==='recording'){ media.rec.stop(); return; }
@@ -1090,6 +1100,7 @@
       media.rec.onstop=()=>{
         clearInterval(media.timer); document.getElementById('recTimer').classList.remove('on');
         btn.classList.remove('rec'); stream.getTracks().forEach(t=>t.stop());
+        hideMicPrivBubble();
         var blob=new Blob(media.chunks,{type:'audio/webm'}); var url=URL.createObjectURL(blob);
         hideWelcome();
         userMsgHTML(MICSVG+' 녹음 완료 ('+fmt(media.secs)+')<br><audio controls src="'+url+'" style="margin-top:6px;max-width:220px"></audio>');
@@ -1103,7 +1114,7 @@
         });
       };
       media.secs=0; media.rec.start();
-      btn.classList.add('rec'); var t=document.getElementById('recTimer'); t.classList.add('on'); t.textContent='● 00:00';
+      btn.classList.add('rec'); showMicPrivBubble(); var t=document.getElementById('recTimer'); t.classList.add('on'); t.textContent='● 00:00';
       media.timer=setInterval(()=>{ media.secs++; t.textContent='● '+fmt(media.secs); }, 1000);
     }catch(err){
       hideWelcome();
@@ -1278,6 +1289,7 @@
       <div class="btnrow" style="margin-top:.6rem">
         <button class="btn" id="aiDraftBtn" onclick="generateAiDraft()">AI 초안 만들기</button>
       </div>
+      <div class="note" style="margin-top:.35rem;font-size:.72rem">⚠️ 서버로 전송되며, 지금은 무료 API라 구글이 응답 개선(사람 검토 포함)에 활용할 수 있어요(Gemini) — 민감정보는 넣지 않는 게 안전해요.</div>
       <div class="note" id="aiDraftNote" style="margin-top:.5rem"></div>
 
       <div class="field" style="margin-top:.6rem"><span class="lab">② AI 초안 결과 — 자유롭게 수정하세요</span>
