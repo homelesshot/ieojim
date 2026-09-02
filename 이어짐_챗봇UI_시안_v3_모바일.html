@@ -289,18 +289,16 @@
       <button class="item" onclick="goToDoc()"><span class="ic">📄</span><span class="tx">사유서·문서</span></button>
       <button class="item" onclick="openUsage()"><span class="ic">📊</span><span class="tx">사용 현황</span></button>
       <div class="grp">최근</div>
-      <button class="item" onclick="sideInfo('최근 상담 불러오기')"><span class="ic">💬</span><span class="tx">거리 노숙인 상담</span><span class="tm">오늘</span></button>
-      <button class="item" onclick="sideInfo('최근 상담 불러오기')"><span class="ic">💬</span><span class="tx">쪽방 주민 상담</span><span class="tm">어제</span></button>
-      <button class="item" onclick="sideInfo('최근 상담 불러오기')"><span class="ic">💬</span><span class="tx">가정폭력 피해자 상담</span><span class="tm">8/29</span></button>
+      <div id="recentList"><button class="item" disabled style="opacity:.6"><span class="ic">💬</span><span class="tx">불러오는 중…</span></button></div>
     </div>
     <div class="side-foot">
-      <button class="acct" onclick="sideInfo('계정 전환')" title="계정">
-        <span class="ava">김</span>
-        <span class="who"><span class="nm">김상담 상담원</span><span class="role">homelesshot.or.kr</span></span>
+      <button class="acct" id="acctBtn" onclick="onAcctClick()" title="계정">
+        <span class="ava" id="acctAva">?</span>
+        <span class="who"><span class="nm" id="acctName">로그인</span><span class="role" id="acctRole">눌러서 로그인/회원가입</span></span>
       </button>
       <button class="gear" onclick="sideInfo('설정')" title="설정">⚙️</button>
     </div>
-    <div class="side-note">UI 시안 · 실제 판정 로직은 통합 시 연결<br>본선 데모용 · 가상 데이터 · 상담원별 개인 계정은 정식 배포 시 연동</div>
+    <div class="side-note">UI 시안 · 실제 판정 로직은 통합 시 연결<br>본선 데모용 · 로그인하면 상담 기록이 저장되고 이어서 진행할 수 있어요</div>
   </aside>
   <div class="backdrop" id="backdrop" onclick="toggleSide()"></div>
 
@@ -444,8 +442,44 @@
     <div id="usageSummary" class="note" style="white-space:pre-wrap"></div>
     </div>
   </div>
+
+  <!-- 상담원 로그인/회원가입 바텀시트 -->
+  <div class="vmodal-backdrop" id="authBackdrop" onclick="closeAuth()"></div>
+  <div class="vmodal" id="authModal">
+    <div class="vmodal-grab"></div>
+    <div class="vmodal-head">
+      <h2 id="authTitle">상담원 로그인</h2>
+      <button class="iconbtn" onclick="closeAuth()">✕</button>
+    </div>
+    <div class="vmodal-body">
+      <div id="authLoggedOut">
+        <div class="note" style="margin-bottom:.8rem">로그인하면 상담 진행 상태가 자동 저장돼서, 상담을 멈췄다가 나중에 사이드바에서 이어서 진행할 수 있어요. 로그인하지 않아도 판단 흐름 자체는 그대로 사용할 수 있습니다.</div>
+        <div class="field"><span class="lab">이름(회원가입 시)</span>
+          <input type="text" id="authName" placeholder="예: 김상담" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:.92rem">
+        </div>
+        <div class="field"><span class="lab">이메일</span>
+          <input type="email" id="authEmail" placeholder="you@example.org" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:.92rem">
+        </div>
+        <div class="field"><span class="lab">비밀번호</span>
+          <input type="password" id="authPw" placeholder="6자 이상" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:.92rem">
+        </div>
+        <div class="note" id="authNote" style="color:var(--bad);min-height:1.2em"></div>
+        <div class="btnrow" style="margin-top:.4rem">
+          <button class="btn small" id="authSigninBtn" onclick="doSignIn()">로그인</button>
+          <button class="btn small secondary" id="authSignupBtn" onclick="doSignUp()">회원가입</button>
+        </div>
+      </div>
+      <div id="authLoggedIn" style="display:none">
+        <div class="note" style="margin-bottom:.8rem"><b id="authWhoName"></b>님으로 로그인되어 있어요.</div>
+        <div class="btnrow">
+          <button class="btn small secondary" onclick="doSignOut()">로그아웃</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
   var MICSVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Z"/><path d="M19 11a7 7 0 0 1-14 0"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>';
   var step = 0;                 // 진행 단계
@@ -456,6 +490,20 @@
   /* ===== 음성→텍스트(STT) — Supabase Edge Function 프록시 경유, OpenAI gpt-4o-transcribe-diarize ===== */
   var STT_URL = 'https://ueidoudgwhuanrtowudy.supabase.co/functions/v1/stt-transcribe';
   var STT_ANON_KEY = 'sb_publishable_cnEU0Ly-lTtcR8Avmfjk7Q_wOEUT37s';
+
+  /* ===== 상담원 로그인 + 상담내역 저장/이어하기 (Supabase Auth + DB) =====
+     로그인 없이도 판단 흐름은 100% 그대로 동작해야 함 — 모든 DB 호출은 로그인 세션이
+     없거나 네트워크/DB 오류가 나도 절대 판단 흐름을 막지 않도록 try/catch로 감쌈. */
+  var SUPABASE_URL = 'https://ueidoudgwhuanrtowudy.supabase.co';
+  var sb = null;
+  try{
+    if(window.supabase && window.supabase.createClient){
+      sb = window.supabase.createClient(SUPABASE_URL, STT_ANON_KEY);
+    }
+  }catch(e){ console.warn('Supabase 클라이언트 초기화 실패(로그인/저장 기능 비활성):', e); }
+  var authSession = null;          // 현재 로그인 세션(없으면 null = 비로그인 상태로 정상 동작)
+  var currentCounselor = null;     // {id, display_name, email}
+  var currentCaseId = null;        // 현재 진행 중인 사례의 DB row id (아직 저장 전이면 null)
   async function transcribeAudio(blob, filename){
     var fd = new FormData();
     fd.append('file', blob, filename || 'audio.webm');
@@ -502,10 +550,301 @@
     if(s.classList.contains('open')) toggleSide();
   }
 
+  /* ================= 상담원 로그인/회원가입 (Supabase Auth) ================= */
+  function openAuth(){
+    var note = document.getElementById('authNote'); if(note) note.textContent = '';
+    document.getElementById('authBackdrop').classList.add('on');
+    document.getElementById('authModal').classList.add('open');
+  }
+  function closeAuth(){
+    document.getElementById('authBackdrop').classList.remove('on');
+    document.getElementById('authModal').classList.remove('open');
+  }
+  function onAcctClick(){
+    if(authSession && currentCounselor){ openAuth(); return; }
+    openAuth();
+  }
+  function renderAcctUI(){
+    var ava=document.getElementById('acctAva'), nm=document.getElementById('acctName'), role=document.getElementById('acctRole');
+    var loggedOutBox=document.getElementById('authLoggedOut'), loggedInBox=document.getElementById('authLoggedIn'), whoName=document.getElementById('authWhoName'), authTitle=document.getElementById('authTitle');
+    if(authSession && currentCounselor){
+      var label = currentCounselor.display_name || (currentCounselor.email || '').split('@')[0] || '상담원';
+      if(ava) ava.textContent = label.charAt(0) || '상';
+      if(nm) nm.textContent = label + ' 상담원';
+      if(role) role.textContent = currentCounselor.email || '';
+      if(loggedOutBox) loggedOutBox.style.display = 'none';
+      if(loggedInBox) loggedInBox.style.display = '';
+      if(whoName) whoName.textContent = label;
+      if(authTitle) authTitle.textContent = '상담원 계정';
+    } else {
+      if(ava) ava.textContent = '?';
+      if(nm) nm.textContent = '로그인';
+      if(role) role.textContent = '눌러서 로그인/회원가입';
+      if(loggedOutBox) loggedOutBox.style.display = '';
+      if(loggedInBox) loggedInBox.style.display = 'none';
+      if(authTitle) authTitle.textContent = '상담원 로그인';
+    }
+  }
+  async function doSignIn(){
+    var note = document.getElementById('authNote');
+    if(!sb){ if(note) note.textContent = '로그인 기능을 사용할 수 없습니다(초기화 실패).'; return; }
+    var email = (document.getElementById('authEmail').value||'').trim();
+    var pw = document.getElementById('authPw').value||'';
+    if(!email || !pw){ if(note) note.textContent = '이메일과 비밀번호를 입력해 주세요.'; return; }
+    if(note) note.textContent = '로그인 중…';
+    try{
+      var r = await sb.auth.signInWithPassword({email:email, password:pw});
+      if(r.error) throw r.error;
+      if(note) note.textContent = '';
+      closeAuth();
+    }catch(e){
+      if(note) note.textContent = '로그인 실패: ' + (e && e.message ? e.message : e);
+    }
+  }
+  async function doSignUp(){
+    var note = document.getElementById('authNote');
+    if(!sb){ if(note) note.textContent = '회원가입 기능을 사용할 수 없습니다(초기화 실패).'; return; }
+    var email = (document.getElementById('authEmail').value||'').trim();
+    var pw = document.getElementById('authPw').value||'';
+    var name = (document.getElementById('authName').value||'').trim() || email.split('@')[0] || '상담원';
+    if(!email || !pw){ if(note) note.textContent = '이메일과 비밀번호를 입력해 주세요.'; return; }
+    if(pw.length < 6){ if(note) note.textContent = '비밀번호는 6자 이상이어야 해요.'; return; }
+    if(note) note.textContent = '회원가입 중…';
+    try{
+      var r = await sb.auth.signUp({email:email, password:pw});
+      if(r.error) throw r.error;
+      var uid = r.data && r.data.user && r.data.user.id;
+      if(uid){
+        try{ await sb.from('counselor_profiles').upsert({id:uid, display_name:name}); }
+        catch(e2){ console.warn('counselor_profiles upsert 실패:', e2); }
+      }
+      if(note){
+        note.style.color = 'var(--accent-ink)';
+        note.textContent = r.data && r.data.session ? '회원가입 완료! 로그인되었습니다.' : '회원가입 완료! 이메일 인증이 필요할 수 있어요.';
+      }
+      if(r.data && r.data.session) closeAuth();
+    }catch(e){
+      note.style.color = 'var(--bad)';
+      note.textContent = '회원가입 실패: ' + (e && e.message ? e.message : e);
+    }
+  }
+  async function doSignOut(){
+    if(!sb) return;
+    try{ await sb.auth.signOut(); }catch(e){ console.warn('signOut 오류:', e); }
+    closeAuth();
+  }
+  async function initSupabaseAuth(){
+    if(!sb) return;
+    try{
+      var r = await sb.auth.getSession();
+      authSession = r && r.data ? r.data.session : null;
+      await onAuthChanged(authSession);
+      sb.auth.onAuthStateChange(function(_event, session){
+        onAuthChanged(session);
+      });
+    }catch(e){ console.warn('Supabase 세션 확인 실패(비로그인 상태로 계속 진행):', e); }
+  }
+  async function onAuthChanged(session){
+    authSession = session || null;
+    if(!authSession){
+      currentCounselor = null;
+      renderAcctUI();
+      refreshRecentList();
+      return;
+    }
+    try{
+      var uid = authSession.user.id;
+      var res = await sb.from('counselor_profiles').select('id,display_name,org').eq('id', uid).maybeSingle();
+      currentCounselor = {id:uid, email:authSession.user.email, display_name: (res && res.data && res.data.display_name) || null};
+    }catch(e){
+      console.warn('counselor_profiles 조회 실패:', e);
+      currentCounselor = {id:authSession.user.id, email:authSession.user.email, display_name:null};
+    }
+    renderAcctUI();
+    refreshRecentList();
+  }
+
+  /* ================= 최근 상담내역 (사이드바) ================= */
+  function relTime(iso){
+    try{
+      var t = new Date(iso).getTime();
+      if(isNaN(t)) return '';
+      var days = Math.floor((Date.now() - t) / 86400000);
+      if(days <= 0) return '오늘';
+      if(days === 1) return '어제';
+      if(days < 30) return days + '일 전';
+      var d = new Date(t);
+      return (d.getMonth()+1) + '/' + d.getDate();
+    }catch(e){ return ''; }
+  }
+  function caseLabel(row){
+    var bits = [];
+    if(row.target_type) bits.push(row.target_type);
+    if(row.urgency) bits.push(URGENCY_LABEL[row.urgency] || row.urgency);
+    if(row.verdict) bits.push(row.verdict.length>10 ? row.verdict.slice(0,10)+'…' : row.verdict);
+    var label = bits.join(' · ') || '상담';
+    return label;
+  }
+  async function refreshRecentList(){
+    var box = document.getElementById('recentList');
+    if(!box) return;
+    if(!sb || !authSession){
+      box.innerHTML = '<div class="item" style="opacity:.7;cursor:default;font-size:.82rem;padding:8px 10px">로그인하면 최근 상담 기록이 여기 표시돼요</div>';
+      return;
+    }
+    try{
+      var res = await sb.from('cases').select('id,target_type,urgency,verdict,status,updated_at')
+        .eq('counselor_id', authSession.user.id)
+        .order('updated_at', {ascending:false}).limit(20);
+      if(res.error) throw res.error;
+      var rows = res.data || [];
+      if(!rows.length){
+        box.innerHTML = '<div class="item" style="opacity:.7;cursor:default;font-size:.82rem;padding:8px 10px">아직 저장된 상담이 없어요</div>';
+        return;
+      }
+      box.innerHTML = rows.map(function(row){
+        var icon = row.status === 'completed' ? '✅' : '🟡';
+        return '<button class="item" onclick="resumeCase(\''+row.id+'\')"><span class="ic">'+icon+'</span><span class="tx">'+caseLabel(row).replace(/</g,'&lt;')+'</span><span class="tm">'+relTime(row.updated_at)+'</span></button>';
+      }).join('');
+    }catch(e){
+      console.warn('최근 상담 목록 조회 실패:', e);
+      box.innerHTML = '<div class="item" style="opacity:.7;cursor:default;font-size:.82rem;padding:8px 10px">최근 상담 목록을 불러오지 못했어요</div>';
+    }
+  }
+
+  /* ================= 사례 진행상태 저장/이어하기 ================= */
+  var STEP_ONNEXT = null; // botCard가 정의된 뒤(goHousehold 등 선언 후) 채워짐 — 아래 IIFE에서 지연 설정
+  function getStepOnNext(){
+    if(!STEP_ONNEXT){ STEP_ONNEXT = {crisis:goHousehold, household:goIncome, income:goHealth, health:goResult}; }
+    return STEP_ONNEXT;
+  }
+
+  function snapshotCaseState(){
+    // #chatInner 안의 모든 폼 컨트롤의 "속성"을 현재 라이브 값과 일치시켜서
+    // innerHTML 문자열 자체가 지금 상태를 그대로 재현하도록 만든다.
+    try{
+      chat.querySelectorAll('input, textarea, select').forEach(function(el){
+        if(el.type === 'checkbox' || el.type === 'radio'){
+          if(el.checked) el.setAttribute('checked',''); else el.removeAttribute('checked');
+        } else if(el.tagName === 'TEXTAREA'){
+          el.textContent = el.value;
+        } else if(el.tagName === 'SELECT'){
+          Array.prototype.forEach.call(el.options, function(opt){
+            if(opt.value === el.value) opt.setAttribute('selected',''); else opt.removeAttribute('selected');
+          });
+        } else {
+          el.setAttribute('value', el.value);
+        }
+      });
+    }catch(e){ console.warn('snapshotCaseState 속성 동기화 실패:', e); }
+    var aiDraftEl = document.getElementById('aiDraftOutput');
+    return {
+      chatHTML: chat.innerHTML,
+      resultDone: resultDone,
+      resultCards: resultCards ? true : false, // 실제 DOM 참조는 저장 불가 — restore 시 data-role로 재탐색
+      lastFreeText: lastFreeText,
+      mainInputLocked: mainInputLocked,
+      docText: currentCaseDocText(),
+      aiDraftOutput: aiDraftEl ? aiDraftEl.value : '',
+      step: step,
+      savedAt: Date.now()
+    };
+  }
+
+  function restoreCaseState(state){
+    if(!state) return;
+    try{
+      if(welcome){ welcome.remove(); welcome=null; }
+      chat.innerHTML = state.chatHTML || '';
+      lastFreeText = state.lastFreeText || '';
+      resultDone = !!state.resultDone;
+      // STEP 레지스트리와 버튼 클릭 핸들러를 새 DOM 노드에 다시 연결(innerHTML 재구성 시 이전 onclick은 사라짐)
+      STEP = {};
+      var onNextMap = getStepOnNext();
+      chat.querySelectorAll('[data-stepkey]').forEach(function(wrap){
+        var key = wrap.getAttribute('data-stepkey');
+        var btn = wrap.querySelector('.nextbtn');
+        if(!btn) return;
+        STEP[key] = {wrap:wrap, btn:btn};
+        if(!btn.disabled){
+          var origText = btn.textContent;
+          btn.onclick = function(){ handleStepConfirm(key, btn, onNextMap[key], origText); };
+        }
+      });
+      if(resultDone){
+        var r1 = chat.querySelector('[data-role="result1"]'), r2 = chat.querySelector('[data-role="result2"]'), r3 = chat.querySelector('[data-role="result3"]');
+        resultCards = (r1 && r2 && r3) ? {r1:r1, r2:r2, r3:r3} : null;
+        markDone();
+      } else {
+        resultCards = null;
+        setStep(typeof state.step === 'number' ? state.step : 0);
+      }
+      if(state.mainInputLocked) lockMainInput(); else unlockMainInput();
+      var aiDraftEl = document.getElementById('aiDraftOutput');
+      if(aiDraftEl && state.aiDraftOutput) aiDraftEl.value = state.aiDraftOutput;
+      scroll();
+    }catch(e){
+      console.warn('restoreCaseState 실패:', e);
+      botMsgHTML('⚠ 이어하기 중 일부 화면을 복원하지 못했어요. 이번 사례는 새로 진행해 주세요.');
+    }
+  }
+
+  async function saveCaseProgress(extra){
+    if(!sb || !authSession) return; // 비로그인 상태 — 조용히 무시(핵심 상담 흐름은 계속 동작)
+    try{
+      var d = (typeof lastRunData !== 'undefined' && lastRunData) ? lastRunData : {};
+      var fields = Object.assign({
+        target_type: d.targetType || null,
+        urgency: d.urgency || null,
+        crisis_reasons: d.crisis || null,
+        living_type: d.livingType || null,
+        region_name: d.regionName || null,
+        verdict: d.verdict || null
+      }, extra || {});
+      var snap = snapshotCaseState();
+      var encRes = await sb.rpc('encrypt_case_field', {plain: JSON.stringify(snap)});
+      if(encRes.error) throw encRes.error;
+      fields.state_json_enc = encRes.data;
+      if(!currentCaseId){
+        var insRes = await sb.from('cases').insert(fields).select('id').single();
+        if(insRes.error) throw insRes.error;
+        currentCaseId = insRes.data.id;
+      } else {
+        var updRes = await sb.from('cases').update(fields).eq('id', currentCaseId);
+        if(updRes.error) throw updRes.error;
+      }
+      refreshRecentList();
+    }catch(e){
+      console.warn('saveCaseProgress 실패(핵심 상담 흐름에는 영향 없음):', e);
+    }
+  }
+
+  async function resumeCase(caseId){
+    if(!sb || !authSession) return;
+    try{
+      var res = await sb.from('cases').select('*').eq('id', caseId).single();
+      if(res.error) throw res.error;
+      var row = res.data;
+      if(!row.state_json_enc){ throw new Error('저장된 진행상태가 없습니다'); }
+      var decRes = await sb.rpc('decrypt_case_field', {enc: row.state_json_enc});
+      if(decRes.error) throw decRes.error;
+      var parsed = JSON.parse(decRes.data);
+      restoreCaseState(parsed);
+      currentCaseId = row.id;
+      var s=document.getElementById('side'); if(s.classList.contains('open')) toggleSide();
+    }catch(e){
+      console.warn('사례 이어하기 실패:', e);
+      alert('이 상담을 불러오지 못했어요(' + (e && e.message ? e.message : e) + '). 잠시 후 다시 시도해주세요.');
+    }
+  }
+
   /* 버전 기록 — ⚠️ 이 파일을 수정하는 모든 사람/AI(협업자 포함)는 수정할 때마다 반드시
      VERSION_LOG 배열 맨 앞에 새 항목을 추가할 것. 같은 날 여러 건이면 tag만 올려서(v0.x) 여러 줄 추가.
      "나중에 몰아서 기록"은 누락으로 이어지므로, 수정 직후 그 자리에서 바로 추가할 것. */
   var VERSION_LOG = [
+    {tag:'v0.18', date:'2026-09-02', title:'사이드바 "최근" 실제 상담내역 연동', desc:'사이드바의 가짜 예시 3건을 실제 DB 조회로 교체(refreshRecentList) — 로그인 상태면 내 사례를 최근 수정순으로 최대 20건 표시(진행중🟡/완료✅ 아이콘 + 대상유형·긴급성 + 오늘/어제/N일 전), 비로그인이면 "로그인하면 기록이 표시돼요" 안내만. 항목 클릭(resumeCase)으로 그 사례의 저장된 진행상태를 그대로 불러와 이어서 진행. (Claude)'},
+    {tag:'v0.17', date:'2026-09-02', title:'상담 진행상태 자동 저장 + 사례 이어하기', desc:'DB에 status(진행중/완료)·state_json_enc(암호화된 화면 전체 스냅샷) 컬럼 추가. 각 단계 확인·예비판단(재)실행·AI 초안 생성·상담 완료 시점마다 현재 진행상태를 자동 저장(saveCaseProgress, 로그인 시에만·조용히 실패해도 상담 흐름은 안 끊김). "＋ 새 상담 시작"을 눌러도 방금 멈춘 사례는 삭제되지 않고 마지막 저장 상태 그대로 남아, 사이드바에서 다시 눌러 이어서 진행할 수 있음(restoreCaseState). (Claude)'},
+    {tag:'v0.16', date:'2026-09-02', title:'상담원 로그인/회원가입 실연결(Supabase Auth)', desc:'사이드바 하단의 가짜 계정("김상담 상담원")을 실제 로그인/회원가입 바텀시트로 교체(sb.auth.signInWithPassword/signUp) — 로그인 시 counselor_profiles에 표시이름 저장, 로그인 상태는 세션 확인 후 실시간 반영(onAuthStateChange). 로그인하지 않아도 긴급복지 판단 흐름 자체는 기존과 동일하게 100% 동작(저장/이어하기/최근목록만 로그인 시 활성화). (Claude)'},
     {tag:'v0.15', date:'2026-09-02', title:'2주차 코칭 피드백 수렴(코드 변경 없음)', desc:'코치 피드백 요약: (1) 긴 스크롤형 대신 한 화면씩 넘기는 페이지 방식으로 UI 변경 필요, (2) 이전/다음 버튼 하단 고정, (3) 예비판단 결과 가시성 강화(진한 색·체크 이모지), (4) "새 상담 시작" 대신 "완료/상담 마치기"로 세션 종료를 명확히, (5) 가명화 도우미 필요성 재검토(임베딩 or 삭제 중 택1), (6) STT 정확도는 언어 한국어 고정+저/고 데시벨 무시가 현실적인 개선안, (7) PC 다운로드 시 프로그램 다운·갤럭시 hwpx 생성 안 되는 기기별 버그 발견. 자세한 내용은 프로젝트 문서 coach-meeting-2026-09-02.md 참고. (Claude)'},
     {tag:'v0.14', date:'2026-09-01', title:'모바일 저장 공유시트 시도 강화 + 안내', desc:'휴대폰에서 저장이 안 되던 문제 → navigator.share(파일 공유)를 더 폭넓게 시도하고, 그래도 안 되면 "링크를 크롬/사파리로 열어 다시 시도" 안내를 표시. (원인은 대개 카톡 등 인앱 브라우저에서 열어 다운로드가 막힌 경우) (Claude)'},
     {tag:'v0.13', date:'2026-09-01', title:'저장 후 위치 안내 토스트', desc:'파일이 공유시트 없이 다운로드로 저장될 때(브라우저가 파일 공유 미지원 시) "어디에 저장됐는지 모른다"던 문제 → 저장 직후 "휴대폰: 파일 앱>다운로드 / PC: 다운로드 폴더" 안내 토스트를 8초간 표시. (Claude)'},
@@ -887,11 +1226,13 @@
       var w2 = botCard('⑥ 지원·연계', TPL_RESULT2, null);
       var w3 = botCard('⑦ 사유서 초안', TPL_DOC, null);
       resultCards = {r1:w1, r2:w2, r3:w3};
+      w1.setAttribute('data-role','result1'); w2.setAttribute('data-role','result2'); w3.setAttribute('data-role','result3');
       try{ run(); }catch(e){ console.warn('run() 오류:', e); }  // 오류가 나도 완료 안내는 뜨게
       initGeminiKeyNote();
       markDone();
       resultDone = true;
       showDoneBar();
+      try{ saveCaseProgress({status:'completed'}); }catch(e){ console.warn('saveCaseProgress 오류:', e); }
       botCard('✅ 상담 완료', '<div style="font-size:.9rem;color:var(--ink);margin-bottom:8px">예비판단·지원 안내·사유서 초안이 모두 만들어졌어요.</div><div style="font-size:.82rem;color:var(--mut);margin-bottom:12px">📥 사유서 초안을 저장하세요. 파일은 휴대폰·컴퓨터의 <b>‘다운로드’ 폴더</b>에 저장됩니다.</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"><button onclick="downloadHwpx()" style="flex:1;min-width:120px;background:var(--accent);color:#fff;border:0;border-radius:10px;padding:11px;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit">한글(.hwpx) 저장</button><button onclick="downloadDoc(\'txt\')" style="flex:1;min-width:120px;background:var(--accent-soft);color:var(--accent-ink);border:1.5px solid var(--accent);border-radius:10px;padding:11px;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit">텍스트(.txt) 저장</button></div><button onclick="resetChat()" style="width:100%;background:var(--ink);color:var(--surface);border:0;border-radius:12px;padding:12px;font-size:.95rem;font-weight:800;cursor:pointer;font-family:inherit">＋ 새 상담 시작</button>', null);
       w1.scrollIntoView({behavior:'smooth', block:'start'});
     });
@@ -951,7 +1292,7 @@
       var btn = w.querySelector('.nextbtn');
       var origText = btnText;
       btn.onclick = function(){ handleStepConfirm(stepKey, btn, onNext, origText); };
-      if(stepKey){ STEP[stepKey] = {wrap:w, btn:btn}; }
+      if(stepKey){ STEP[stepKey] = {wrap:w, btn:btn}; w.setAttribute('data-stepkey', stepKey); }
     }
     chat.appendChild(w);
     w.scrollIntoView({behavior:'smooth', block:'start'});
@@ -967,6 +1308,7 @@
     btn.disabled = true; btn.style.opacity = .5; btn.textContent = origText;
     if(firstTime){
       onNext();
+      try{ saveCaseProgress(); }catch(e){ console.warn('saveCaseProgress 오류:', e); }
       return;
     }
     if(resultDone){
@@ -977,6 +1319,7 @@
     var nextWrap = nextKey && STEP[nextKey] && STEP[nextKey].wrap;
     if(nextWrap){ nextWrap.scrollIntoView({behavior:'smooth', block:'start'}); }
     else { onNext(); }
+    try{ saveCaseProgress(); }catch(e){ console.warn('saveCaseProgress 오류:', e); }
   }
 
   function markCardBody(wrap, label, html){
@@ -993,6 +1336,7 @@
       run();
       initGeminiKeyNote();
       resultCards.r1.scrollIntoView({behavior:'smooth', block:'start'});
+      try{ saveCaseProgress(); }catch(e){ console.warn('saveCaseProgress 오류:', e); }
     });
   }
 
@@ -1037,6 +1381,10 @@
   function formRows(pairs){ var h='<div class="row">'; pairs.forEach(function(p,i){ h+='<div><label>'+p[0]+'</label><input placeholder="'+p[1]+'"></div>'; if(i%2===1 && i<pairs.length-1) h+='</div><div class="row">'; }); h+='</div>'; return h; }
 
   function resetChat(){
+    // 진행 중이던 사례는 그대로 DB에 남겨두고(마지막 저장 상태 그대로) 새 사례만 시작한다 —
+    // currentCaseId를 비워서 다음 saveCaseProgress()가 새 row를 만들게 함.
+    currentCaseId = null;
+    resultDone = false; resultCards = null; lastFreeText = ''; STEP = {};
     step=0; setStep(0);
     chat.innerHTML=''; var w=document.createElement('div'); w.className='welcome';
     w.innerHTML='<div class="wmark">'+LOGO_HTML+'</div><h1>어떤 이웃을 만나셨나요?</h1><p>대상자 유형을 고르고, 상황을 <b>말하거나('+MICSVG+') 입력</b>하면 단계별로 도와드려요.</p>';
@@ -1323,6 +1671,7 @@
       if(!res.ok){ throw new Error(data.error || ('HTTP '+res.status)); }
       if(!data.text){ throw new Error('응답에서 텍스트를 찾을 수 없습니다'); }
       document.getElementById('aiDraftOutput').value = data.text.trim();
+      try{ saveCaseProgress(); }catch(e2){ console.warn('saveCaseProgress 오류:', e2); }
     }catch(e){
       note.innerHTML = '⚠ AI 요청 중 오류가 발생했습니다(' + e.message + '). 아래 "지시문 복사"로 Claude·ChatGPT 앱에 직접 붙여넣어 주세요.';
     } finally {
@@ -2033,10 +2382,11 @@ ${d.memo ? '\n메모: '+d.memo : ''}
     const today = new Date().toISOString().slice(0,10);
     const itemTxt = items.map(i=>ITEM_LABEL[i]).join('·');
     lastRunData = {
-      targetType, urgencyLabel:URGENCY_LABEL[urgency], crisis, crisisMet, regionName, regionTier, livingType, size, children,
+      targetType, urgency, urgencyLabel:URGENCY_LABEL[urgency], crisis, crisisMet, regionName, regionTier, livingType, size, children,
       income, std, incomeOk, assetCalc, assetLimit, assetOk,
       ageGroupLabel:AGE_LABEL[ageGroup], gender, nationalityLabel:nationalityLabelMap[nationality],
-      health: health.length? health.filter(h=>h!=='해당없음') : [], itemTxt, excluded, selfItems: ss.items, memo, today
+      health: health.length? health.filter(h=>h!=='해당없음') : [], itemTxt, excluded, selfItems: ss.items, memo, today,
+      verdict // 저장/이어하기(saveCaseProgress)에서 그대로 재사용 — 재도출하지 않음
     };
     buildDoc();
 
@@ -2054,6 +2404,11 @@ ${d.memo ? '\n메모: '+d.memo : ''}
   // 초기 렌더
   // 옵션2: 첫 입력 시 처리시간 측정 시작(판정 시 종료)
   document.addEventListener('input', function(e){ if(e.target.closest && e.target.closest('#anonCard')) return; if(caseStartTime===null) caseStartTime=Date.now(); }, true);
+
+  // 로그인 상태 확인 + 사이드바 계정/최근목록 초기화(로그인 여부와 무관하게 상담 흐름은 그대로 동작)
+  renderAcctUI();
+  refreshRecentList();
+  initSupabaseAuth();
 
 </script>
 </body>
