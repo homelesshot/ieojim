@@ -296,7 +296,7 @@
         <span class="ava" id="acctAva">?</span>
         <span class="who"><span class="nm" id="acctName">로그인</span><span class="role" id="acctRole">눌러서 로그인/회원가입</span></span>
       </button>
-      <button class="gear" onclick="sideInfo('설정')" title="설정">⚙️</button>
+      <button class="gear" onclick="openSettings()" title="설정">⚙️</button>
     </div>
     <div class="side-note">UI 시안 · 실제 판정 로직은 통합 시 연결<br>본선 데모용 · 로그인하면 상담 기록이 저장되고 이어서 진행할 수 있어요</div>
   </aside>
@@ -454,7 +454,7 @@
     <div class="vmodal-body">
       <div id="authLoggedOut">
         <div class="note" style="margin-bottom:.8rem">로그인하면 상담 진행 상태가 자동 저장돼서, 상담을 멈췄다가 나중에 사이드바에서 이어서 진행할 수 있어요. 로그인하지 않아도 판단 흐름 자체는 그대로 사용할 수 있습니다.</div>
-        <div class="field"><span class="lab">이름(회원가입 시)</span>
+        <div class="field" id="authNameField" style="display:none"><span class="lab">이름</span>
           <input type="text" id="authName" placeholder="예: 김상담" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:.92rem">
         </div>
         <div class="field"><span class="lab">이메일</span>
@@ -463,19 +463,64 @@
         <div class="field"><span class="lab">비밀번호</span>
           <input type="password" id="authPw" placeholder="6자 이상" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:.92rem">
         </div>
-        <div class="field"><span class="lab">비밀번호 확인(회원가입 시)</span>
+        <div class="field" id="authPwConfirmField" style="display:none"><span class="lab">비밀번호 확인</span>
           <input type="password" id="authPwConfirm" placeholder="비밀번호를 한 번 더 입력" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:.92rem">
         </div>
         <div class="note" id="authNote" style="color:var(--bad);min-height:1.2em"></div>
         <div class="btnrow" style="margin-top:.4rem">
           <button class="btn small" id="authSigninBtn" onclick="doSignIn()">로그인</button>
-          <button class="btn small secondary" id="authSignupBtn" onclick="doSignUp()">회원가입</button>
+          <button class="btn small" id="authSignupBtn" onclick="doSignUp()" style="display:none">회원가입</button>
+        </div>
+        <div class="note" style="margin-top:.7rem;text-align:center">
+          <span id="authToSignupRow">계정이 없으신가요? <a href="javascript:void(0)" onclick="switchAuthMode('signup')" style="color:var(--accent);font-weight:700;text-decoration:underline">회원가입</a></span>
+          <span id="authToSigninRow" style="display:none">이미 계정이 있으신가요? <a href="javascript:void(0)" onclick="switchAuthMode('signin')" style="color:var(--accent);font-weight:700;text-decoration:underline">로그인</a></span>
         </div>
       </div>
       <div id="authLoggedIn" style="display:none">
         <div class="note" style="margin-bottom:.8rem"><b id="authWhoName"></b>님으로 로그인되어 있어요.</div>
         <div class="btnrow">
           <button class="btn small secondary" onclick="doSignOut()">로그아웃</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 상담원 설정(이름/비밀번호 변경) 바텀시트 -->
+  <div class="vmodal-backdrop" id="settingsBackdrop" onclick="closeSettings()"></div>
+  <div class="vmodal" id="settingsModal">
+    <div class="vmodal-grab"></div>
+    <div class="vmodal-head">
+      <h2>계정 설정</h2>
+      <button class="iconbtn" onclick="closeSettings()">✕</button>
+    </div>
+    <div class="vmodal-body">
+      <div class="field"><span class="lab">이름</span>
+        <input type="text" id="setName" placeholder="예: 김상담" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:.92rem">
+      </div>
+      <div class="note" id="setNameNote" style="min-height:1.2em"></div>
+      <div class="btnrow" style="margin-top:.2rem">
+        <button class="btn small" onclick="saveNameChange()">이름 저장</button>
+      </div>
+
+      <div style="border-top:1px solid var(--line);margin:1rem 0 .8rem"></div>
+
+      <div id="pwChangeToggleRow">
+        <button class="btn small secondary" onclick="openPwChange()">비밀번호 수정</button>
+      </div>
+      <div id="pwChangeBox" style="display:none">
+        <div class="field"><span class="lab">기존 비밀번호</span>
+          <input type="password" id="setOldPw" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:.92rem">
+        </div>
+        <div class="field"><span class="lab">새 비밀번호</span>
+          <input type="password" id="setNewPw" placeholder="6자 이상" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:.92rem">
+        </div>
+        <div class="field"><span class="lab">새 비밀번호 확인</span>
+          <input type="password" id="setNewPwConfirm" placeholder="새 비밀번호를 한 번 더 입력" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:.92rem">
+        </div>
+        <div class="note" id="setPwNote" style="min-height:1.2em"></div>
+        <div class="btnrow" style="margin-top:.2rem">
+          <button class="btn small" onclick="savePwChange()">비밀번호 저장</button>
+          <button class="btn small secondary" onclick="closePwChange()">취소</button>
         </div>
       </div>
     </div>
@@ -554,9 +599,23 @@
   }
 
   /* ================= 상담원 로그인/회원가입 (Supabase Auth) ================= */
+  var authMode = 'signin'; // 'signin' | 'signup' — 로그인 바텀시트가 지금 어느 모드인지
+  function switchAuthMode(mode){
+    authMode = (mode === 'signup') ? 'signup' : 'signin';
+    var isSignup = authMode === 'signup';
+    document.getElementById('authNameField').style.display = isSignup ? '' : 'none';
+    document.getElementById('authPwConfirmField').style.display = isSignup ? '' : 'none';
+    document.getElementById('authSigninBtn').style.display = isSignup ? 'none' : '';
+    document.getElementById('authSignupBtn').style.display = isSignup ? '' : 'none';
+    document.getElementById('authToSignupRow').style.display = isSignup ? 'none' : '';
+    document.getElementById('authToSigninRow').style.display = isSignup ? '' : 'none';
+    var title = document.getElementById('authTitle'); if(title && !(authSession && currentCounselor)) title.textContent = isSignup ? '상담원 회원가입' : '상담원 로그인';
+    var note = document.getElementById('authNote'); if(note) note.textContent = '';
+  }
   function openAuth(){
     var note = document.getElementById('authNote'); if(note) note.textContent = '';
     var pwc = document.getElementById('authPwConfirm'); if(pwc) pwc.value = '';
+    switchAuthMode('signin');
     document.getElementById('authBackdrop').classList.add('on');
     document.getElementById('authModal').classList.add('open');
   }
@@ -626,7 +685,7 @@
       }
       if(note){
         note.style.color = 'var(--accent-ink)';
-        note.textContent = r.data && r.data.session ? '회원가입 완료! 로그인되었습니다.' : '회원가입 완료! 이메일 인증이 필요할 수 있어요.';
+        note.textContent = r.data && r.data.session ? '회원가입 완료! 로그인되었습니다.' : '회원가입 완료! 이메일 인증이 아직 켜져 있어서 바로 로그인이 안 될 수 있어요 — Supabase 대시보드에서 확인이 필요합니다.';
       }
       if(r.data && r.data.session) closeAuth();
     }catch(e){
@@ -638,6 +697,72 @@
     if(!sb) return;
     try{ await sb.auth.signOut(); }catch(e){ console.warn('signOut 오류:', e); }
     closeAuth();
+  }
+
+  /* ================= 계정 설정: 이름/비밀번호 변경 ================= */
+  function openSettings(){
+    if(!(authSession && currentCounselor)){
+      botCard('설정', '이름·비밀번호 변경은 로그인 후에 가능해요. 먼저 로그인해 주세요.', null);
+      openAuth();
+      return;
+    }
+    var nameInput = document.getElementById('setName'); if(nameInput) nameInput.value = currentCounselor.display_name || '';
+    var note = document.getElementById('setNameNote'); if(note) note.textContent = '';
+    closePwChange();
+    document.getElementById('settingsBackdrop').classList.add('on');
+    document.getElementById('settingsModal').classList.add('open');
+  }
+  function closeSettings(){
+    document.getElementById('settingsBackdrop').classList.remove('on');
+    document.getElementById('settingsModal').classList.remove('open');
+  }
+  function openPwChange(){
+    document.getElementById('pwChangeToggleRow').style.display = 'none';
+    document.getElementById('pwChangeBox').style.display = '';
+    ['setOldPw','setNewPw','setNewPwConfirm'].forEach(function(id){ var el = document.getElementById(id); if(el) el.value = ''; });
+    var note = document.getElementById('setPwNote'); if(note) note.textContent = '';
+  }
+  function closePwChange(){
+    document.getElementById('pwChangeToggleRow').style.display = '';
+    document.getElementById('pwChangeBox').style.display = 'none';
+  }
+  async function saveNameChange(){
+    var note = document.getElementById('setNameNote');
+    if(!sb || !currentCounselor){ if(note){ note.style.color='var(--bad)'; note.textContent = '로그인 상태를 확인할 수 없어요.'; } return; }
+    var name = (document.getElementById('setName').value||'').trim();
+    if(!name){ if(note){ note.style.color='var(--bad)'; note.textContent = '이름을 입력해 주세요.'; } return; }
+    if(note){ note.style.color='var(--mut)'; note.textContent = '저장 중…'; }
+    try{
+      var r = await sb.from('counselor_profiles').update({display_name:name}).eq('id', currentCounselor.id);
+      if(r.error) throw r.error;
+      currentCounselor.display_name = name;
+      renderAcctUI();
+      if(note){ note.style.color='var(--accent-ink)'; note.textContent = '이름을 저장했어요.'; }
+    }catch(e){
+      if(note){ note.style.color='var(--bad)'; note.textContent = '저장 실패: ' + (e && e.message ? e.message : e); }
+    }
+  }
+  async function savePwChange(){
+    var note = document.getElementById('setPwNote');
+    if(!sb || !currentCounselor || !currentCounselor.email){ if(note){ note.style.color='var(--bad)'; note.textContent = '로그인 상태를 확인할 수 없어요.'; } return; }
+    var oldPw = document.getElementById('setOldPw').value||'';
+    var newPw = document.getElementById('setNewPw').value||'';
+    var newPw2 = document.getElementById('setNewPwConfirm').value||'';
+    if(!oldPw || !newPw || !newPw2){ note.style.color='var(--bad)'; note.textContent = '기존 비밀번호와 새 비밀번호를 모두 입력해 주세요.'; return; }
+    if(newPw.length < 6){ note.style.color='var(--bad)'; note.textContent = '새 비밀번호는 6자 이상이어야 해요.'; return; }
+    if(newPw !== newPw2){ note.style.color='var(--bad)'; note.textContent = '새 비밀번호가 서로 달라요. 다시 확인해 주세요.'; return; }
+    note.style.color='var(--mut)'; note.textContent = '기존 비밀번호 확인 중…';
+    try{
+      var r1 = await sb.auth.signInWithPassword({email:currentCounselor.email, password:oldPw});
+      if(r1.error) throw new Error('기존 비밀번호가 올바르지 않아요.');
+      note.textContent = '새 비밀번호로 변경 중…';
+      var r2 = await sb.auth.updateUser({password:newPw});
+      if(r2.error) throw r2.error;
+      note.style.color='var(--accent-ink)'; note.textContent = '비밀번호를 변경했어요.';
+      closePwChange();
+    }catch(e){
+      note.style.color='var(--bad)'; note.textContent = '변경 실패: ' + (e && e.message ? e.message : e);
+    }
   }
   async function initSupabaseAuth(){
     if(!sb) return;
@@ -848,6 +973,9 @@
      VERSION_LOG 배열 맨 앞에 새 항목을 추가할 것. 같은 날 여러 건이면 tag만 올려서(v0.x) 여러 줄 추가.
      "나중에 몰아서 기록"은 누락으로 이어지므로, 수정 직후 그 자리에서 바로 추가할 것. */
   var VERSION_LOG = [
+    {tag:'v0.22', date:'2026-09-02', title:'계정 설정(이름·비밀번호 변경) 추가', desc:'사이드바 ⚙️ 설정 버튼을 실제 "계정 설정" 바텀시트로 연결(openSettings) — 이름은 바로 수정 후 "이름 저장"으로 counselor_profiles에 반영, 비밀번호는 "비밀번호 수정" 버튼을 눌러야 기존 비밀번호·새 비밀번호·새 비밀번호 확인 칸이 나타나고(openPwChange), 기존 비밀번호로 재인증에 성공해야만 새 비밀번호로 변경됨(savePwChange, signInWithPassword 재검증 후 auth.updateUser). 로그인 안 한 상태로 설정을 누르면 로그인부터 안내. (Claude)'},
+    {tag:'v0.21', date:'2026-09-02', title:'회원가입 확인메일 안내 문구 제거', desc:'화면에 있던 "가입하면 확인 메일이 발송돼요" 안내를 없앰(당분간 이메일 인증 없이 바로 가입되게 하기로 함). 단, 이건 화면 문구만 바꾼 것 — 실제로 인증메일이 안 가려면 Supabase 대시보드 Authentication 설정에서 이메일 확인(Confirm email) 옵션을 꺼야 함(대시보드에서만 가능, 코드로는 변경 불가). 꺼져있지 않으면 가입 후 로그인이 안 될 수 있어서 안내 문구를 남겨둠. (Claude)'},
+    {tag:'v0.20', date:'2026-09-02', title:'로그인/회원가입 바텀시트 모드 분리', desc:'한 화면에 같이 있던 로그인·회원가입 입력칸을 분리 — 기본은 로그인 칸만 보이고, 하단 "회원가입" 링크를 누르면 이름·비밀번호 확인 칸과 "가입하면 확인 메일이 발송된다"는 안내가 나타나는 회원가입 모드로 전환(switchAuthMode). 반대로 회원가입 화면에서 "로그인" 링크로 되돌아갈 수 있음. (Claude)'},
     {tag:'v0.19', date:'2026-09-02', title:'회원가입 비밀번호 확인 입력 추가', desc:'회원가입 시 비밀번호를 한 번 더 입력하는 "비밀번호 확인" 칸 추가, 두 값이 다르면 가입 진행 전에 바로 안내 문구로 알려주고 막음(doSignUp). 로그인(기존 계정)에는 영향 없음. (Claude)'},
     {tag:'v0.18', date:'2026-09-02', title:'사이드바 "최근" 실제 상담내역 연동', desc:'사이드바의 가짜 예시 3건을 실제 DB 조회로 교체(refreshRecentList) — 로그인 상태면 내 사례를 최근 수정순으로 최대 20건 표시(진행중🟡/완료✅ 아이콘 + 대상유형·긴급성 + 오늘/어제/N일 전), 비로그인이면 "로그인하면 기록이 표시돼요" 안내만. 항목 클릭(resumeCase)으로 그 사례의 저장된 진행상태를 그대로 불러와 이어서 진행. (Claude)'},
     {tag:'v0.17', date:'2026-09-02', title:'상담 진행상태 자동 저장 + 사례 이어하기', desc:'DB에 status(진행중/완료)·state_json_enc(암호화된 화면 전체 스냅샷) 컬럼 추가. 각 단계 확인·예비판단(재)실행·AI 초안 생성·상담 완료 시점마다 현재 진행상태를 자동 저장(saveCaseProgress, 로그인 시에만·조용히 실패해도 상담 흐름은 안 끊김). "＋ 새 상담 시작"을 눌러도 방금 멈춘 사례는 삭제되지 않고 마지막 저장 상태 그대로 남아, 사이드바에서 다시 눌러 이어서 진행할 수 있음(restoreCaseState). (Claude)'},
