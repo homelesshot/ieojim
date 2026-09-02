@@ -463,6 +463,9 @@
         <div class="field"><span class="lab">비밀번호</span>
           <input type="password" id="authPw" placeholder="6자 이상" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:.92rem">
         </div>
+        <div class="field"><span class="lab">비밀번호 확인(회원가입 시)</span>
+          <input type="password" id="authPwConfirm" placeholder="비밀번호를 한 번 더 입력" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:.92rem">
+        </div>
         <div class="note" id="authNote" style="color:var(--bad);min-height:1.2em"></div>
         <div class="btnrow" style="margin-top:.4rem">
           <button class="btn small" id="authSigninBtn" onclick="doSignIn()">로그인</button>
@@ -553,6 +556,7 @@
   /* ================= 상담원 로그인/회원가입 (Supabase Auth) ================= */
   function openAuth(){
     var note = document.getElementById('authNote'); if(note) note.textContent = '';
+    var pwc = document.getElementById('authPwConfirm'); if(pwc) pwc.value = '';
     document.getElementById('authBackdrop').classList.add('on');
     document.getElementById('authModal').classList.add('open');
   }
@@ -607,8 +611,10 @@
     var email = (document.getElementById('authEmail').value||'').trim();
     var pw = document.getElementById('authPw').value||'';
     var name = (document.getElementById('authName').value||'').trim() || email.split('@')[0] || '상담원';
+    var pwConfirm = document.getElementById('authPwConfirm').value||'';
     if(!email || !pw){ if(note) note.textContent = '이메일과 비밀번호를 입력해 주세요.'; return; }
     if(pw.length < 6){ if(note) note.textContent = '비밀번호는 6자 이상이어야 해요.'; return; }
+    if(pw !== pwConfirm){ note.style.color = 'var(--bad)'; note.textContent = '비밀번호가 서로 달라요. 다시 확인해 주세요.'; return; }
     if(note) note.textContent = '회원가입 중…';
     try{
       var r = await sb.auth.signUp({email:email, password:pw});
@@ -842,6 +848,7 @@
      VERSION_LOG 배열 맨 앞에 새 항목을 추가할 것. 같은 날 여러 건이면 tag만 올려서(v0.x) 여러 줄 추가.
      "나중에 몰아서 기록"은 누락으로 이어지므로, 수정 직후 그 자리에서 바로 추가할 것. */
   var VERSION_LOG = [
+    {tag:'v0.19', date:'2026-09-02', title:'회원가입 비밀번호 확인 입력 추가', desc:'회원가입 시 비밀번호를 한 번 더 입력하는 "비밀번호 확인" 칸 추가, 두 값이 다르면 가입 진행 전에 바로 안내 문구로 알려주고 막음(doSignUp). 로그인(기존 계정)에는 영향 없음. (Claude)'},
     {tag:'v0.18', date:'2026-09-02', title:'사이드바 "최근" 실제 상담내역 연동', desc:'사이드바의 가짜 예시 3건을 실제 DB 조회로 교체(refreshRecentList) — 로그인 상태면 내 사례를 최근 수정순으로 최대 20건 표시(진행중🟡/완료✅ 아이콘 + 대상유형·긴급성 + 오늘/어제/N일 전), 비로그인이면 "로그인하면 기록이 표시돼요" 안내만. 항목 클릭(resumeCase)으로 그 사례의 저장된 진행상태를 그대로 불러와 이어서 진행. (Claude)'},
     {tag:'v0.17', date:'2026-09-02', title:'상담 진행상태 자동 저장 + 사례 이어하기', desc:'DB에 status(진행중/완료)·state_json_enc(암호화된 화면 전체 스냅샷) 컬럼 추가. 각 단계 확인·예비판단(재)실행·AI 초안 생성·상담 완료 시점마다 현재 진행상태를 자동 저장(saveCaseProgress, 로그인 시에만·조용히 실패해도 상담 흐름은 안 끊김). "＋ 새 상담 시작"을 눌러도 방금 멈춘 사례는 삭제되지 않고 마지막 저장 상태 그대로 남아, 사이드바에서 다시 눌러 이어서 진행할 수 있음(restoreCaseState). (Claude)'},
     {tag:'v0.16', date:'2026-09-02', title:'상담원 로그인/회원가입 실연결(Supabase Auth)', desc:'사이드바 하단의 가짜 계정("김상담 상담원")을 실제 로그인/회원가입 바텀시트로 교체(sb.auth.signInWithPassword/signUp) — 로그인 시 counselor_profiles에 표시이름 저장, 로그인 상태는 세션 확인 후 실시간 반영(onAuthStateChange). 로그인하지 않아도 긴급복지 판단 흐름 자체는 기존과 동일하게 100% 동작(저장/이어하기/최근목록만 로그인 시 활성화). (Claude)'},
