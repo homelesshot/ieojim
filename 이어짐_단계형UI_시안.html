@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="robots" content="noindex, nofollow"/>
+<title>이어짐 — 단계형 UI 시안</title>
+<style>
+  :root{
+    --bg:#eef2f3; --surface:#fff; --surface-2:#f5f8f8; --ink:#15242a; --mut:#5d6f75;
+    --line:#e0e7e9; --line-2:#cdd8da; --accent:#147089; --accent-ink:#0b4658; --accent-soft:#e3eff2;
+    --ok:#1f7a4d; --ok-bg:#e7f4ec; --radius:14px;
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --bg:#0d1418; --surface:#182227; --surface-2:#131c20; --ink:#e8eff1; --mut:#93a3a7;
+    --line:#26343a; --line-2:#35474d; --accent:#48b0c9; --accent-ink:#bfe7f0; --accent-soft:#123039; --ok:#5cc98a; --ok-bg:#123021;
+  }}
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{background:var(--bg);color:var(--ink);font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  .app{display:flex;flex-direction:column;height:100dvh;max-width:480px;margin:0 auto;background:var(--bg);overflow:hidden}
+
+  /* 상단: 진행바 + 제목 */
+  .top{flex:none;padding:14px 16px 10px;background:var(--surface);border-bottom:1px solid var(--line)}
+  .toprow{display:flex;align-items:center;gap:10px}
+  .toprow .brand{font-weight:800;font-size:.95rem;color:var(--accent)}
+  .toprow .count{margin-left:auto;font-size:.78rem;color:var(--mut);font-variant-numeric:tabular-nums}
+  .bar{display:flex;gap:4px;margin-top:9px}
+  .bar .seg{flex:1;height:5px;border-radius:5px;background:var(--line)}
+  .bar .seg.done{background:var(--ok)} .bar .seg.on{background:var(--accent)}
+
+  /* 무대: 현재 단계 하나만, 스크롤 없이 채움 */
+  .stage{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;padding:16px;position:relative}
+  .step{display:none;flex-direction:column;gap:12px}
+  .step.active{display:flex}
+  .q{font-size:1.28rem;font-weight:800;line-height:1.3;letter-spacing:-.02em}
+  .q .sub{display:block;font-size:.85rem;font-weight:500;color:var(--mut);margin-top:5px}
+  .info{align-self:flex-start;font-size:.76rem;color:var(--accent-ink);background:var(--accent-soft);border:0;border-radius:20px;padding:5px 11px;cursor:pointer;font-family:inherit;font-weight:700}
+  .info-body{display:none;font-size:.8rem;color:var(--mut);background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;line-height:1.55}
+  .info-body.open{display:block}
+
+  .chips{display:flex;flex-wrap:wrap;gap:9px}
+  .chip{background:var(--surface);border:1.5px solid var(--line);border-radius:22px;padding:11px 16px;font-size:.95rem;cursor:pointer;color:var(--ink);font-family:inherit;transition:.12s}
+  .chip:hover{border-color:var(--accent)}
+  .chip.sel{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .field label{display:block;font-size:.8rem;color:var(--mut);margin-bottom:5px;font-weight:600}
+  .field input,.field select{width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:11px;font-size:1rem;background:var(--surface-2);color:var(--ink);font-family:inherit}
+  .field input:focus,.field select:focus{outline:2px solid var(--accent);border-color:var(--accent)}
+
+  .checks{display:flex;flex-wrap:wrap;gap:8px}
+  .checks label{display:inline-flex;align-items:center;gap:7px;background:var(--surface);border:1.5px solid var(--line);border-radius:11px;padding:9px 12px;font-size:.88rem;font-weight:600;cursor:pointer}
+  .checks label:has(input:checked){background:var(--accent-soft);border-color:var(--accent);color:var(--accent-ink)}
+  .checks input{accent-color:var(--accent);width:1.1rem;height:1.1rem}
+
+  .verdict{background:var(--ok-bg);border:1px solid var(--ok);color:var(--ok);border-radius:12px;padding:14px;font-weight:800;font-size:1.05rem;text-align:center}
+  .result-list{font-size:.9rem;color:var(--ink);line-height:1.7}
+  .result-list b{color:var(--accent-ink)}
+  .savebtns{display:flex;gap:8px;margin-top:4px}
+  .savebtns button{flex:1;background:var(--accent);color:#fff;border:0;border-radius:11px;padding:12px;font-weight:800;font-family:inherit;font-size:.92rem;cursor:pointer}
+  .savebtns button.ghost{background:var(--accent-soft);color:var(--accent-ink)}
+
+  /* 하단 네비 */
+  .nav{flex:none;display:flex;gap:10px;padding:12px 16px;background:var(--surface);border-top:1px solid var(--line);padding-bottom:max(12px,env(safe-area-inset-bottom))}
+  .nav button{flex:1;border-radius:12px;padding:14px;font-size:1rem;font-weight:800;font-family:inherit;cursor:pointer;border:0;transition:.12s}
+  .nav .prev{flex:0 0 34%;background:var(--surface-2);color:var(--mut);border:1.5px solid var(--line)}
+  .nav .prev:disabled{opacity:.4;cursor:default}
+  .nav .next{background:var(--accent);color:#fff}
+  .foothint{flex:none;text-align:center;font-size:.68rem;color:var(--mut);padding:0 0 6px;background:var(--surface)}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div class="toprow">
+      <span class="brand">이어짐</span>
+      <span class="count"><span id="cur">1</span> / 7</span>
+    </div>
+    <div class="bar" id="bar"></div>
+  </div>
+
+  <div class="stage" id="stage">
+    <!-- 1 -->
+    <div class="step active">
+      <div class="q">어떤 이웃을 만나셨나요?<span class="sub">대상자 유형을 골라주세요</span></div>
+      <div class="chips" id="typeChips">
+        <div class="chip" onclick="pick(this)">거리 노숙인</div>
+        <div class="chip" onclick="pick(this)">쪽방 주민</div>
+        <div class="chip" onclick="pick(this)">가정폭력 피해자</div>
+        <div class="chip" onclick="pick(this)">취약노인</div>
+        <div class="chip" onclick="pick(this)">외국인노동자</div>
+        <div class="chip" onclick="pick(this)">위기가구</div>
+      </div>
+      <button class="info" onclick="toggleInfo(this)">ⓘ 안내 보기</button>
+      <div class="info-body">현장에서 만난 대상자의 유형을 고르면, 유형에 맞춰 다음 질문이 자동으로 준비됩니다. 실명 대신 가명으로만 기록하세요.</div>
+    </div>
+
+    <!-- 2 -->
+    <div class="step">
+      <div class="q">위기 상황은 무엇인가요?<span class="sub">해당하는 것을 모두 선택</span></div>
+      <div class="checks">
+        <label><input type="checkbox">주거 상실(노숙)</label>
+        <label><input type="checkbox">소득 상실·생계 곤란</label>
+        <label><input type="checkbox">중한 질병·부상</label>
+        <label><input type="checkbox">가정폭력·학대</label>
+        <label><input type="checkbox">폭염·한파(기후)</label>
+        <label><input type="checkbox">화재·재난</label>
+      </div>
+      <div class="field" style="margin-top:4px"><label>긴급성</label>
+        <select><option>오늘 당장</option><option>이번주 이내</option><option>이번달 이내</option></select>
+      </div>
+    </div>
+
+    <!-- 3 -->
+    <div class="step">
+      <div class="q">가구·거주 정보<span class="sub">대략만 선택해도 돼요</span></div>
+      <div class="grid">
+        <div class="field"><label>거주지역</label><select><option>인천광역시</option><option>서울특별시</option><option>경기도</option></select></div>
+        <div class="field"><label>거주형태</label><select><option>거리 노숙</option><option>쪽방·고시원</option><option>임시주거(쉼터)</option><option>자가·전월세</option></select></div>
+        <div class="field"><label>가구원수</label><select><option>1인</option><option>2인</option><option>3인</option><option>4인</option></select></div>
+        <div class="field"><label>연령대</label><select><option>65세+</option><option>40~64세</option><option>19~39세</option></select></div>
+      </div>
+    </div>
+
+    <!-- 4 -->
+    <div class="step">
+      <div class="q">소득·재산 (대략)<span class="sub">모르면 비워두어도 됩니다</span></div>
+      <div class="grid">
+        <div class="field"><label>월 소득(원)</label><input inputmode="numeric" placeholder="예: 330,000"></div>
+        <div class="field"><label>임차보증금(원)</label><input inputmode="numeric" placeholder="예: 30,000,000"></div>
+        <div class="field"><label>금융재산(원)</label><input inputmode="numeric" placeholder="예: 1,500,000"></div>
+        <div class="field"><label>부채(원)</label><input inputmode="numeric" placeholder="예: 0"></div>
+      </div>
+    </div>
+
+    <!-- 5 -->
+    <div class="step">
+      <div class="q">건강·특수상황<span class="sub">해당 시 선택</span></div>
+      <div class="checks">
+        <label><input type="checkbox">중한 질병·부상</label>
+        <label><input type="checkbox">장애</label>
+        <label><input type="checkbox">영양실조</label>
+        <label><input type="checkbox">거동 불편</label>
+        <label><input type="checkbox">치매·노인성질환</label>
+        <label><input type="checkbox">비공개 쉼터 거주</label>
+      </div>
+    </div>
+
+    <!-- 6 -->
+    <div class="step">
+      <div class="q">예비판단 결과</div>
+      <div class="verdict">✔ 긴급복지 대상 가능성 있음</div>
+      <div class="result-list">
+        · <b>공적</b> : 생계지원 · 의료지원<br>
+        · <b>기관 즉시</b> : 식사·응급약품<br>
+        · <b>다음 단계</b> : 주민센터 긴급복지 신청 동행
+      </div>
+      <button class="info" onclick="toggleInfo(this)">ⓘ 판단 근거</button>
+      <div class="info-body">기준중위소득 75% 이하 + 재산 산정 결과 요건 충족(예시). 규칙엔진 판정이며 최종 결정은 담당자·지자체가 합니다.</div>
+    </div>
+
+    <!-- 7 -->
+    <div class="step">
+      <div class="q">사유서 초안 완성<span class="sub">저장해서 활용하세요</span></div>
+      <div class="result-list">긴급복지 지원 요청 사유서(초안)가 만들어졌어요. 아래에서 저장하거나, 새 상담을 시작할 수 있어요.</div>
+      <div class="savebtns">
+        <button onclick="alert('한글(.hwpx) 저장 — 시안')">📥 한글 저장</button>
+        <button class="ghost" onclick="alert('텍스트 저장 — 시안')">텍스트</button>
+      </div>
+      <button class="info ghost-btn" onclick="reset()" style="background:var(--surface-2);color:var(--mut);border:1.5px solid var(--line);padding:11px;border-radius:11px;margin-top:2px">＋ 새 상담 시작</button>
+    </div>
+  </div>
+
+  <div class="nav">
+    <button class="prev" id="prevBtn" onclick="go(-1)">◀ 이전</button>
+    <button class="next" id="nextBtn" onclick="go(1)">다음 ▶</button>
+  </div>
+  <div class="foothint">단계형 UI 시안 · 한 화면에 한 단계 · 실명 대신 가명</div>
+</div>
+
+<script>
+  var steps = document.querySelectorAll('.step');
+  var TOTAL = steps.length, idx = 0;
+  var bar = document.getElementById('bar');
+  for(var i=0;i<TOTAL;i++){ var s=document.createElement('div'); s.className='seg'; bar.appendChild(s); }
+  function render(){
+    steps.forEach(function(el,i){ el.classList.toggle('active', i===idx); });
+    document.querySelectorAll('#bar .seg').forEach(function(s,i){
+      s.classList.toggle('done', i<idx); s.classList.toggle('on', i===idx);
+    });
+    document.getElementById('cur').textContent = idx+1;
+    document.getElementById('prevBtn').disabled = (idx===0);
+    var next = document.getElementById('nextBtn');
+    next.textContent = (idx===TOTAL-1) ? '완료' : (idx===TOTAL-2 ? '예비판단 ▶' : '다음 ▶');
+  }
+  function go(d){
+    var n = idx + d;
+    if(n<0 || n>=TOTAL){ if(n>=TOTAL) reset(); return; }
+    idx = n; render();
+  }
+  function pick(el){ el.parentNode.querySelectorAll('.chip').forEach(function(c){c.classList.remove('sel');}); el.classList.add('sel'); }
+  function toggleInfo(btn){ var b=btn.nextElementSibling; b.classList.toggle('open'); btn.textContent = b.classList.contains('open')?'ⓘ 안내 닫기':'ⓘ 안내 보기'; }
+  function reset(){ idx=0; render(); document.querySelectorAll('.chip').forEach(function(c){c.classList.remove('sel');}); document.querySelectorAll('input[type=checkbox]').forEach(function(c){c.checked=false;}); document.querySelectorAll('.info-body').forEach(function(b){b.classList.remove('open');}); }
+  render();
+</script>
+</body>
+</html>
