@@ -68,6 +68,12 @@
   .nav .prev:disabled{opacity:.4;cursor:default}
   .nav .next{background:var(--accent);color:#fff}
   .foothint{flex:none;text-align:center;font-size:.68rem;color:var(--mut);padding:0 0 6px;background:var(--surface)}
+  .or{display:flex;align-items:center;gap:10px;color:var(--mut);font-size:.78rem;margin:4px 0}
+  .or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
+  .recbtn{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--accent-soft);color:var(--accent-ink);border:1.5px solid var(--accent);border-radius:12px;padding:13px;font-size:.95rem;font-weight:700;font-family:inherit;cursor:pointer}
+  .recbtn.rec{background:#c0392b;color:#fff;border-color:#c0392b;animation:pulse 1s infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(192,57,43,.5)}50%{box-shadow:0 0 0 8px rgba(192,57,43,0)}}
+  .recstatus{font-size:.82rem;color:var(--mut);text-align:center;min-height:1.2em}
 </style>
 </head>
 <body>
@@ -92,6 +98,9 @@
         <div class="chip" onclick="pick(this)">외국인노동자</div>
         <div class="chip" onclick="pick(this)">위기가구</div>
       </div>
+      <div class="or">또는</div>
+      <button class="recbtn" id="recBtn" onclick="toggleRec()"><span id="recIcon">🎤</span> <span id="recLabel">녹음으로 상황 말하기</span></button>
+      <div class="recstatus" id="recStatus"></div>
       <button class="info" onclick="toggleInfo(this)">ⓘ 안내 보기</button>
       <div class="info-body">현장에서 만난 대상자의 유형을 고르면, 유형에 맞춰 다음 질문이 자동으로 준비됩니다. 실명 대신 가명으로만 기록하세요.</div>
     </div>
@@ -201,7 +210,28 @@
   }
   function pick(el){ el.parentNode.querySelectorAll('.chip').forEach(function(c){c.classList.remove('sel');}); el.classList.add('sel'); }
   function toggleInfo(btn){ var b=btn.nextElementSibling; b.classList.toggle('open'); btn.textContent = b.classList.contains('open')?'ⓘ 안내 닫기':'ⓘ 안내 보기'; }
-  function reset(){ idx=0; render(); document.querySelectorAll('.chip').forEach(function(c){c.classList.remove('sel');}); document.querySelectorAll('input[type=checkbox]').forEach(function(c){c.checked=false;}); document.querySelectorAll('.info-body').forEach(function(b){b.classList.remove('open');}); }
+  function reset(){ idx=0; render(); document.querySelectorAll('.chip').forEach(function(c){c.classList.remove('sel');}); document.querySelectorAll('input[type=checkbox]').forEach(function(c){c.checked=false;}); document.querySelectorAll('.info-body').forEach(function(b){b.classList.remove('open');}); var rs=document.getElementById('recStatus'); if(rs)rs.textContent=''; }
+
+  // 🎤 녹음(실제 MediaRecorder) — 녹음하면 STT로 항목 자동 채움(시안)
+  var media={rec:null,chunks:[],timer:null,secs:0};
+  function fmt(s){var m=Math.floor(s/60),r=s%60;return (m<10?'0':'')+m+':'+(r<10?'0':'')+r;}
+  async function toggleRec(){
+    var btn=document.getElementById('recBtn');
+    if(media.rec && media.rec.state==='recording'){ media.rec.stop(); return; }
+    try{
+      var stream=await navigator.mediaDevices.getUserMedia({audio:true});
+      media.chunks=[]; media.rec=new MediaRecorder(stream);
+      media.rec.ondataavailable=function(e){ if(e.data.size)media.chunks.push(e.data); };
+      media.rec.onstop=function(){
+        clearInterval(media.timer); stream.getTracks().forEach(function(t){t.stop();});
+        btn.classList.remove('rec'); document.getElementById('recIcon').textContent='🎤'; document.getElementById('recLabel').textContent='녹음으로 상황 말하기';
+        document.getElementById('recStatus').innerHTML='✅ 녹음 완료('+fmt(media.secs)+') → 텍스트 변환 후 항목 자동 채움 <span style="opacity:.7">(시안)</span>';
+      };
+      media.secs=0; media.rec.start(); btn.classList.add('rec');
+      document.getElementById('recIcon').textContent='⏹'; document.getElementById('recLabel').textContent='녹음 중지';
+      media.timer=setInterval(function(){ media.secs++; document.getElementById('recStatus').textContent='● 녹음 중 '+fmt(media.secs); },1000);
+    }catch(e){ document.getElementById('recStatus').textContent='마이크 권한이 필요해요(또는 이 브라우저 미지원).'; }
+  }
   render();
 </script>
 </body>
