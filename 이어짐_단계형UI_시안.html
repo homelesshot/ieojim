@@ -68,12 +68,15 @@
   .nav .prev:disabled{opacity:.4;cursor:default}
   .nav .next{background:var(--accent);color:#fff}
   .foothint{flex:none;text-align:center;font-size:.68rem;color:var(--mut);padding:0 0 6px;background:var(--surface)}
-  .or{display:flex;align-items:center;gap:10px;color:var(--mut);font-size:.78rem;margin:4px 0}
-  .or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
-  .recbtn{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--accent-soft);color:var(--accent-ink);border:1.5px solid var(--accent);border-radius:12px;padding:13px;font-size:.95rem;font-weight:700;font-family:inherit;cursor:pointer}
-  .recbtn.rec{background:#c0392b;color:#fff;border-color:#c0392b;animation:pulse 1s infinite}
+  .composer{display:flex;align-items:center;gap:7px;background:var(--surface);border:1.5px solid var(--line);border-radius:24px;padding:6px 8px}
+  .composer .cinput{flex:1;min-width:0;border:0;background:none;font-family:inherit;font-size:.95rem;color:var(--ink);padding:8px 4px}
+  .composer .cinput:focus{outline:none}
+  .cbtn{width:38px;height:38px;flex:none;border-radius:50%;border:0;cursor:pointer;display:grid;place-items:center;font-size:1.15rem;background:var(--surface-2);color:var(--ink)}
+  .cbtn:hover{background:var(--accent-soft);color:var(--accent-ink)}
+  .cbtn.mic.rec{background:#c0392b;color:#fff;animation:pulse 1s infinite}
   @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(192,57,43,.5)}50%{box-shadow:0 0 0 8px rgba(192,57,43,0)}}
-  .recstatus{font-size:.82rem;color:var(--mut);text-align:center;min-height:1.2em}
+  .recstatus{font-size:.82rem;color:var(--mut);text-align:center;min-height:1.1em}
+  .skip{align-self:center;background:var(--accent-soft);color:var(--accent-ink);border:1.5px solid var(--accent);border-radius:22px;padding:11px 20px;font-size:.95rem;font-weight:700;font-family:inherit;cursor:pointer;margin-top:2px}
 </style>
 </head>
 <body>
@@ -98,9 +101,14 @@
         <div class="chip" onclick="pick(this)">외국인노동자</div>
         <div class="chip" onclick="pick(this)">위기가구</div>
       </div>
-      <div class="or">또는</div>
-      <button class="recbtn" id="recBtn" onclick="toggleRec()"><span id="recIcon">🎤</span> <span id="recLabel">녹음으로 상황 말하기</span></button>
+      <div class="composer">
+        <button class="cbtn" onclick="pickFile()" title="녹음 파일 올리기">＋</button>
+        <input type="file" id="fileIn" accept="audio/*" style="display:none" onchange="onFile(this)">
+        <input class="cinput" type="text" placeholder="상황을 입력하거나 오른쪽 🎤로 녹음">
+        <button class="cbtn mic" id="recBtn" onclick="toggleRec()" title="녹음">🎤</button>
+      </div>
       <div class="recstatus" id="recStatus"></div>
+      <button class="skip" onclick="go(1)">상황 입력 없이 바로 진행 ▶</button>
       <button class="info" onclick="toggleInfo(this)">ⓘ 안내 보기</button>
       <div class="info-body">현장에서 만난 대상자의 유형을 고르면, 유형에 맞춰 다음 질문이 자동으로 준비됩니다. 실명 대신 가명으로만 기록하세요.</div>
     </div>
@@ -215,6 +223,8 @@
   // 🎤 녹음(실제 MediaRecorder) — 녹음하면 STT로 항목 자동 채움(시안)
   var media={rec:null,chunks:[],timer:null,secs:0};
   function fmt(s){var m=Math.floor(s/60),r=s%60;return (m<10?'0':'')+m+':'+(r<10?'0':'')+r;}
+  function pickFile(){ document.getElementById('fileIn').click(); }
+  function onFile(inp){ var f=inp.files[0]; if(!f)return; document.getElementById('recStatus').innerHTML='🎧 파일 첨부: '+f.name+' → 텍스트 변환 후 항목 자동 채움 <span style="opacity:.7">(시안)</span>'; inp.value=''; }
   async function toggleRec(){
     var btn=document.getElementById('recBtn');
     if(media.rec && media.rec.state==='recording'){ media.rec.stop(); return; }
@@ -224,11 +234,10 @@
       media.rec.ondataavailable=function(e){ if(e.data.size)media.chunks.push(e.data); };
       media.rec.onstop=function(){
         clearInterval(media.timer); stream.getTracks().forEach(function(t){t.stop();});
-        btn.classList.remove('rec'); document.getElementById('recIcon').textContent='🎤'; document.getElementById('recLabel').textContent='녹음으로 상황 말하기';
+        btn.classList.remove('rec'); btn.textContent='🎤';
         document.getElementById('recStatus').innerHTML='✅ 녹음 완료('+fmt(media.secs)+') → 텍스트 변환 후 항목 자동 채움 <span style="opacity:.7">(시안)</span>';
       };
-      media.secs=0; media.rec.start(); btn.classList.add('rec');
-      document.getElementById('recIcon').textContent='⏹'; document.getElementById('recLabel').textContent='녹음 중지';
+      media.secs=0; media.rec.start(); btn.classList.add('rec'); btn.textContent='⏹';
       media.timer=setInterval(function(){ media.secs++; document.getElementById('recStatus').textContent='● 녹음 중 '+fmt(media.secs); },1000);
     }catch(e){ document.getElementById('recStatus').textContent='마이크 권한이 필요해요(또는 이 브라우저 미지원).'; }
   }
