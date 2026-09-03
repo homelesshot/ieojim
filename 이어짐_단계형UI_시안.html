@@ -86,7 +86,11 @@
   .side .grp{font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:#7f959b;margin:12px 8px 6px;font-weight:700}
   .side .item{display:flex;align-items:center;gap:11px;padding:11px 10px;border-radius:9px;color:#cddbde;font-size:.9rem;cursor:pointer;border:0;background:none;text-align:left;font-family:inherit;width:100%}
   .side .item:hover{background:rgba(255,255,255,.08)}
-  .side .foot{margin-top:auto;font-size:.72rem;color:#6f868c;padding:10px 8px;border-top:1px solid rgba(255,255,255,.08)}
+  .side .acct{margin-top:auto;display:flex;gap:8px;padding:10px 6px 6px}
+  .side .acctbtn{flex:1;border-radius:10px;padding:11px;font-size:.88rem;font-weight:700;font-family:inherit;cursor:pointer}
+  .side .acctbtn.login{background:var(--accent);color:#fff;border:0}
+  .side .acctbtn.signup{background:transparent;color:#cddbde;border:1.5px solid rgba(255,255,255,.25)}
+  .side .foot{font-size:.72rem;color:#6f868c;padding:8px 8px;border-top:1px solid rgba(255,255,255,.08)}
   .backdrop{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:99;display:none}
   .backdrop.on{display:block}
 </style>
@@ -103,6 +107,10 @@
   <div class="grp">기록</div>
   <button class="item" onclick="sideInfo('최근 상담')"><span>🗂️</span> 최근 상담</button>
   <button class="item" onclick="sideInfo('설정')"><span>⚙️</span> 설정</button>
+  <div class="acct">
+    <button class="acctbtn login" onclick="sideInfo('로그인')">로그인</button>
+    <button class="acctbtn signup" onclick="sideInfo('회원가입')">회원가입</button>
+  </div>
   <div class="foot">단계형 UI 시안 · 실명 대신 가명</div>
 </aside>
 <div class="backdrop" id="backdrop" onclick="toggleSide()"></div>
