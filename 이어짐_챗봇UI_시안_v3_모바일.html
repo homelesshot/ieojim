@@ -47,8 +47,10 @@
     --scroll-thumb:rgba(233,239,240,.16); --scroll-thumb-hover:rgba(233,239,240,.3); --scroll-track:rgba(233,239,240,.04);
   }
   *{box-sizing:border-box}
+  *,*::before,*::after{box-sizing:border-box}
   html,body{height:100%}
-  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;line-height:1.6;-webkit-font-smoothing:antialiased;letter-spacing:-.1px;overscroll-behavior:none}
+  html{overflow-x:hidden}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;line-height:1.6;-webkit-font-smoothing:antialiased;letter-spacing:-.1px;overscroll-behavior:none;overflow-x:hidden}
   button{touch-action:manipulation}
   .app{position:relative;height:100dvh;overflow:hidden;background:var(--bg)}
 
@@ -74,25 +76,25 @@
   .side-scroll::-webkit-scrollbar-track{background:var(--scroll-track-side)}
   .side-scroll::-webkit-scrollbar-thumb{background:var(--scroll-thumb-side);border-radius:10px}
   .side-scroll::-webkit-scrollbar-thumb:hover{background:var(--scroll-thumb-side-hover)}
-  .side .newbtn{display:flex;align-items:center;gap:8px;background:var(--accent);color:#fff;border:0;border-radius:12px;padding:11px 13px;font-size:.92rem;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:16px;width:100%;transition:filter .15s,transform .1s}
+  .side .newbtn{display:flex;align-items:center;gap:8px;background:var(--accent);color:#fff;border:0;border-radius:12px;padding:11px 13px;font-size:1.2rem;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:16px;width:100%;transition:filter .15s,transform .1s}
   .side .newbtn:hover{filter:brightness(1.08)}
   .side .newbtn:active{transform:scale(.98)}
-  .side .grp{font-size:.66rem;letter-spacing:.09em;text-transform:uppercase;color:#7f97a0;margin:14px 8px 7px;font-weight:700}
-  .side .item{display:flex;align-items:center;gap:10px;padding:9.5px 10px;border-radius:10px;color:#cfdde0;font-size:.89rem;cursor:pointer;border:0;background:none;width:100%;text-align:left;font-family:inherit;transition:background .15s,color .15s}
+  .side .grp{font-size:1.32rem;letter-spacing:.09em;text-transform:uppercase;color:#7f97a0;margin:14px 8px 7px;font-weight:700}
+  .side .item{display:flex;align-items:center;gap:10px;padding:9.5px 10px;border-radius:10px;color:#cfdde0;font-size:1.16rem;cursor:pointer;border:0;background:none;width:100%;text-align:left;font-family:inherit;transition:background .15s,color .15s}
   .side .item:hover{background:rgba(255,255,255,.08);color:#fff}
   .side .item .ic{width:18px;text-align:center;opacity:.9;flex:none}
   .side .item .tx{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .side .item .tm{margin-left:auto;font-size:.72rem;color:#6f868c;flex:none}
+  .side .item .tm{margin-left:auto;font-size:1.44rem;color:#6f868c;flex:none}
   .side-foot{border-top:1px solid rgba(255,255,255,.09);padding-top:10px;margin-top:8px;display:flex;align-items:center;gap:8px}
   .acct{display:flex;align-items:center;gap:9px;flex:1;min-width:0;background:none;border:0;padding:7px 8px;border-radius:10px;cursor:pointer;text-align:left;font-family:inherit;transition:background .15s}
   .acct:hover{background:rgba(255,255,255,.08)}
-  .acct .ava{width:30px;height:30px;flex:none;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:.82rem;font-weight:800}
+  .acct .ava{width:30px;height:30px;flex:none;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:1.07rem;font-weight:800}
   .acct .who{min-width:0}
-  .acct .nm{font-size:.86rem;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .acct .role{font-size:.71rem;color:#87a0a6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .acct .nm{font-size:1.12rem;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .acct .role{font-size:1.42rem;color:#87a0a6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .side-foot .gear{width:36px;height:36px;flex:none;border-radius:10px;border:0;background:none;color:#cfdde0;font-size:1.05rem;cursor:pointer;display:grid;place-items:center;transition:background .15s}
   .side-foot .gear:hover{background:rgba(255,255,255,.08)}
-  .side-note{font-size:.68rem;color:#5f767c;padding:8px 8px 2px;line-height:1.5}
+  .side-note{font-size:1.36rem;color:#5f767c;padding:8px 8px 2px;line-height:1.5}
 
   .backdrop{position:fixed;inset:0;background:rgba(8,14,17,.5);z-index:35;opacity:0;pointer-events:none;transition:opacity .25s ease;backdrop-filter:blur(1px)}
   .backdrop.on{opacity:1;pointer-events:auto}
@@ -103,17 +105,17 @@
   .iconbtn{background:none;border:0;cursor:pointer;color:var(--ink);width:42px;height:42px;flex:none;border-radius:10px;font-size:1.15rem;display:grid;place-items:center;transition:background .15s}
   .iconbtn:hover{background:var(--surface-2)}
   .toptitle{flex:1;min-width:0;text-align:center}
-  .toptitle .ttl{font-weight:800;font-size:.96rem;letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .toptitle .tsub{font-size:.7rem;color:var(--mut);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .toptitle .ttl{font-weight:800;font-size:1.25rem;letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .toptitle .tsub{font-size:1.4rem;color:var(--mut);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
   .stepbar{display:flex;align-items:center;justify-content:center;gap:5px;padding:9px 16px;background:var(--surface);border-bottom:1px solid var(--line);flex:none}
   .stepbar .s{width:22px;height:5px;border-radius:6px;background:var(--line);transition:background .2s}
   .stepbar .s.on{background:var(--accent)}
   .stepbar .s.done{background:var(--ok)}
-  .stepbar .slabel{font-size:.7rem;color:var(--mut);margin-left:6px;font-weight:600}
+  .stepbar .slabel{font-size:1.4rem;color:var(--mut);margin-left:6px;font-weight:600}
 
   /* ---- 대화 영역 ---- */
-  .chat{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:20px 12px 14px;display:flex;flex-direction:column;gap:16px;scroll-behavior:smooth;scrollbar-width:thin;scrollbar-color:var(--scroll-thumb) var(--scroll-track)}
+  .chat{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:20px 12px 14px;display:flex;flex-direction:column;gap:16px;scroll-behavior:smooth;scrollbar-width:thin;scrollbar-color:var(--scroll-thumb) var(--scroll-track);overflow-x:hidden}
   .chat::-webkit-scrollbar{width:7px}
   .chat::-webkit-scrollbar-track{background:var(--scroll-track)}
   .chat::-webkit-scrollbar-thumb{background:var(--scroll-thumb);border-radius:10px}
@@ -123,15 +125,15 @@
   .welcome .wmark{width:52px;height:52px;margin:0 auto 16px;border-radius:16px;display:grid;place-items:center;overflow:hidden}
   .welcome .wmark img{width:100%;height:100%;object-fit:contain;display:block}
   .welcome h1{color:var(--ink);font-size:1.35rem;margin:0 0 8px;font-weight:800;letter-spacing:-.3px}
-  .welcome p{margin:0;font-size:.9rem;color:var(--mut);padding:0 8px}
+  .welcome p{margin:0;font-size:1.17rem;color:var(--mut);padding:0 8px}
   .chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:20px;padding:0 8px}
-  .chips .c{background:var(--surface);border:1.5px solid var(--line);border-radius:20px;padding:8px 15px;font-size:.86rem;cursor:pointer;color:var(--ink);font-family:inherit;transition:border-color .15s,color .15s,background .15s}
+  .chips .c{background:var(--surface);border:1.5px solid var(--line);border-radius:20px;padding:8px 15px;font-size:1.12rem;cursor:pointer;color:var(--ink);font-family:inherit;transition:border-color .15s,color .15s,background .15s}
   .chips .c:hover{border-color:var(--accent);color:var(--accent-ink);background:var(--accent-soft)}
 
   .msg{display:flex;gap:9px;max-width:100%;animation:rise .25s ease}
   @keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
   .msg.user{justify-content:flex-end}
-  .bubble{padding:11px 15px;border-radius:17px;font-size:.93rem;max-width:84%;white-space:pre-wrap;word-break:break-word}
+  .bubble{padding:11px 15px;border-radius:17px;font-size:1.21rem;max-width:84%;white-space:pre-wrap;word-break:break-word}
   .msg.user .bubble{background:var(--user);color:var(--user-ink);border-bottom-right-radius:6px;box-shadow:var(--shadow-sm)}
   .msg.bot .bubble{background:var(--surface);border:1px solid var(--line);border-bottom-left-radius:6px}
   .msg.bot .av{width:28px;height:28px;flex:none;border-radius:9px;display:grid;place-items:center;overflow:hidden;box-shadow:0 2px 6px rgba(20,112,137,.35)}
@@ -139,15 +141,15 @@
 
   /* 단계 카드 */
   .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;max-width:88%;box-shadow:var(--shadow-sm)}
-  .card .lab{font-size:.67rem;font-weight:800;letter-spacing:.05em;color:var(--accent-ink);background:var(--accent-soft);display:inline-block;padding:4px 10px;border-radius:20px;margin-bottom:11px}
+  .card .lab{font-size:1.34rem;font-weight:800;letter-spacing:.05em;color:var(--accent-ink);background:var(--accent-soft);display:inline-block;padding:4px 10px;border-radius:20px;margin-bottom:11px}
   .card h3{margin:0 0 8px;font-size:1rem}
   .card .row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0}
-  .card label{font-size:.76rem;color:var(--mut);display:block;margin-bottom:4px;font-weight:500}
-  .card input,.card textarea{width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:10px;background:var(--surface-2);color:var(--ink);font-family:inherit;font-size:.9rem;transition:border-color .15s}
+  .card label{font-size:.99rem;color:var(--mut);display:block;margin-bottom:4px;font-weight:500}
+  .card input,.card textarea{width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:10px;background:var(--surface-2);color:var(--ink);font-family:inherit;font-size:1.17rem;transition:border-color .15s}
   .card input:focus,.card textarea:focus{outline:none;border-color:var(--accent)}
   .verdict{background:var(--ok-bg);border:1px solid var(--ok);color:var(--ok);border-radius:12px;padding:12px 14px;font-weight:700;margin:6px 0}
-  .card ul{margin:6px 0 0;padding-left:18px;font-size:.89rem} .card li{margin:4px 0}
-  .nextbtn{background:var(--accent);color:#fff;border:0;border-radius:11px;padding:11px 17px;font-size:.9rem;font-weight:700;cursor:pointer;margin-top:13px;font-family:inherit;transition:filter .15s,transform .1s;width:100%}
+  .card ul{margin:6px 0 0;padding-left:18px;font-size:1.16rem} .card li{margin:4px 0}
+  .nextbtn{background:var(--accent);color:#fff;border:0;border-radius:11px;padding:11px 17px;font-size:1.17rem;font-weight:700;cursor:pointer;margin-top:13px;font-family:inherit;transition:filter .15s,transform .1s;width:100%}
   .nextbtn:hover{filter:brightness(1.08)}
   .nextbtn:active{transform:scale(.98)}
   .nextbtn.ghost{background:var(--accent-soft);color:var(--accent-ink)}
@@ -162,9 +164,9 @@
   .composer-inner:focus-within{border-color:var(--accent)}
   .typerow{display:flex;align-items:center;gap:8px;margin-bottom:7px;flex-wrap:wrap}
   .typesel{position:relative}
-  .typesel select{appearance:none;-webkit-appearance:none;background:var(--accent-soft);color:var(--accent-ink);border:0;border-radius:16px;padding:7px 30px 7px 13px;font-size:.82rem;font-weight:700;font-family:inherit;cursor:pointer}
-  .typesel::after{content:"▾";position:absolute;right:12px;top:7px;color:var(--accent-ink);pointer-events:none;font-size:.75rem}
-  .typehint{font-size:.74rem;color:var(--mut)}
+  .typesel select{appearance:none;-webkit-appearance:none;background:var(--accent-soft);color:var(--accent-ink);border:0;border-radius:16px;padding:7px 30px 7px 13px;font-size:1.07rem;font-weight:700;font-family:inherit;cursor:pointer}
+  .typesel::after{content:"▾";position:absolute;right:12px;top:7px;color:var(--accent-ink);pointer-events:none;font-size:1.5rem}
+  .typehint{font-size:1.48rem;color:var(--mut)}
   .inrow{display:flex;align-items:flex-end;gap:4px}
   .inrow textarea{flex:1;border:0;background:none;resize:none;font-family:inherit;font-size:1rem;color:var(--ink);padding:9px 7px;max-height:120px;line-height:1.45;overflow-y:auto;scrollbar-width:none;-ms-overflow-style:none}
   .inrow textarea::-webkit-scrollbar{display:none;width:0;height:0}
@@ -176,23 +178,23 @@
   .cbtn.send{background:var(--accent);color:#fff}
   .cbtn.mic.rec{background:#c0392b;color:#fff;animation:pulse 1s infinite}
   .micwrap{position:relative;display:inline-flex}
-  .privBubble{position:absolute;bottom:100px;right:-8px;width:200px;background:var(--ink);color:var(--surface);font-size:.7rem;line-height:1.5;padding:8px 10px;border-radius:10px;box-shadow:var(--shadow-md);opacity:0;transform:translateY(4px);pointer-events:none;transition:opacity .18s,transform .18s;z-index:15}
+  .privBubble{position:absolute;bottom:100px;right:-8px;width:200px;background:var(--ink);color:var(--surface);font-size:1.4rem;line-height:1.5;padding:8px 10px;border-radius:10px;box-shadow:var(--shadow-md);opacity:0;transform:translateY(4px);pointer-events:none;transition:opacity .18s,transform .18s;z-index:15}
   .privBubble::after{content:'';position:absolute;bottom:-5px;right:16px;width:10px;height:10px;background:var(--ink);transform:rotate(45deg)}
   .privBubble.show{opacity:1;transform:translateY(0)}
   .composer.locked textarea:disabled,.composer.locked .cbtn:disabled{opacity:.4;cursor:not-allowed}
   .composer.locked textarea:disabled{background:transparent}
-  .composer .lockhint{display:none;font-size:.72rem;color:var(--mut);text-align:center;margin-top:6px}
+  .composer .lockhint{display:none;font-size:1.44rem;color:var(--mut);text-align:center;margin-top:6px}
   .composer.locked .lockhint{display:block}
   .composer.locked .foothint{display:none}
   @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(192,57,43,.5)}50%{box-shadow:0 0 0 7px rgba(192,57,43,0)}}
   .plusmenu{position:relative}
   .menu{position:absolute;bottom:50px;left:0;background:var(--surface);border:1px solid var(--line);border-radius:13px;box-shadow:var(--shadow-md);padding:6px;display:none;min-width:184px;z-index:20}
   .menu.open{display:block;animation:rise .15s ease}
-  .menu button{display:flex;align-items:center;gap:9px;width:100%;background:none;border:0;padding:10px 11px;border-radius:9px;font-size:.87rem;color:var(--ink);cursor:pointer;font-family:inherit;text-align:left}
+  .menu button{display:flex;align-items:center;gap:9px;width:100%;background:none;border:0;padding:10px 11px;border-radius:9px;font-size:1.13rem;color:var(--ink);cursor:pointer;font-family:inherit;text-align:left}
   .menu button:hover{background:var(--surface-2)}
-  .rectimer{font-size:.8rem;color:#c0392b;font-weight:700;margin-right:2px;display:none;position:relative;z-index:16}
+  .rectimer{font-size:1.04rem;color:#c0392b;font-weight:700;margin-right:2px;display:none;position:relative;z-index:16}
   .rectimer.on{display:inline}
-  .foothint{max-width:720px;margin:8px auto 0;text-align:center;font-size:.7rem;color:var(--mut);padding:0 8px}
+  .foothint{max-width:720px;margin:8px auto 0;text-align:center;font-size:1.4rem;color:var(--mut);padding:0 8px}
 
   /* ================= 버전 기록 (바텀시트) ================= */
   .vmodal-backdrop{position:fixed;inset:0;background:rgba(8,14,17,.5);z-index:55;opacity:0;pointer-events:none;transition:opacity .2s ease}
@@ -210,10 +212,10 @@
   .vitem{padding:14px 0;border-bottom:1px solid var(--line)}
   .vitem:last-child{border-bottom:0}
   .vitem .vtop{display:flex;align-items:center;gap:8px;margin-bottom:5px;flex-wrap:wrap}
-  .vitem .vtag{font-size:.68rem;font-weight:800;color:var(--accent-ink);background:var(--accent-soft);padding:3px 9px;border-radius:20px}
-  .vitem .vdate{font-size:.76rem;color:var(--mut);font-weight:600}
-  .vitem .vtitle{font-size:.9rem;font-weight:700;margin-bottom:3px}
-  .vitem .vdesc{font-size:.84rem;color:var(--mut);line-height:1.55}
+  .vitem .vtag{font-size:1.36rem;font-weight:800;color:var(--accent-ink);background:var(--accent-soft);padding:3px 9px;border-radius:20px}
+  .vitem .vdate{font-size:.99rem;color:var(--mut);font-weight:600}
+  .vitem .vtitle{font-size:1.17rem;font-weight:700;margin-bottom:3px}
+  .vitem .vdesc{font-size:1.09rem;color:var(--mut);line-height:1.55}
 
   @media (min-width:761px){
     .side{box-shadow:none}
@@ -230,68 +232,68 @@
     .rail .ricon{width:38px;height:38px;border-radius:10px;border:0;background:none;color:#cfdde0;font-size:1.05rem;cursor:pointer;display:grid;place-items:center;transition:background .15s;font-family:inherit}
     .rail .ricon:hover{background:rgba(255,255,255,.1);color:#fff}
     .rail .rspacer{flex:1}
-    .rail .racct{width:34px;height:34px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:.8rem;font-weight:800;border:0;cursor:pointer;margin-bottom:2px;font-family:inherit}
+    .rail .racct{width:34px;height:34px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:1.04rem;font-weight:800;border:0;cursor:pointer;margin-bottom:2px;font-family:inherit}
   }
 
   /* ================= 실제 판정엔진 포팅용 스타일 ================= */
-  .card .sec{font-size:.66rem;font-weight:800;color:var(--mut);letter-spacing:.05em;margin:14px 0 7px;text-transform:uppercase}
+  .card .sec{font-size:1.32rem;font-weight:800;color:var(--mut);letter-spacing:.05em;margin:14px 0 7px;text-transform:uppercase}
   .card .sec:first-child{margin-top:0}
-  .card .sub{font-size:.72rem;font-weight:800;color:var(--mut);letter-spacing:.02em;margin:12px 0 6px}
+  .card .sub{font-size:1.44rem;font-weight:800;color:var(--mut);letter-spacing:.02em;margin:12px 0 6px}
   .card .field{margin:10px 0}
-  .card .field>.lab{display:block;font-size:.82rem;color:var(--ink);margin-bottom:5px;font-weight:700}
-  .card .field>.hint{display:block;font-size:.71rem;color:var(--mut);margin:-2px 0 5px;font-weight:500}
+  .card .field>.lab{display:block;font-size:1.07rem;color:var(--ink);margin-bottom:5px;font-weight:700}
+  .card .field>.hint{display:block;font-size:1.42rem;color:var(--mut);margin:-2px 0 5px;font-weight:500}
   .card .grid{display:grid;grid-template-columns:1fr 1fr;gap:9px 10px}
-  .card select{width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:10px;background:var(--surface-2);color:var(--ink);font-family:inherit;font-size:.88rem}
+  .card select{width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:10px;background:var(--surface-2);color:var(--ink);font-family:inherit;font-size:1.14rem}
   .card select:focus{outline:none;border-color:var(--accent)}
   .card .chk{display:flex;flex-wrap:wrap;gap:7px}
-  .card .chk label{position:relative;display:inline-flex;align-items:center;gap:6px;font-size:.83rem;font-weight:600;background:var(--surface-2);border:1.5px solid var(--line);padding:9px 13px;border-radius:20px;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;transition:border-color .12s,background .12s,transform .1s}
+  .card .chk label{position:relative;display:inline-flex;align-items:center;gap:6px;font-size:1.08rem;font-weight:600;background:var(--surface-2);border:1.5px solid var(--line);padding:9px 13px;border-radius:20px;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;transition:border-color .12s,background .12s,transform .1s}
   .card .chk label:hover{border-color:var(--accent)}
   .card .chk label:active{transform:scale(.97)}
   .card .chk label:has(input:checked){border-color:var(--accent);background:var(--accent);color:#fff;font-weight:700}
   .card .chk label:has(input:checked)::before{content:'✓';font-weight:800}
   .card .chk input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
-  .card .order-note{font-size:.68rem;color:var(--accent-ink);background:var(--accent-soft);display:inline-block;padding:3px 8px;border-radius:20px;margin-bottom:5px;font-weight:700}
-  .card .reset-link{background:none;border:0;color:var(--mut);font-size:.68rem;text-decoration:underline;cursor:pointer;padding:0;margin-left:4px;font-family:inherit}
-  .card .note{font-size:.74rem;color:var(--mut);margin-top:7px;line-height:1.55}
-  .card label.check-inline{display:flex;align-items:center;gap:7px;font-size:.82rem;font-weight:600;margin-top:7px}
+  .card .order-note{font-size:1.36rem;color:var(--accent-ink);background:var(--accent-soft);display:inline-block;padding:3px 8px;border-radius:20px;margin-bottom:5px;font-weight:700}
+  .card .reset-link{background:none;border:0;color:var(--mut);font-size:1.36rem;text-decoration:underline;cursor:pointer;padding:0;margin-left:4px;font-family:inherit}
+  .card .note{font-size:1.48rem;color:var(--mut);margin-top:7px;line-height:1.55}
+  .card label.check-inline{display:flex;align-items:center;gap:7px;font-size:1.07rem;font-weight:600;margin-top:7px}
   .card code{background:var(--surface-2);border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-size:.85em}
 
-  .card .btn{width:100%;background:var(--accent);color:#fff;border:0;border-radius:10px;padding:10px 14px;font-size:.87rem;font-weight:700;cursor:pointer;margin-top:9px;font-family:inherit;transition:filter .15s}
+  .card .btn{width:100%;background:var(--accent);color:#fff;border:0;border-radius:10px;padding:10px 14px;font-size:1.13rem;font-weight:700;cursor:pointer;margin-top:9px;font-family:inherit;transition:filter .15s}
   .card .btn:hover{filter:brightness(1.08)}
   .card .btn.secondary{background:var(--accent-soft);color:var(--accent-ink)}
-  .card .btn.small{width:auto;padding:8px 12px;font-size:.8rem;margin-top:6px}
+  .card .btn.small{width:auto;padding:8px 12px;font-size:1.04rem;margin-top:6px}
   .card .btnrow{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
   .card .btnrow .btn{flex:1;min-width:120px;margin-top:0}
 
   .verdict.v-ok{background:var(--ok-bg);border-color:var(--ok);color:var(--ok)}
   .verdict.v-warn{background:var(--warn-bg);border-color:var(--warn);color:var(--warn)}
   .verdict.v-bad{background:var(--bad-bg);border-color:var(--bad);color:var(--bad)}
-  .verdict{border:1px solid var(--line);display:flex;align-items:center;gap:9px;font-size:.94rem}
-  .verdict .tag{font-size:.65rem;font-weight:800;letter-spacing:.03em;padding:3px 8px;border-radius:6px;white-space:nowrap;text-transform:uppercase;background:currentColor}
+  .verdict{border:1px solid var(--line);display:flex;align-items:center;gap:9px;font-size:1.22rem}
+  .verdict .tag{font-size:1.3rem;font-weight:800;letter-spacing:.03em;padding:3px 8px;border-radius:6px;white-space:nowrap;text-transform:uppercase;background:currentColor}
   .verdict .tag{color:var(--surface)}
   .verdict.v-ok .tag{background:var(--ok)} .verdict.v-warn .tag{background:var(--warn)} .verdict.v-bad .tag{background:var(--bad)}
 
   .card ul.basis{list-style:none;padding-left:0}
-  .card ul.basis li{position:relative;padding-left:16px;font-size:.85rem}
+  .card ul.basis li{position:relative;padding-left:16px;font-size:1.11rem}
   .card ul.basis li::before{content:"";position:absolute;left:2px;top:.6em;width:5px;height:5px;border-radius:50%;background:var(--accent)}
-  .pill{display:inline-block;font-size:.82rem;font-weight:700;padding:6px 11px;border-radius:9px;margin:4px 6px 0 0;background:var(--accent-soft);color:var(--accent-ink);cursor:pointer;border:1.5px solid transparent}
+  .pill{display:inline-block;font-size:1.07rem;font-weight:700;padding:6px 11px;border-radius:9px;margin:4px 6px 0 0;background:var(--accent-soft);color:var(--accent-ink);cursor:pointer;border:1.5px solid transparent}
   .pill:hover{border-color:var(--accent)}
   .pill.ex{background:var(--surface-2);color:var(--mut);text-decoration:line-through;border:1px solid var(--line);cursor:default}
   .pill.active{background:var(--accent);color:#fff}
-  .desc-box{display:none;background:var(--accent-soft);color:var(--accent-ink);border-radius:9px;padding:9px 11px;font-size:.82rem;margin-top:7px;line-height:1.55}
+  .desc-box{display:none;background:var(--accent-soft);color:var(--accent-ink);border-radius:9px;padding:9px 11px;font-size:1.07rem;margin-top:7px;line-height:1.55}
   .desc-box.show{display:block}
-  .safebox{border-radius:9px;padding:9px 11px;font-size:.82rem;margin-top:9px;border-left:4px solid var(--bad);background:var(--bad-bg);color:var(--bad)}
-  .weatherbox{border-radius:9px;padding:10px 12px;font-size:.83rem;margin-top:8px;border:1.5px solid var(--line);background:var(--surface-2)}
+  .safebox{border-radius:9px;padding:9px 11px;font-size:1.07rem;margin-top:9px;border-left:4px solid var(--bad);background:var(--bad-bg);color:var(--bad)}
+  .weatherbox{border-radius:9px;padding:10px 12px;font-size:1.08rem;margin-top:8px;border:1.5px solid var(--line);background:var(--surface-2)}
   .weatherbox b{color:var(--ink)}
   .giftbox{background:var(--gift-bg);border:1px solid var(--line);border-left:4px solid var(--gift);border-radius:9px;padding:9px 12px;margin-top:7px}
-  .giftbox .g{display:inline-block;font-size:.8rem;font-weight:600;padding:5px 9px;border-radius:8px;margin:4px 5px 0 0;background:var(--surface);color:var(--gift);border:1px solid var(--line)}
-  .badge2{font-size:.7rem;color:var(--mut)}
-  .nextbox{border-radius:9px;padding:9px 12px;font-size:.83rem;margin-top:7px;border:1.5px dashed var(--line);background:var(--surface-2);color:var(--mut);line-height:1.7}
-  .chip{display:inline-block;background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:4px 9px;font-size:.78rem;margin:4px 5px 0 0}
-  .disclaimer{background:var(--surface-2);border-left:3px solid var(--accent);border-radius:8px;padding:9px 11px;font-size:.7rem;color:var(--mut);margin-top:10px;line-height:1.6}
+  .giftbox .g{display:inline-block;font-size:1.04rem;font-weight:600;padding:5px 9px;border-radius:8px;margin:4px 5px 0 0;background:var(--surface);color:var(--gift);border:1px solid var(--line)}
+  .badge2{font-size:1.4rem;color:var(--mut)}
+  .nextbox{border-radius:9px;padding:9px 12px;font-size:1.08rem;margin-top:7px;border:1.5px dashed var(--line);background:var(--surface-2);color:var(--mut);line-height:1.7}
+  .chip{display:inline-block;background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:4px 9px;font-size:1.01rem;margin:4px 5px 0 0}
+  .disclaimer{background:var(--surface-2);border-left:3px solid var(--accent);border-radius:8px;padding:9px 11px;font-size:1.4rem;color:var(--mut);margin-top:10px;line-height:1.6}
   .disclaimer b{color:var(--ink)}
   .anonrisk{background:var(--bad-bg);color:var(--bad);border-radius:4px;padding:0 3px;font-weight:800}
-  pre.doc, div.doc{white-space:pre-wrap;word-break:break-word;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:11px;font-size:.82rem;font-family:inherit;line-height:1.6;margin:0}
+  pre.doc, div.doc{white-space:pre-wrap;word-break:break-word;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:11px;font-size:1.07rem;font-family:inherit;line-height:1.6;margin:0}
   .card textarea{min-height:4rem;resize:vertical}
   .card .num{font-variant-numeric:tabular-nums}
 
@@ -376,7 +378,7 @@
             <div class="c" onclick="quickPick('취약노인')">취약노인</div>
             <div class="c" onclick="quickPick('외국인노동자')">외국인노동자</div>
           </div>
-          <button onclick="skipToFlow()" style="margin-top:16px;background:var(--accent-soft);color:var(--accent-ink);border:1.5px solid var(--accent);border-radius:22px;padding:10px 20px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit">상황 입력 없이 바로 진행 ▸</button>
+          <button onclick="skipToFlow()" style="margin-top:16px;background:var(--accent-soft);color:var(--accent-ink);border:1.5px solid var(--accent);border-radius:22px;padding:10px 20px;font-size:1.17rem;font-weight:700;cursor:pointer;font-family:inherit">상황 입력 없이 바로 진행 ▸</button>
         </div>
       </div>
     </div>
@@ -497,16 +499,16 @@
       <div id="authLoggedOut">
         <div class="note" style="margin-bottom:.8rem">로그인하면 상담 진행 상태가 자동 저장돼서, 상담을 멈췄다가 나중에 사이드바에서 이어서 진행할 수 있어요. 로그인하지 않아도 판단 흐름 자체는 그대로 사용할 수 있습니다.</div>
         <div class="field" id="authNameField" style="display:none"><span class="lab">이름</span>
-          <input type="text" id="authName" placeholder="예: 김상담" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:.92rem">
+          <input type="text" id="authName" placeholder="예: 김상담" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:1.2rem">
         </div>
         <div class="field"><span class="lab">이메일</span>
-          <input type="email" id="authEmail" placeholder="you@example.org" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:.92rem">
+          <input type="email" id="authEmail" placeholder="you@example.org" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:1.2rem">
         </div>
         <div class="field"><span class="lab">비밀번호</span>
-          <input type="password" id="authPw" placeholder="6자 이상" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:.92rem">
+          <input type="password" id="authPw" placeholder="6자 이상" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:1.2rem">
         </div>
         <div class="field" id="authPwConfirmField" style="display:none"><span class="lab">비밀번호 확인</span>
-          <input type="password" id="authPwConfirm" placeholder="비밀번호를 한 번 더 입력" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:.92rem">
+          <input type="password" id="authPwConfirm" placeholder="비밀번호를 한 번 더 입력" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:1.2rem">
         </div>
         <div class="note" id="authNote" style="color:var(--bad);min-height:1.2em"></div>
         <div class="btnrow" style="margin-top:.4rem">
@@ -537,7 +539,7 @@
     </div>
     <div class="vmodal-body">
       <div class="field"><span class="lab">이름</span>
-        <input type="text" id="setName" placeholder="예: 김상담" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:.92rem">
+        <input type="text" id="setName" placeholder="예: 김상담" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:1.2rem">
       </div>
       <div class="note" id="setNameNote" style="min-height:1.2em"></div>
       <div class="btnrow" style="margin-top:.2rem">
@@ -551,13 +553,13 @@
       </div>
       <div id="pwChangeBox" style="display:none">
         <div class="field"><span class="lab">기존 비밀번호</span>
-          <input type="password" id="setOldPw" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:.92rem">
+          <input type="password" id="setOldPw" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:1.2rem">
         </div>
         <div class="field"><span class="lab">새 비밀번호</span>
-          <input type="password" id="setNewPw" placeholder="6자 이상" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:.92rem">
+          <input type="password" id="setNewPw" placeholder="6자 이상" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:1.2rem">
         </div>
         <div class="field"><span class="lab">새 비밀번호 확인</span>
-          <input type="password" id="setNewPwConfirm" placeholder="새 비밀번호를 한 번 더 입력" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:.92rem">
+          <input type="password" id="setNewPwConfirm" placeholder="새 비밀번호를 한 번 더 입력" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:1.2rem">
         </div>
         <div class="note" id="setPwNote" style="min-height:1.2em"></div>
         <div class="btnrow" style="margin-top:.2rem">
@@ -609,22 +611,35 @@
     return res.json(); // { text, segments, bySpeaker, duration }
   }
   /* 변환된 텍스트를 기존 자유입력 처리 흐름(①위기사유 카드 자동체크)에 그대로 태움 */
-  function handleTranscribedText(text, bySpeaker){
+  function handleTranscribedText(text, bySpeaker, audioUrl, recLabel){
     if(!text || !text.trim()){
       unlockMainInput();
-      botCard('음성 인식 결과 없음', '녹음에서 텍스트를 찾지 못했어요. 너무 짧거나 조용했을 수 있어요. 다시 녹음하거나 직접 입력해주세요.', null);
+      var noneBody = '녹음(또는 파일)에서 텍스트를 찾지 못했어요. 너무 짧거나 조용했을 수 있어요. 다시 녹음하거나 직접 입력해주세요.';
+      if(audioUrl){ noneBody += '<div style="margin-top:10px"><audio controls src="'+audioUrl+'" style="width:100%"></audio></div>'; }
+      botCard('음성 인식 결과 없음', noneBody, null);
       return;
     }
     lastFreeText = text;
     autoRunAnonFromText(text);
     lockMainInput();
     var hint = matchFreeText(text);
-    var speakerNote = bySpeaker ? '<div style="font-size:.8rem;color:var(--mut);white-space:pre-wrap;margin-top:6px;padding:8px;border-radius:8px;background:rgba(127,127,127,.08)">'+bySpeaker.replace(/</g,'&lt;')+'</div>' : '';
-    botMsgHTML('🎧 음성 인식 결과: <b>"'+text.replace(/</g,'&lt;')+'"</b>'+speakerNote);
-    botMsgHTML(freeTextHintText(hint.matched));
-    botCard('① 위기사유·긴급성', '<div style="font-size:.85rem;color:var(--mut);margin-bottom:10px">긴급성과 해당하는 위기사유를 선택해 주세요.</div>' + TPL_CRISIS, '다음 ▸', ()=>goHousehold(), 'crisis');
-    renderCrisis();
-    applyFreeTextChecks(hint.matched, hint.urgency);
+    var speakerNote = bySpeaker ? '<div style="font-size:1.04rem;color:var(--mut);white-space:pre-wrap;margin-top:6px;padding:8px;border-radius:8px;background:rgba(127,127,127,.08)">'+bySpeaker.replace(/</g,'&lt;')+'</div>' : '';
+    /* 이전에는 이 확인 내용을 botMsgHTML(카드가 아닌 일반 말풍선)로 띄우고 바로 다음 카드로 넘어갔는데,
+       단계형(위저드) UI에서는 botCard()로 만든 카드만 화면에 보이고 나머지 말풍선은 전부 숨겨지기 때문에
+       녹음 내용을 확인할 새도 없이 곧바로 다음 화면으로 넘어가 버리는 문제가 있었음(현장 실사용 피드백,
+       2026-09-04). 인식된 텍스트(+가능하면 재생 가능한 녹음)를 별도 확인 카드로 만들어, 사용자가 직접
+       확인하고 "다음"을 눌러야 다음 단계로 넘어가도록 수정. */
+    var confirmBody = (audioUrl ? '<div style="margin-bottom:10px"><audio controls src="'+audioUrl+'" style="width:100%"></audio>'+(recLabel?' <span style="font-size:1.04rem;color:var(--mut)">'+recLabel+'</span>':'')+'</div>' : '')
+      + '<div style="font-size:1.17rem;line-height:1.55">🎧 인식된 내용</div>'
+      + '<div style="margin-top:6px;padding:11px 13px;border-radius:12px;background:rgba(127,127,127,.08);font-weight:700;font-size:1.17rem;line-height:1.5">"'+text.replace(/</g,'&lt;')+'"</div>'
+      + speakerNote
+      + '<div style="margin-top:10px;font-size:1.04rem">'+freeTextHintText(hint.matched)+'</div>'
+      + '<div style="font-size:1.04rem;color:var(--mut);margin-top:8px">내용이 실제와 다르면 다시 녹음하거나 직접 입력해주세요.</div>';
+    botCard('🎧 인식 결과 확인', confirmBody, '맞아요, 다음 ▸', function(){
+      botCard('① 위기사유·긴급성', '<div style="font-size:1.11rem;color:var(--mut);margin-bottom:10px">긴급성과 해당하는 위기사유를 선택해 주세요.</div>' + TPL_CRISIS, '다음 ▸', ()=>goHousehold(), 'crisis');
+      renderCrisis();
+      applyFreeTextChecks(hint.matched, hint.urgency);
+    }, 'sttConfirm');
   }
 
   /* 사이드바 (기본 숨김 · 오버레이) */
@@ -869,7 +884,7 @@
     var box = document.getElementById('recentList');
     if(!box) return;
     if(!sb || !authSession){
-      box.innerHTML = '<div class="item" style="opacity:.7;cursor:default;font-size:.82rem;padding:8px 10px">로그인하면 최근 상담 기록이 여기 표시돼요</div>';
+      box.innerHTML = '<div class="item" style="opacity:.7;cursor:default;font-size:1.07rem;padding:8px 10px">로그인하면 최근 상담 기록이 여기 표시돼요</div>';
       return;
     }
     try{
@@ -879,7 +894,7 @@
       if(res.error) throw res.error;
       var rows = res.data || [];
       if(!rows.length){
-        box.innerHTML = '<div class="item" style="opacity:.7;cursor:default;font-size:.82rem;padding:8px 10px">아직 저장된 상담이 없어요</div>';
+        box.innerHTML = '<div class="item" style="opacity:.7;cursor:default;font-size:1.07rem;padding:8px 10px">아직 저장된 상담이 없어요</div>';
         return;
       }
       box.innerHTML = rows.map(function(row){
@@ -888,7 +903,7 @@
       }).join('');
     }catch(e){
       console.warn('최근 상담 목록 조회 실패:', e);
-      box.innerHTML = '<div class="item" style="opacity:.7;cursor:default;font-size:.82rem;padding:8px 10px">최근 상담 목록을 불러오지 못했어요</div>';
+      box.innerHTML = '<div class="item" style="opacity:.7;cursor:default;font-size:1.07rem;padding:8px 10px">최근 상담 목록을 불러오지 못했어요</div>';
     }
   }
 
@@ -1044,6 +1059,7 @@
      VERSION_LOG 배열 맨 앞에 새 항목을 추가할 것. 같은 날 여러 건이면 tag만 올려서(v0.x) 여러 줄 추가.
      "나중에 몰아서 기록"은 누락으로 이어지므로, 수정 직후 그 자리에서 바로 추가할 것. */
   var VERSION_LOG = [
+    {tag:'v0.42', date:'2026-09-04', title:'실사용 피드백 4건 반영 — 녹음결과 확인 화면, STT 한국어 고정, 모바일 글씨 확대, 가로스크롤/box-sizing 수정', desc:'(1) 녹음/파일업로드 후 곧바로 다음 단계로 넘어가 인식 결과를 확인할 수 없던 문제 — 단계형(위저드) UI는 botCard()로 만든 카드만 보이고 일반 말풍선(botMsgHTML/userMsgHTML)은 전부 숨기는데, 녹음완료·STT결과 안내가 말풍선으로만 떠서 그대로 가려졌던 것. 녹음 재생 + 인식 텍스트를 확인 카드(botCard, "맞아요, 다음 ▸")로 바꿔 사용자가 직접 확인 후 다음으로 넘어가게 함(마이크 녹음·파일 업로드 두 경로 모두 반영). (2) STT 언어가 고정 안 돼 있어 한 녹음 안에서 한국어/영어가 섞여 나오던 문제 — Supabase Edge Function stt-transcribe에서 OpenAI 호출 시 language 파라미터를 ko로 추가(버전 4 배포 완료). (3) 모바일에서 글씨가 너무 작던 문제 — 전역 box-sizing 리셋이 없어 padding이 width:100%에 더해지며 가로 스크롤도 같이 발생하던 것을 *{box-sizing:border-box}로 수정하고 body/.chat에 overflow-x:hidden 추가. 가장 작았던 라벨/뱃지 텍스트(.65~.75rem)는 2배로, 본문/보조 텍스트(.76~.96rem)는 약 1.3배로 확대(파일 전체 font-size 일괄 치환). 페이지 내용을 한 화면에 다 담기 위한 단계 세분화(진행바·안내문 접기 등)는 더 큰 설계 작업이라 이번 패치에는 포함하지 않음 — 다음 작업으로 남김. (Claude / 관리자 세션 — 실사용 피드백 대응)'},
     {tag:'v0.41', date:'2026-09-04', title:'긴급 패치 — 비로그인 상태 실사용 중 녹음/입력 소실 방지(로컬 임시저장 안전망)', desc:'saveCaseProgress()는 로그인 상태일 때만 Supabase에 저장되는데(v0.17), 현장 실사용은 대부분 비로그인으로 진행되어 그 경우 녹음→변환된 텍스트·입력 내용이 화면 메모리에만 존재 — 9/3 현장 실사용 중 "사무실에서 업데이트했더니 녹음이 사라졌다" 사고가 이걸로 발생. 로그인 여부와 무관하게 항상 동작하는 localStorage 임시저장(saveDraftLocal)을 botCard 표시 시점·STT 변환 직후마다 자동 실행하도록 추가하고, 새로고침/재접속 시 저장된 초안이 있으면 이어서 진행할지 물어보는 복원 로직과, 상담 중 탭을 닫거나 새로고침할 때 한 번 경고하는 beforeunload 핸들러를 추가함. 서버 저장(Supabase)을 대체하는 것이 아니라 서버 저장이 안 되는 상황(비로그인/네트워크 문제/배포 중 새로고침)의 최후 안전망. (Claude / 관리자 세션 — 현장 실사용 긴급 리포트 대응)'},
     {tag:'v0.40', date:'2026-09-04', title:'단계형(위저드) UI 이어하기 시 화면이 완전히 비는 치명적 버그 수정', desc:'v0.39에서 v3에 직접 적용된 단계형(페이지 넘김) 스킨은 botCard()로 새 카드가 생길 때만 wzCards 배열에 등록해서 그 카드에 wz-cur 클래스를 붙이는 방식인데, restoreCaseState()는 chat.innerHTML을 통째로 교체해서 복원하므로 botCard()를 거치지 않음 → 복원된 카드들이 wzCards에 하나도 등록되지 않고, 위저드 CSS(".chat .msg{display:none !important}")가 전부 가려버려서 사이드바에서 진행중/완료된 상담을 다시 열면(이어하기) 화면이 완전히 빈 채로 보이던 버그. restoreCaseState()에서 복원 직후 chat 안의 모든 .msg를 wzCards로 다시 등록하고 가장 최근 카드를 wzShow()로 표시하도록 수정. (Claude / 관리자 세션 — v0.37~v0.39 커밋 당시 VERSION_LOG 기록이 누락되어 있었던 것을 커밋 로그 대조로 뒤늦게 채워 넣음)'},
     {tag:'v0.39', date:'2026-09-04', title:'v3에 단계형(페이지 넘김) UI 직접 적용 + 연령대 7단계 세분화', desc:'채팅 카드 흐름을 한 번에 한 단계만 표시하고 하단 [◀ 이전][다음 ▶] 버튼으로 넘기는 위저드 스킨을 임시 파일(이어짐_단계형_통합본.html)에서 v3 본체로 직접 병합, 임시 파일은 삭제. 결과 단계에서는 기존 하단 고정바(#doneBar)를 숨기고 wzNav로 이동하며 마지막 카드는 "다음"이 "＋새 상담"으로 동작. 연령대 구간을 4단계(미성년/19~39/40~64/65+)에서 7단계(미성년/19~29/30~39/40~49/50~64/65~74/75+)로 세분화. 판정엔진·사유서 hwpx·가명화·STT·저장·사이드바·로그인 로직은 변경 없이 유지. (Claude Opus 4.8, 협업자 구흥모 세션 — 커밋 당시 VERSION_LOG 기록 누락, 관리자 세션에서 커밋 로그 대조로 뒤늦게 기록)'},
@@ -1118,14 +1134,15 @@
   function onFile(inp){
     var f=inp.files[0]; if(!f) return;
     hideWelcome();
-    userMsg('🎧 녹음 파일 첨부: '+f.name+' ('+Math.round(f.size/1024)+'KB)');
     lockMainInput();
-    botTyping(function(){ botMsgHTML('음성을 텍스트로 변환하는 중이에요…'); });
+    var fileUrl; try{ fileUrl = URL.createObjectURL(f); }catch(e){ fileUrl = null; }
+    var fileLabel = f.name+' ('+Math.round(f.size/1024)+'KB)';
+    botCard('파일 업로드', '🎧 녹음 파일 첨부: '+fileLabel+'<div style="font-size:1.04rem;color:var(--mut);margin-top:6px">음성을 텍스트로 변환하는 중이에요…</div>', null);
     transcribeAudio(f, f.name).then(function(r){
-      handleTranscribedText(r.text, r.bySpeaker);
+      handleTranscribedText(r.text, r.bySpeaker, fileUrl, fileLabel);
     }).catch(function(err){
       unlockMainInput();
-      botCard('음성 변환 실패', '텍스트 변환 중 오류가 발생했어요.<br><span style="color:var(--mut);font-size:.8rem">'+String(err.message||err).replace(/</g,'&lt;')+'</span><br>직접 아래에 입력해주셔도 됩니다.', null);
+      botCard('음성 변환 실패', '텍스트 변환 중 오류가 발생했어요.<br><span style="color:var(--mut);font-size:1.04rem">'+String(err.message||err).replace(/</g,'&lt;')+'</span><br>직접 아래에 입력해주셔도 됩니다.', null);
     });
     inp.value='';
   }
@@ -1165,15 +1182,15 @@
         hideMicPrivBubble();
         var actualMime = (media.rec && media.rec.mimeType) || pickedMime || 'audio/webm';
         var blob=new Blob(media.chunks,{type:actualMime}); var url=URL.createObjectURL(blob);
+        var recLabel='녹음 '+fmt(media.secs);
         hideWelcome();
-        userMsgHTML(MICSVG+' 녹음 완료 ('+fmt(media.secs)+')<br><audio controls src="'+url+'" style="margin-top:6px;max-width:220px"></audio>');
         lockMainInput();
-        botTyping(function(){ botMsgHTML('음성을 텍스트로 변환하는 중이에요…'); });
+        botCard('녹음 완료', '<div style="margin-bottom:6px"><audio controls src="'+url+'" style="width:100%"></audio></div><div style="font-size:1.04rem;color:var(--mut)">'+recLabel+' · 음성을 텍스트로 변환하는 중이에요…</div>', null);
         transcribeAudio(blob, 'recording.'+recFileExt(actualMime)).then(function(r){
-          handleTranscribedText(r.text, r.bySpeaker);
+          handleTranscribedText(r.text, r.bySpeaker, url, recLabel);
         }).catch(function(err){
           unlockMainInput();
-      botCard('음성 변환 실패', '텍스트 변환 중 오류가 발생했어요.<br><span style="color:var(--mut);font-size:.8rem">'+String(err.message||err).replace(/</g,'&lt;')+'</span><br>직접 아래에 입력해주셔도 됩니다.', null);
+      botCard('음성 변환 실패', '<div style="margin-bottom:10px"><audio controls src="'+url+'" style="width:100%"></audio></div>텍스트 변환 중 오류가 발생했어요.<br><span style="color:var(--mut);font-size:1.04rem">'+String(err.message||err).replace(/</g,'&lt;')+'</span><br>직접 아래에 입력해주셔도 됩니다.', null);
         });
       };
       media.secs=0; media.rec.start();
@@ -1331,7 +1348,7 @@
     <div class="nextbox" id="nextbox"></div>
     <div class="sub">긴급성 기반 후속조치 등록용 요약</div>
     <div class="weatherbox">
-      <div id="scheduleSummary" style="white-space:pre-wrap;font-size:.85rem"></div>
+      <div id="scheduleSummary" style="white-space:pre-wrap;font-size:1.11rem"></div>
       <button class="btn small secondary" onclick="copySchedule()">요약 텍스트 복사</button>
       <div class="note">※ 실제 일정관리 프로그램(사용할 스케줄러는 아직 미정) 자동 연동은 다음 단계 작업이며, 지금은 등록에 바로 붙여넣을 수 있는 텍스트만 만들어 줍니다.</div>
     </div>
@@ -1352,7 +1369,7 @@
       <div class="btnrow" style="margin-top:.6rem">
         <button class="btn" id="aiDraftBtn" onclick="generateAiDraft()">AI 초안 만들기</button>
       </div>
-      <div class="note" style="margin-top:.35rem;font-size:.72rem">⚠️ 서버로 전송되며, 지금은 무료 API라 구글이 응답 개선(사람 검토 포함)에 활용할 수 있어요(Gemini) — 민감정보는 넣지 않는 게 안전해요.</div>
+      <div class="note" style="margin-top:.35rem;font-size:1.44rem">⚠️ 서버로 전송되며, 지금은 무료 API라 구글이 응답 개선(사람 검토 포함)에 활용할 수 있어요(Gemini) — 민감정보는 넣지 않는 게 안전해요.</div>
       <div class="note" id="aiDraftNote" style="margin-top:.5rem"></div>
 
       <div class="field" style="margin-top:.6rem"><span class="lab">② AI 초안 결과 — 자유롭게 수정하세요</span>
@@ -1364,7 +1381,7 @@
       </div>
 
       <div style="margin-top:.9rem;border-top:1px solid var(--line, #ddd);padding-top:.7rem">
-        <div style="cursor:pointer;display:flex;align-items:center;color:var(--mut);font-size:.9rem" onclick="toggleAiFallback()">API 키 없이, 또는 한도 초과 시 — 수동으로 Claude/ChatGPT 앱에 붙여넣기<span id="aiFallbackToggle" style="margin-left:auto;font-weight:800;color:var(--accent-ink)">열기 ▾</span></div>
+        <div style="cursor:pointer;display:flex;align-items:center;color:var(--mut);font-size:1.17rem" onclick="toggleAiFallback()">API 키 없이, 또는 한도 초과 시 — 수동으로 Claude/ChatGPT 앱에 붙여넣기<span id="aiFallbackToggle" style="margin-left:auto;font-weight:800;color:var(--accent-ink)">열기 ▾</span></div>
         <div id="aiFallbackBody" style="display:none;margin-top:.6rem">
           <div class="note">아래 "지시문 만들기"를 누르면 가명화 결과 + 작성 지시문이 합쳐진 텍스트가 만들어져요. 이걸 복사해서 Claude·ChatGPT 무료 앱에 붙여넣고, 나온 결과를 위 ②에 붙여넣으면 돼요.</div>
           <div class="btnrow" style="margin-top:.4rem"><button class="btn small secondary" onclick="prepareFallbackPromptOnly()">지시문 만들기</button></div>
@@ -1430,7 +1447,7 @@
     botTyping(function(){
       var t=document.getElementById('targetType').value;
       botMsgHTML(freeTextHintText(hint.matched));
-      botCard('① 위기사유·긴급성', '<div style="font-size:.85rem;color:var(--mut);margin-bottom:10px">긴급성과 해당하는 위기사유를 선택해 주세요.</div>' + TPL_CRISIS, '다음 ▸', ()=>goHousehold(), 'crisis');
+      botCard('① 위기사유·긴급성', '<div style="font-size:1.11rem;color:var(--mut);margin-bottom:10px">긴급성과 해당하는 위기사유를 선택해 주세요.</div>' + TPL_CRISIS, '다음 ▸', ()=>goHousehold(), 'crisis');
       renderCrisis();
       applyFreeTextChecks(hint.matched, hint.urgency);
     });
@@ -1442,7 +1459,7 @@
     lockMainInput();
     botTyping(function(){
       botMsgHTML('상황 입력 없이 진행합니다. 아래에서 긴급성·위기사유를 직접 선택해 주세요.');
-      botCard('① 위기사유·긴급성', '<div style="font-size:.85rem;color:var(--mut);margin-bottom:10px">긴급성과 해당하는 위기사유를 선택해 주세요.</div>' + TPL_CRISIS, '다음 ▸', ()=>goHousehold(), 'crisis');
+      botCard('① 위기사유·긴급성', '<div style="font-size:1.11rem;color:var(--mut);margin-bottom:10px">긴급성과 해당하는 위기사유를 선택해 주세요.</div>' + TPL_CRISIS, '다음 ▸', ()=>goHousehold(), 'crisis');
       renderCrisis();
     });
   }
@@ -1482,7 +1499,7 @@
       resultDone = true;
       showDoneBar();
       try{ saveCaseProgress({status:'completed'}); }catch(e){ console.warn('saveCaseProgress 오류:', e); }
-      botCard('✅ 상담 완료', '<div style="font-size:.9rem;color:var(--ink);margin-bottom:8px">예비판단·지원 안내·사유서 초안이 모두 만들어졌어요.</div><div style="font-size:.82rem;color:var(--mut);margin-bottom:12px">📥 사유서 초안을 저장하세요. 파일은 휴대폰·컴퓨터의 <b>‘다운로드’ 폴더</b>에 저장됩니다.</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"><button onclick="downloadHwpx()" style="flex:1;min-width:120px;background:var(--accent);color:#fff;border:0;border-radius:10px;padding:11px;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit">한글(.hwpx) 저장</button><button onclick="downloadDoc(\'txt\')" style="flex:1;min-width:120px;background:var(--accent-soft);color:var(--accent-ink);border:1.5px solid var(--accent);border-radius:10px;padding:11px;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit">텍스트(.txt) 저장</button></div><button onclick="resetChat()" style="width:100%;background:var(--ink);color:var(--surface);border:0;border-radius:12px;padding:12px;font-size:.95rem;font-weight:800;cursor:pointer;font-family:inherit">＋ 새 상담 시작</button>', null);
+      botCard('✅ 상담 완료', '<div style="font-size:1.17rem;color:var(--ink);margin-bottom:8px">예비판단·지원 안내·사유서 초안이 모두 만들어졌어요.</div><div style="font-size:1.07rem;color:var(--mut);margin-bottom:12px">📥 사유서 초안을 저장하세요. 파일은 휴대폰·컴퓨터의 <b>‘다운로드’ 폴더</b>에 저장됩니다.</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"><button onclick="downloadHwpx()" style="flex:1;min-width:120px;background:var(--accent);color:#fff;border:0;border-radius:10px;padding:11px;font-size:1.14rem;font-weight:700;cursor:pointer;font-family:inherit">한글(.hwpx) 저장</button><button onclick="downloadDoc(\'txt\')" style="flex:1;min-width:120px;background:var(--accent-soft);color:var(--accent-ink);border:1.5px solid var(--accent);border-radius:10px;padding:11px;font-size:1.14rem;font-weight:700;cursor:pointer;font-family:inherit">텍스트(.txt) 저장</button></div><button onclick="resetChat()" style="width:100%;background:var(--ink);color:var(--surface);border:0;border-radius:12px;padding:12px;font-size:1.24rem;font-weight:800;cursor:pointer;font-family:inherit">＋ 새 상담 시작</button>', null);
       w1.scrollIntoView({behavior:'smooth', block:'start'});
     });
   }
@@ -1644,7 +1661,7 @@
       +'<div class="c" onclick="quickPick(\'취약노인\')">취약노인</div>'
       +'<div class="c" onclick="quickPick(\'외국인노동자\')">외국인노동자</div>'
       +'</div>'
-      +'<button onclick="skipToFlow()" style="margin-top:16px;background:var(--accent-soft);color:var(--accent-ink);border:1.5px solid var(--accent);border-radius:22px;padding:10px 20px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit">상황 입력 없이 바로 진행 ▸</button>';
+      +'<button onclick="skipToFlow()" style="margin-top:16px;background:var(--accent-soft);color:var(--accent-ink);border:1.5px solid var(--accent);border-radius:22px;padding:10px 20px;font-size:1.17rem;font-weight:700;cursor:pointer;font-family:inherit">상황 입력 없이 바로 진행 ▸</button>';
     chat.appendChild(w); welcome=w;
     var s=document.getElementById('side');
     if(s.classList.contains('open')) toggleSide();
@@ -2478,7 +2495,7 @@ ${d.memo ? '\n메모: '+d.memo : ''}
   // 저장 후 위치 안내 토스트
   function showSaveToast(msg){
     var t=document.getElementById('saveToast');
-    if(!t){ t=document.createElement('div'); t.id='saveToast'; t.style.cssText='position:fixed;left:12px;right:12px;bottom:82px;z-index:70;background:var(--ink);color:var(--surface);padding:13px 15px;border-radius:12px;font-size:.86rem;line-height:1.55;box-shadow:0 4px 18px rgba(0,0,0,.28);text-align:center'; document.body.appendChild(t); }
+    if(!t){ t=document.createElement('div'); t.id='saveToast'; t.style.cssText='position:fixed;left:12px;right:12px;bottom:82px;z-index:70;background:var(--ink);color:var(--surface);padding:13px 15px;border-radius:12px;font-size:1.12rem;line-height:1.55;box-shadow:0 4px 18px rgba(0,0,0,.28);text-align:center'; document.body.appendChild(t); }
     t.innerHTML=msg; t.style.display='block';
     clearTimeout(t._t); t._t=setTimeout(function(){ t.style.display='none'; }, 8000);
   }
@@ -2506,7 +2523,7 @@ ${d.memo ? '\n메모: '+d.memo : ''}
   function showKakaoBanner(){
     if(document.getElementById('kakaoBanner')) return;
     var d = document.createElement('div'); d.id = 'kakaoBanner';
-    d.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#FEE500;color:#181600;padding:11px 34px;font-size:.86rem;line-height:1.5;box-shadow:0 2px 10px rgba(0,0,0,.25);text-align:center';
+    d.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#FEE500;color:#181600;padding:11px 34px;font-size:1.12rem;line-height:1.5;box-shadow:0 2px 10px rgba(0,0,0,.25);text-align:center';
     d.innerHTML = '⚠ <b>카카오톡에서는 저장한 파일을 찾을 수 없어요.</b> 시작 전에 다른 브라우저로 여세요.'
       + '<br><a href="' + kakaoOpenExternalUrl() + '" style="display:inline-block;margin-top:8px;background:#181600;color:#FEE500;padding:9px 18px;border-radius:9px;font-weight:800;text-decoration:none">👉 다른 브라우저로 열기</a> '
       + '<a href="' + chromeIntentUrl() + '" style="display:inline-block;margin-top:8px;background:#fff;color:#181600;border:1.5px solid #181600;padding:8px 16px;border-radius:9px;font-weight:800;text-decoration:none">크롬으로 열기</a>'
@@ -2554,7 +2571,7 @@ ${d.memo ? '\n메모: '+d.memo : ''}
   (function(){
     try{
       var st=document.createElement('style');
-      st.textContent='#doneBar{position:fixed;left:0;right:0;bottom:0;z-index:60;background:var(--surface);border-top:1px solid var(--line);padding:10px 12px;display:none;gap:8px;box-shadow:0 -2px 12px rgba(0,0,0,.14)}#doneBar.on{display:flex}#doneBar button{flex:1;border-radius:11px;padding:13px;font-weight:800;font-family:inherit;font-size:.92rem;cursor:pointer;border:0}';
+      st.textContent='#doneBar{position:fixed;left:0;right:0;bottom:0;z-index:60;background:var(--surface);border-top:1px solid var(--line);padding:10px 12px;display:none;gap:8px;box-shadow:0 -2px 12px rgba(0,0,0,.14)}#doneBar.on{display:flex}#doneBar button{flex:1;border-radius:11px;padding:13px;font-weight:800;font-family:inherit;font-size:1.2rem;cursor:pointer;border:0}';
       document.head.appendChild(st);
       var bar=document.createElement('div'); bar.id='doneBar';
       bar.innerHTML='<button onclick="downloadHwpx()" style="background:var(--accent-soft);color:var(--accent-ink);border:1.5px solid var(--accent)">📥 사유서 저장</button><button onclick="resetChat()" style="background:var(--accent);color:#fff">＋ 새 상담</button>';
