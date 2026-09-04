@@ -933,6 +933,20 @@
       lastFreeText = state.lastFreeText || '';
       resultDone = !!state.resultDone;
       lastRunData = state.lastRunData || null; // 사유서 생성용 구조화 데이터 복원(없으면 "저장" 버튼이 그냥 안 눌림)
+      // 단계형(위저드) UI 호환: chat.innerHTML을 직접 교체하면 botCard()를 거치지 않으므로
+      // wzCards가 비어있는 채로 남아 모든 .msg가 CSS로 숨겨짐(이어하기 시 화면이 완전히 빈 채로 보이는 치명적 버그).
+      // 복원된 말풍선/카드를 wzCards에 다시 등록하고 가장 최근 것을 현재 화면으로 표시해 해결.
+      try{
+        if(typeof wzCards !== 'undefined'){
+          wzCards = Array.prototype.slice.call(chat.querySelectorAll('.msg'));
+          if(wzCards.length){
+            document.body.classList.add('wz-flow');
+            wzShow(wzCards.length - 1);
+          } else {
+            document.body.classList.remove('wz-flow');
+          }
+        }
+      }catch(e){ console.warn('wzCards 복원 실패:', e); }
       // STEP 레지스트리와 버튼 클릭 핸들러를 새 DOM 노드에 다시 연결(innerHTML 재구성 시 이전 onclick은 사라짐)
       STEP = {};
       var onNextMap = getStepOnNext();
@@ -1020,6 +1034,7 @@
      VERSION_LOG 배열 맨 앞에 새 항목을 추가할 것. 같은 날 여러 건이면 tag만 올려서(v0.x) 여러 줄 추가.
      "나중에 몰아서 기록"은 누락으로 이어지므로, 수정 직후 그 자리에서 바로 추가할 것. */
   var VERSION_LOG = [
+    {tag:'v0.37', date:'2026-09-04', title:'단계형(위저드) UI 이어하기 시 화면이 완전히 비는 치명적 버그 수정', desc:'협업자 클로드가 만든 단계형(위저드) 스킨은 botCard()로 새 카드가 생길 때만 wzCards 배열에 등록해서 그 카드에 wz-cur 클래스를 붙이는 방식인데, restoreCaseState()는 chat.innerHTML을 통째로 교체해서 복원하므로 botCard()를 거치지 않음 → 복원된 카드들이 wzCards에 하나도 등록되지 않고, 위저드 CSS(".chat .msg{display:none !important}")가 전부 가려버려서 사이드바에서 진행중/완료된 상담을 다시 열면(이어하기) 화면이 완전히 빈 채로 보이던 버그. restoreCaseState()에서 복원 직후 chat 안의 모든 .msg를 wzCards로 다시 등록하고 가장 최근 카드를 wzShow()로 표시하도록 수정. (Claude)'},
     {tag:'v0.36', date:'2026-09-02', title:'사유서 hwpx 템플릿을 팀원이 한글에서 직접 다듬은 양식으로 교체', desc:'그동안 hwpx XML을 코드로 만들다 보니 한글에서 자동 문단번호(가·나·다)나 정렬이 어긋나는 문제가 반복됨. 이를 해결하려고 협업자(sunny)가 한글 프로그램에서 직접 양식을 완성(기본정보 4열 표 + 섹션 2열 표 "구분|내용", 원문자 ①~⑥, 작성일/작성자란)한 hwpx를 받아, 채워져 있던 샘플 값을 다시 {{토큰}}으로 역변환해서 HWPX_TEMPLATE_B64를 통째로 교체. 사용 토큰(GENDER/AGE/SIZE/TARGET/NAT/REGION/LIVING/URGENCY/LOC/CRISIS_LINES/INCOME_LINE/RESULT_LINE/HEALTH_LINE/ITEMS_LINE/SELF_LINE/MEMO_LINE/DATE_LINE/SIGN_LINE)은 기존 buildHwpxTokens가 그대로 제공하므로 로직 변경 없음. 다른 값(여성/오늘 당장 등)으로 채워 실제 동적 치환되는지 확인했고, 한글 렌더링은 팀원이 만든 원본이라 번호·정렬 문제가 구조적으로 없음. (Claude)'},
     {tag:'v0.35', date:'2026-09-02', title:'카카오톡 인앱브라우저 파일 저장 안내 추가', desc:'안드로이드에서 카카오톡 링크로 열면(인앱브라우저) 일반 크롬과 달리 파일 저장이 구조적으로 안 됨(카카오 공식 문서 확인 — blob: URL은 안드로이드 네이티브 다운로드 리스너로 안 넘어감). 저장을 시도해서 조용히 실패하는 대신, User-Agent로 카카오톡 인앱브라우저를 감지(isKakaoInApp)해서 접속 직후와 저장 시도 시 모두 "오른쪽 위 ··· 메뉴 → 다른 브라우저로 열기"를 눌러달라는 안내를 명확히 보여주도록 함. (Claude)'},
     {tag:'v0.34', date:'2026-09-02', title:'이어하기 시 "사유서 저장" 버튼 먹통 문제 수정', desc:'다른 사례를 봤다가 사이드바에서 완료된 사례로 돌아오면 "사유서 저장"/한글 다운로드 버튼을 눌러도 아무 반응이 없던 버그 수정 — 원인은 사유서 생성(buildHwpxTokens/buildDoc)에 꼭 필요한 구조화 데이터(lastRunData)가 저장/복원 대상에서 빠져 있었던 것. snapshotCaseState/restoreCaseState에 lastRunData를 포함시켜 다시 열었을 때도 정상적으로 사유서가 만들어지도록 수정. (Claude)'},
