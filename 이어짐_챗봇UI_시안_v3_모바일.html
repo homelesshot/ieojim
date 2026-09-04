@@ -590,6 +590,68 @@
           <button class="btn small secondary" onclick="closePwChange()">취소</button>
         </div>
       </div>
+
+      <div style="border-top:1px solid var(--line);margin:1rem 0 .8rem"></div>
+
+      <div style="font-weight:800;margin-bottom:.4rem">🔐 개인정보 비밀키</div>
+      <div class="note" style="margin-bottom:.6rem">상담 내용은 <b>본인만 아는 비밀키</b>로 이 브라우저에서 직접 암호화돼요. 서버·관리자도 비밀키 없이는 원문을 볼 수 없습니다. 비밀키를 잃어버리면 복구 코드로만 되살릴 수 있어요.</div>
+      <div class="note" id="keyStatusNote">확인 중…</div>
+
+      <div id="keySetupBox" style="display:none">
+        <div class="note" style="margin-bottom:.5rem">아직 비밀키가 없어요. 지금 만들면, 앞으로 저장되는 상담 내용은 이 비밀키가 있어야만 열람할 수 있습니다.</div>
+        <div class="field"><span class="lab">새 비밀키(암호문구, 8자 이상)</span>
+          <input type="password" id="keySetupPass" placeholder="예: 오늘아침해가떴다123" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:1.2rem">
+        </div>
+        <div class="field"><span class="lab">비밀키 확인</span>
+          <input type="password" id="keySetupPass2" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:1.2rem">
+        </div>
+        <div class="note" id="keySetupNote" style="min-height:1.2em"></div>
+        <div class="btnrow" style="margin-top:.2rem">
+          <button class="btn small" onclick="setupCounselorKey()">비밀키 만들기</button>
+        </div>
+      </div>
+
+      <div id="keyRecoveryShowBox" style="display:none">
+        <div class="note" style="color:var(--bad);font-weight:700;margin-bottom:.4rem">⚠️ 이 복구 코드는 지금만 보여드려요. 비밀키를 잊으면 이 코드로만 복구할 수 있으니, 사진을 찍거나 안전한 곳에 적어서 보관하세요.</div>
+        <div style="font-family:monospace;font-size:1.3rem;font-weight:800;letter-spacing:.05em;background:rgba(127,127,127,.1);border-radius:10px;padding:12px;text-align:center;word-break:break-all" id="keyRecoveryCodeText"></div>
+        <div class="btnrow" style="margin-top:.6rem">
+          <button class="btn small secondary" onclick="copyRecoveryCode()">복사하기</button>
+          <button class="btn small" onclick="ackRecoveryCode()">보관했어요, 닫기</button>
+        </div>
+      </div>
+
+      <div id="keyUnlockBox" style="display:none">
+        <div class="note" style="margin-bottom:.5rem" id="keyUnlockNoteTop">비밀키를 입력하면 이 기기에서 상담 내용을 열람·저장할 수 있어요(브라우저를 새로고침하면 다시 입력해야 해요).</div>
+        <div class="field"><span class="lab">비밀키</span>
+          <input type="password" id="keyUnlockPass" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:1.2rem">
+        </div>
+        <div class="note" id="keyUnlockNote" style="min-height:1.2em"></div>
+        <div class="btnrow" style="margin-top:.2rem">
+          <button class="btn small" onclick="unlockCounselorKey()">잠금 해제</button>
+        </div>
+        <div class="note" style="margin-top:.6rem;text-align:center">
+          <a href="javascript:void(0)" onclick="toggleKeyRecoverMode()" style="color:var(--accent);font-weight:700;text-decoration:underline">비밀키를 잊으셨나요? 복구 코드로 복구</a>
+        </div>
+      </div>
+
+      <div id="keyUnlockedBox" style="display:none">
+        <div class="note" style="color:var(--accent-ink);font-weight:700">🔓 이 기기에서 잠금 해제됨 — 상담 내용을 저장·열람할 수 있어요.</div>
+      </div>
+
+      <div id="keyRecoverBox" style="display:none">
+        <div class="note" style="margin-bottom:.5rem">복구 코드와 새로 쓸 비밀키를 입력하세요.</div>
+        <div class="field"><span class="lab">복구 코드</span>
+          <input type="text" id="keyRecoverCode" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:1.2rem;text-transform:uppercase">
+        </div>
+        <div class="field"><span class="lab">새 비밀키(8자 이상)</span>
+          <input type="password" id="keyRecoverNewPass" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:1.2rem">
+        </div>
+        <div class="note" id="keyRecoverNote" style="min-height:1.2em"></div>
+        <div class="btnrow" style="margin-top:.2rem">
+          <button class="btn small" onclick="recoverCounselorKey()">복구하고 새 비밀키 설정</button>
+          <button class="btn small secondary" onclick="toggleKeyRecoverMode()">취소</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -816,6 +878,7 @@
   }
   async function doSignOut(){
     if(!sb) return;
+    _dek = null; _keyRowExists = null; // 로그아웃 시 비밀키(DEK)는 반드시 메모리에서 제거
     try{ await sb.auth.signOut(); }catch(e){ console.warn('signOut 오류:', e); }
     closeAuth();
   }
@@ -832,6 +895,7 @@
     closePwChange();
     document.getElementById('settingsBackdrop').classList.add('on');
     document.getElementById('settingsModal').classList.add('open');
+    refreshKeyStatus();
   }
   function closeSettings(){
     document.getElementById('settingsBackdrop').classList.remove('on');
@@ -901,6 +965,7 @@
   }
   async function onAuthChanged(session){
     authSession = session || null;
+    _dek = null; _keyRowExists = null; // 계정이 바뀌면(로그인/로그아웃) 이전 세션의 비밀키는 무조건 초기화
     if(!authSession){
       currentCounselor = null;
       renderAcctUI();
@@ -917,6 +982,198 @@
     }
     renderAcctUI();
     refreshRecentList();
+  }
+
+  /* ================= 개인정보 비밀키 (봉투 암호화, 제로지식) =====================================
+     설계: 보안_비밀키_복구_설계.md 참고(2026-09-04, sunny님 결정 + Claude 설계).
+     - 서버(counselor_keys 테이블, 구흥모님이 db/2026-09-04_counselor_keys.sql 실행해야 생김)에는
+       "래핑된 DEK"(암호문)만 저장. 비밀키·복구코드·DEK 원문은 절대 서버로 전송/저장하지 않음.
+     - DEK(AES-256, 랜덤 32바이트)는 이 브라우저 메모리(_dek)에만 존재 — 새로고침하면 사라져서
+       다시 비밀키를 입력해야 함(의도된 동작 — 새로고침한 남의 화면에 그대로 열람되면 안 되므로).
+     - 이 테이블/기능이 아직 없는 환경(구흥모님이 SQL을 아직 안 돌렸거나, 예전 배포본)에서는 모든
+       호출이 try/catch로 조용히 실패해서, 기존 서버측 암호화(encrypt_case_field/decrypt_case_field
+       RPC)로 자동 폴백 — 이 기능 때문에 저장/이어하기 자체가 막히는 일은 없음. */
+  var _dek = null;              // CryptoKey(AES-GCM 256) — 잠금 해제된 동안만 메모리에 존재
+  var _keyRowExists = null;     // null=아직 확인 안 함, true/false=counselor_keys 행 존재 여부
+  var _pendingRecoveryCode = null; // 방금 발급한 복구 코드(화면에 1회 표시 후 버림)
+
+  function b64FromBytes(bytes){ var bin=''; for(var i=0;i<bytes.length;i++) bin+=String.fromCharCode(bytes[i]); return btoa(bin); }
+  function bytesFromB64(b64){ var bin=atob(b64); var out=new Uint8Array(bin.length); for(var i=0;i<bin.length;i++) out[i]=bin.charCodeAt(i); return out; }
+  // state_json_enc 컬럼은 Postgres bytea라서, PostgREST를 통해 문자열을 insert/update하려면
+  // "\x48656c6c6f"처럼 16진수 이스케이프 형식으로 보내야 하고, select로 읽을 때도 같은 형식(\x..)으로 옴.
+  // (기존 encrypt_case_field RPC는 pgcrypto가 이미 이 형식으로 반환해서 신경 쓸 필요가 없었는데,
+  // 클라이언트에서 직접 만든 문자열은 이 변환을 우리가 해줘야 함.)
+  function textToByteaHex(str){
+    var bytes = new TextEncoder().encode(str);
+    var hex = '\\x';
+    for(var i=0;i<bytes.length;i++){ hex += bytes[i].toString(16).padStart(2,'0'); }
+    return hex;
+  }
+  function byteaHexToText(hex){
+    if(typeof hex !== 'string' || hex.slice(0,2) !== '\\x') return null;
+    var body = hex.slice(2);
+    var bytes = new Uint8Array(body.length/2);
+    for(var i=0;i<bytes.length;i++){ bytes[i] = parseInt(body.substr(i*2,2),16); }
+    return new TextDecoder().decode(bytes);
+  }
+  async function pbkdf2DeriveKey(passphrase, saltBytes){
+    var baseKey = await crypto.subtle.importKey('raw', new TextEncoder().encode(passphrase), 'PBKDF2', false, ['deriveKey']);
+    return crypto.subtle.deriveKey(
+      {name:'PBKDF2', salt:saltBytes, iterations:200000, hash:'SHA-256'},
+      baseKey, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']
+    );
+  }
+  // wrappingSecret(비밀키 또는 복구코드)로 DEK(rawKeyBytes, 32바이트)를 감싸서 저장용 문자열로 만듦
+  async function wrapDekWithSecret(wrappingSecret, dekRawBytes){
+    var salt = crypto.getRandomValues(new Uint8Array(16));
+    var iv = crypto.getRandomValues(new Uint8Array(12));
+    var wrapKey = await pbkdf2DeriveKey(wrappingSecret, salt);
+    var ct = await crypto.subtle.encrypt({name:'AES-GCM', iv:iv}, wrapKey, dekRawBytes);
+    var out = new Uint8Array(salt.length + iv.length + ct.byteLength);
+    out.set(salt,0); out.set(iv,salt.length); out.set(new Uint8Array(ct), salt.length+iv.length);
+    return b64FromBytes(out);
+  }
+  async function unwrapDekWithSecret(wrappingSecret, wrappedB64){
+    var all = bytesFromB64(wrappedB64);
+    var salt = all.slice(0,16), iv = all.slice(16,28), ct = all.slice(28);
+    var wrapKey = await pbkdf2DeriveKey(wrappingSecret, salt);
+    var dekBuf = await crypto.subtle.decrypt({name:'AES-GCM', iv:iv}, wrapKey, ct); // 비밀키/코드가 틀리면 여기서 예외 발생
+    return new Uint8Array(dekBuf);
+  }
+  function generateRecoveryCode(){
+    var alphabet = '0123456789ABCDEFGHJKMNPQRSTVWXYZ'; // Crockford base32(혼동되는 O/I/L/U 제외)
+    var bytes = crypto.getRandomValues(new Uint8Array(20));
+    var chars = []; for(var i=0;i<20;i++){ chars.push(alphabet[bytes[i] % alphabet.length]); }
+    var groups = []; for(var g=0; g<chars.length; g+=4){ groups.push(chars.slice(g,g+4).join('')); }
+    return groups.join('-');
+  }
+  // DEK(raw bytes)를 실제 암복호화에 쓸 수 있는 CryptoKey로 가져옴
+  async function importDekAsCryptoKey(dekRawBytes){
+    return crypto.subtle.importKey('raw', dekRawBytes, {name:'AES-GCM'}, false, ['encrypt','decrypt']);
+  }
+  // 화면 텍스트(JSON 문자열)를 DEK로 암호화 → 저장용 문자열. 기존 서버암호화 값과 구분하려고 'v2:' 접두어를 붙임
+  async function clientEncryptText(plainText){
+    if(!_dek) throw new Error('비밀키가 잠겨있어요');
+    var iv = crypto.getRandomValues(new Uint8Array(12));
+    var ct = await crypto.subtle.encrypt({name:'AES-GCM', iv:iv}, _dek, new TextEncoder().encode(plainText));
+    var out = new Uint8Array(iv.length + ct.byteLength);
+    out.set(iv,0); out.set(new Uint8Array(ct), iv.length);
+    return 'v2:' + b64FromBytes(out);
+  }
+  async function clientDecryptText(stored){
+    if(!_dek) throw new Error('비밀키가 잠겨있어요');
+    var all = bytesFromB64(stored.slice(3));
+    var iv = all.slice(0,12), ct = all.slice(12);
+    var buf = await crypto.subtle.decrypt({name:'AES-GCM', iv:iv}, _dek, ct);
+    return new TextDecoder().decode(buf);
+  }
+
+  // 로그인 시 counselor_keys 행이 있는지 확인 + 설정 화면(계정 설정)에 현재 상태 반영
+  async function refreshKeyStatus(){
+    var note = document.getElementById('keyStatusNote');
+    var setupBox = document.getElementById('keySetupBox'), unlockBox = document.getElementById('keyUnlockBox'),
+        unlockedBox = document.getElementById('keyUnlockedBox'), recoverBox = document.getElementById('keyRecoverBox'),
+        showBox = document.getElementById('keyRecoveryShowBox');
+    if(showBox && showBox.style.display !== 'none') return; // 복구코드 보여주는 중이면 화면 유지
+    [setupBox, unlockBox, unlockedBox, recoverBox].forEach(function(el){ if(el) el.style.display='none'; });
+    if(!sb || !authSession){ if(note) note.textContent = '로그인 후 이용할 수 있어요.'; return; }
+    if(_dek){ if(note) note.textContent=''; if(unlockedBox) unlockedBox.style.display=''; return; }
+    if(note) note.textContent = '확인 중…';
+    try{
+      var res = await sb.from('counselor_keys').select('counselor_id').eq('counselor_id', authSession.user.id).maybeSingle();
+      if(res.error) throw res.error;
+      _keyRowExists = !!res.data;
+    }catch(e){
+      // counselor_keys 테이블이 아직 없는 환경(구흥모님이 SQL 실행 전) — 기능을 조용히 숨김
+      console.warn('counselor_keys 확인 실패(테이블이 아직 없을 수 있음):', e);
+      if(note) note.textContent = '이 기능은 서버 설정이 끝나면 사용할 수 있어요(준비 중).';
+      return;
+    }
+    if(note) note.textContent = '';
+    if(_keyRowExists){ if(unlockBox) unlockBox.style.display=''; }
+    else { if(setupBox) setupBox.style.display=''; }
+  }
+  function toggleKeyRecoverMode(){
+    var unlockBox = document.getElementById('keyUnlockBox'), recoverBox = document.getElementById('keyRecoverBox');
+    var showingRecover = recoverBox && recoverBox.style.display !== 'none';
+    if(unlockBox) unlockBox.style.display = showingRecover ? '' : 'none';
+    if(recoverBox) recoverBox.style.display = showingRecover ? 'none' : '';
+  }
+  async function setupCounselorKey(){
+    var note = document.getElementById('keySetupNote');
+    var pass = document.getElementById('keySetupPass').value || '';
+    var pass2 = document.getElementById('keySetupPass2').value || '';
+    if(pass.length < 8){ note.style.color='var(--bad)'; note.textContent='비밀키는 8자 이상으로 만들어 주세요.'; return; }
+    if(pass !== pass2){ note.style.color='var(--bad)'; note.textContent='두 번 입력한 비밀키가 서로 달라요.'; return; }
+    note.style.color='var(--mut)'; note.textContent='비밀키 만드는 중…';
+    try{
+      var dek = crypto.getRandomValues(new Uint8Array(32));
+      var recoveryCode = generateRecoveryCode();
+      var dekByPass = await wrapDekWithSecret(pass, dek);
+      var dekByRecovery = await wrapDekWithSecret(recoveryCode, dek);
+      var res = await sb.from('counselor_keys').upsert({counselor_id:authSession.user.id, dek_by_pass:dekByPass, dek_by_recovery:dekByRecovery});
+      if(res.error) throw res.error;
+      _dek = await importDekAsCryptoKey(dek);
+      _keyRowExists = true;
+      ['keySetupPass','keySetupPass2'].forEach(function(id){ document.getElementById(id).value=''; });
+      note.textContent = '';
+      document.getElementById('keyRecoveryCodeText').textContent = recoveryCode;
+      document.getElementById('keySetupBox').style.display = 'none';
+      document.getElementById('keyRecoveryShowBox').style.display = '';
+    }catch(e){
+      note.style.color='var(--bad)'; note.textContent = '비밀키 설정 실패: ' + (e && e.message ? e.message : e);
+    }
+  }
+  function copyRecoveryCode(){
+    var txt = document.getElementById('keyRecoveryCodeText').textContent || '';
+    try{ navigator.clipboard.writeText(txt); }catch(e){}
+  }
+  function ackRecoveryCode(){
+    document.getElementById('keyRecoveryShowBox').style.display = 'none';
+    document.getElementById('keyRecoveryCodeText').textContent = '';
+    refreshKeyStatus();
+  }
+  async function unlockCounselorKey(){
+    var note = document.getElementById('keyUnlockNote');
+    var pass = document.getElementById('keyUnlockPass').value || '';
+    if(!pass){ note.style.color='var(--bad)'; note.textContent='비밀키를 입력해 주세요.'; return; }
+    note.style.color='var(--mut)'; note.textContent='확인 중…';
+    try{
+      var res = await sb.from('counselor_keys').select('dek_by_pass').eq('counselor_id', authSession.user.id).single();
+      if(res.error) throw res.error;
+      var dek = await unwrapDekWithSecret(pass, res.data.dek_by_pass);
+      _dek = await importDekAsCryptoKey(dek);
+      document.getElementById('keyUnlockPass').value = '';
+      note.textContent = '';
+      refreshKeyStatus();
+    }catch(e){
+      note.style.color='var(--bad)'; note.textContent = '비밀키가 올바르지 않아요. 다시 확인해 주세요.';
+      console.warn('비밀키 잠금 해제 실패:', e);
+    }
+  }
+  async function recoverCounselorKey(){
+    var note = document.getElementById('keyRecoverNote');
+    var code = (document.getElementById('keyRecoverCode').value || '').trim().toUpperCase();
+    var newPass = document.getElementById('keyRecoverNewPass').value || '';
+    if(!code){ note.style.color='var(--bad)'; note.textContent='복구 코드를 입력해 주세요.'; return; }
+    if(newPass.length < 8){ note.style.color='var(--bad)'; note.textContent='새 비밀키는 8자 이상으로 만들어 주세요.'; return; }
+    note.style.color='var(--mut)'; note.textContent='복구하는 중…';
+    try{
+      var res = await sb.from('counselor_keys').select('dek_by_recovery').eq('counselor_id', authSession.user.id).single();
+      if(res.error) throw res.error;
+      var dek = await unwrapDekWithSecret(code, res.data.dek_by_recovery);
+      var newDekByPass = await wrapDekWithSecret(newPass, dek);
+      var updRes = await sb.from('counselor_keys').update({dek_by_pass:newDekByPass}).eq('counselor_id', authSession.user.id);
+      if(updRes.error) throw updRes.error;
+      _dek = await importDekAsCryptoKey(dek);
+      ['keyRecoverCode','keyRecoverNewPass'].forEach(function(id){ document.getElementById(id).value=''; });
+      note.textContent = '';
+      toggleKeyRecoverMode();
+      refreshKeyStatus();
+    }catch(e){
+      note.style.color='var(--bad)'; note.textContent = '복구 코드가 올바르지 않아요. 다시 확인해 주세요.';
+      console.warn('비밀키 복구 실패:', e);
+    }
   }
 
   /* ================= 최근 상담내역 (사이드바) ================= */
@@ -1080,9 +1337,18 @@
         verdict: d.verdict || null
       }, extra || {});
       var snap = snapshotCaseState();
-      var encRes = await sb.rpc('encrypt_case_field', {plain: JSON.stringify(snap)});
-      if(encRes.error) throw encRes.error;
-      fields.state_json_enc = encRes.data;
+      var plainJson = JSON.stringify(snap);
+      // 비밀키로 잠금 해제된 상태면(_dek 있음) 브라우저에서 직접 암호화(제로지식) —
+      // 'v2:' 접두어로 저장해서 resumeCase가 이 방식으로 저장된 건지 구분할 수 있게 함.
+      // 아직 비밀키를 설정 전이거나 잠겨있으면, 기존 서버측 암호화(encrypt_case_field RPC)로 폴백해서
+      // 저장 자체가 막히는 일은 없게 함(보안_비밀키_복구_설계.md 참고).
+      if(_dek){
+        fields.state_json_enc = textToByteaHex(await clientEncryptText(plainJson));
+      } else {
+        var encRes = await sb.rpc('encrypt_case_field', {plain: plainJson});
+        if(encRes.error) throw encRes.error;
+        fields.state_json_enc = encRes.data;
+      }
       if(!currentCaseId){
         var insRes = await sb.from('cases').insert(fields).select('id').single();
         if(insRes.error) throw insRes.error;
@@ -1104,9 +1370,19 @@
       if(res.error) throw res.error;
       var row = res.data;
       if(!row.state_json_enc){ throw new Error('저장된 진행상태가 없습니다'); }
-      var decRes = await sb.rpc('decrypt_case_field', {enc: row.state_json_enc});
-      if(decRes.error) throw decRes.error;
-      var parsed = JSON.parse(decRes.data);
+      // 'v2:'로 시작하면 이 브라우저에서 비밀키(DEK)로 직접 암호화해 저장한 것 — 잠금 해제(_dek) 상태여야 열람 가능.
+      // 아니면(예전 fake data 등) 기존 서버측 복호화(decrypt_case_field RPC)로 폴백.
+      var plainAsText = byteaHexToText(row.state_json_enc);
+      var plainJson;
+      if(plainAsText && plainAsText.slice(0,3) === 'v2:'){
+        if(!_dek){ throw new Error('이 상담을 열람하려면 먼저 설정 → 비밀키로 잠금 해제해 주세요.'); }
+        plainJson = await clientDecryptText(plainAsText);
+      } else {
+        var decRes = await sb.rpc('decrypt_case_field', {enc: row.state_json_enc});
+        if(decRes.error) throw decRes.error;
+        plainJson = decRes.data;
+      }
+      var parsed = JSON.parse(plainJson);
       restoreCaseState(parsed);
       currentCaseId = row.id;
       // "완료" 카드의 버튼(다운로드/새 상담)은 chatInner 밖의 고정 하단바(#doneBar)라서
@@ -1123,6 +1399,7 @@
      VERSION_LOG 배열 맨 앞에 새 항목을 추가할 것. 같은 날 여러 건이면 tag만 올려서(v0.x) 여러 줄 추가.
      "나중에 몰아서 기록"은 누락으로 이어지므로, 수정 직후 그 자리에서 바로 추가할 것. */
   var VERSION_LOG = [
+    {tag:'v0.48', date:'2026-09-04', title:'개인정보 비밀키(제로지식 암호화) 클라이언트 구현 — 협업자 SQL 실행 전까지는 자동 대기', desc:'`보안_비밀키_복구_설계.md`(sunny님 결정 + Claude 설계) 반영 1단계 — 상담 데이터를 서버가 아니라 상담원 본인 비밀키로 브라우저에서 직접 암호화하는 봉투 암호화(envelope encryption) 방식 구현. 계정 설정(⚙️) 화면에 "🔐 개인정보 비밀키" 섹션 추가: 최초 비밀키 설정(PBKDF2 200,000회로 래핑키 유도 + AES-GCM 256으로 DEK 암호화), 복구 코드 1회 표시(잊었을 때 대비), 다음 로그인부터는 비밀키 입력으로 잠금 해제(DEK는 새로고침하면 사라지는 메모리 전용 — 의도된 동작), 복구 코드로 비밀키 재설정하는 흐름까지 포함. saveCaseProgress/resumeCase는 비밀키로 잠금 해제된 상태(_dek 있음)면 새 방식(v2: 접두어)으로 암복호화하고, 아직 비밀키를 설정 안 했거나 잠긴 상태면 기존 서버측 암호화(encrypt_case_field/decrypt_case_field RPC)로 자동 폴백해서 저장/이어하기가 막히는 일은 없음. **주의**: 서버 쪽 `counselor_keys` 테이블(`db/2026-09-04_counselor_keys.sql`)은 아직 구흥모님이 Supabase SQL Editor에서 실행 전이라(이 세션에서 list_tables로 확인) 지금은 계정 설정을 열면 "서버 설정이 끝나면 사용할 수 있어요(준비 중)"로만 뜨고 기능이 비활성 상태 — SQL 실행 후 별도 작업 없이 바로 활성화됨. (Claude / 관리자 세션 — 협업자 설계 문서 반영, 클라이언트 파트만 담당)'},
     {tag:'v0.47', date:'2026-09-04', title:'재녹음 시 녹음 중 표시가 너무 약해서 확인이 안 되던 문제 수정', desc:'단계형(위저드) 화면에서는 하단 입력창(마이크·타이머 포함)이 숨겨져 있어서, 녹음 결과 카드의 작은 빨간 글씨 하나("🔴 녹음 중…")만으로는 재녹음 시 실제로 녹음 중인지 확인하기 어렵다는 재신고 — 눈에 훨씬 잘 띄도록 빨간 배경 박스 + 펄스 애니메이션 점 + 카드 안에서 직접 올라가는 초 단위 타이머(cardRecTimer)로 바꾸고, 재녹음 버튼을 누르면 해당 카드로 자동 스크롤(scrollIntoView)해서 화면 밖에 있어도 놓치지 않게 함. (Claude / 관리자 세션 — 실사용 피드백 대응)'},
     {tag:'v0.46', date:'2026-09-04', title:'첫 화면·입력창 라벨이 커진 글씨 때문에 아래로 밀리던 문제 수정(모바일)', desc:'v0.42의 "가장 작은 글씨 2배" 규칙을 기계적으로 적용하면서 두 곳이 회귀: (1) 입력창 위 "대상자 유형을 선택하세요" 안내(.typehint)가 .74rem 안팎이던 것이 1.48rem까지 커지면서, 좁은 화면에서 드롭다운·녹음타이머와 한 줄에 안 들어가 다음 줄로 밀려나 보였음 — 크기를 .92rem으로 줄이고, 480px 이하 화면에서는 아예 숨김(드롭다운 자체가 이미 선택된 유형을 보여주므로 중복 정보). (2) 첫 화면(웰컴)의 제목·설명·유형칩 글씨가 커지면서 상단 여백(7vh)과 합쳐져 좁은 화면에서 화면 아래로 많이 밀려나 스크롤해야 보이는 문제 — 480px 이하에서만 상단 여백과 글씨 크기를 다시 적당히 줄여 한 화면에 들어오도록 조정(넓은 화면·태블릿은 기존 크기 유지). (Claude / 관리자 세션 — 실사용 피드백 대응)'},
     {tag:'v0.45', date:'2026-09-04', title:'STT 한국어 강제 인식(모델 교체) + 안내문 접기 위치버그·추가 안내문 정리 + 변환중 애니메이션', desc:'(1) 녹음 시 영어가 섞여 나오는 문제가 language:"ko" 파라미터를 붙인 뒤에도 계속 보고됨 — 확인해보니 OpenAI 공식 문서상으로는 gpt-4o-transcribe-diarize가 language 파라미터를 지원한다고 되어있지만, 실제로는(OpenAI 커뮤니티·Microsoft Q&A에 다수 보고) 언어모델 기반 STT 계열(gpt-4o-transcribe, gpt-4o-transcribe-diarize)에서 language가 "강제"가 아니라 "힌트"로만 취급되어 한국어 음성에도 영어가 섞여 나오는 알려진 문제였음. 반면 whisper-1은 디코더 단계에서 language가 실제로 강제되는 구모델이라 안정적으로 한국어만 나옴 — stt-transcribe Edge Function을 gpt-4o-transcribe-diarize→whisper-1로 교체(response_format도 diarized_json→verbose_json). 대신 whisper-1은 화자분리를 지원하지 않아 화자별 구분(bySpeaker)은 당분간 비워둠(빈 값이면 화면에서 자동으로 안 보이게 이미 처리되어 있어 화면 깨짐 없음) — 화자분리는 이 안정성 문제가 정리되면 재검토 예정(todo 문서에 기록). (2) 안내문 접기(?) 팝오버가 모바일에서 물음표 버튼이 화면 오른쪽 끝 가까이 있을 때 화면 밖으로 삐져나가던 버그 수정 — position:absolute+left:0 방식에서 position:fixed로 바꾸고, 열 때마다 버튼 위치·화면 크기를 기준으로 좌우/상하로 넘치지 않도록 JS에서 좌표를 직접 계산해서 clamp(toggleInfoPop), 화면 회전/크기 변경 시에는 열려 있던 안내문을 닫음. (3) "실제 일정관리 프로그램 자동 연동은…" 안내문과 사유서 화면의 "개인식별정보는 [___]로 두었습니다" 안내문, ".hwpx는 한글 프로그램에서 곧바로 열리는…" 안내문도 같은 물음표 접기 패턴으로 정리(짧은 제목만 보이고 눌러야 자세한 설명이 뜸). (4) 사유서 화면의 "AI로 초안 다듬기(선택)" 섹션 전체를 기능은 그대로 둔 채 화면에서만 숨김(display:none) — 삭제는 아니고, 추후 다시 켤 수 있도록 코드는 유지. (5) 녹음 결과 화면에서 "음성을 텍스트로 변환하는 중이에요" 문구 오른쪽에 CSS만으로 움직이는 점(·/··/···) 애니메이션과 작은 회전 스피너를 추가해서 처리 중임을 시각적으로 표시. (Claude / 관리자 세션 — 실사용 피드백 대응)'},
