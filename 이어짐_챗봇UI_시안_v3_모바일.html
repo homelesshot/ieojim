@@ -203,6 +203,8 @@
   .composer.locked .lockhint{display:block}
   .composer.locked .foothint{display:none}
   @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(192,57,43,.5)}50%{box-shadow:0 0 0 7px rgba(192,57,43,0)}}
+  .recLiveBox{display:flex;align-items:center;gap:9px;font-size:1.3rem;font-weight:800;color:#fff;background:var(--bad, #c0392b);padding:12px 14px;border-radius:14px}
+  .recDot{width:13px;height:13px;flex:none;border-radius:50%;background:#fff;animation:pulse 1.1s infinite}
   @keyframes sttspin{to{transform:rotate(360deg)}}
   .sttSpin{display:inline-block;width:16px;height:16px;border:2.4px solid rgba(127,127,127,.3);border-top-color:var(--accent, #2563eb);border-radius:50%;vertical-align:-3px;margin-left:7px;animation:sttspin .8s linear infinite}
   .sttDots{display:inline-block;min-width:1.3em;text-align:left}
@@ -647,7 +649,8 @@
         + (st.recLabel ? ' <span style="font-size:1.04rem;color:var(--mut)">'+st.recLabel+'</span>' : '') + '</div>';
     }
     if(st.status === 'recording'){
-      html += '<div style="font-size:1.17rem;color:var(--bad);font-weight:700">🔴 녹음 중… 다 말씀하셨으면 아래 [⏹ 녹음 중지]를 눌러주세요.</div>';
+      html += '<div class="recLiveBox"><span class="recDot"></span><span>녹음 중… <span id="cardRecTimer">'+fmt(st.secs||0)+'</span></span></div>'
+        + '<div style="font-size:1.04rem;color:var(--mut);margin-top:8px">다 말씀하셨으면 아래 [⏹ 녹음 중지]를 눌러주세요.</div>';
     } else if(st.status === 'loading'){
       html += '<div style="font-size:1.04rem;color:var(--mut)">음성을 텍스트로 변환하는 중이에요<span class="sttDots"></span><span class="sttSpin"></span></div>';
     } else if(st.status === 'error'){
@@ -1120,6 +1123,7 @@
      VERSION_LOG 배열 맨 앞에 새 항목을 추가할 것. 같은 날 여러 건이면 tag만 올려서(v0.x) 여러 줄 추가.
      "나중에 몰아서 기록"은 누락으로 이어지므로, 수정 직후 그 자리에서 바로 추가할 것. */
   var VERSION_LOG = [
+    {tag:'v0.47', date:'2026-09-04', title:'재녹음 시 녹음 중 표시가 너무 약해서 확인이 안 되던 문제 수정', desc:'단계형(위저드) 화면에서는 하단 입력창(마이크·타이머 포함)이 숨겨져 있어서, 녹음 결과 카드의 작은 빨간 글씨 하나("🔴 녹음 중…")만으로는 재녹음 시 실제로 녹음 중인지 확인하기 어렵다는 재신고 — 눈에 훨씬 잘 띄도록 빨간 배경 박스 + 펄스 애니메이션 점 + 카드 안에서 직접 올라가는 초 단위 타이머(cardRecTimer)로 바꾸고, 재녹음 버튼을 누르면 해당 카드로 자동 스크롤(scrollIntoView)해서 화면 밖에 있어도 놓치지 않게 함. (Claude / 관리자 세션 — 실사용 피드백 대응)'},
     {tag:'v0.46', date:'2026-09-04', title:'첫 화면·입력창 라벨이 커진 글씨 때문에 아래로 밀리던 문제 수정(모바일)', desc:'v0.42의 "가장 작은 글씨 2배" 규칙을 기계적으로 적용하면서 두 곳이 회귀: (1) 입력창 위 "대상자 유형을 선택하세요" 안내(.typehint)가 .74rem 안팎이던 것이 1.48rem까지 커지면서, 좁은 화면에서 드롭다운·녹음타이머와 한 줄에 안 들어가 다음 줄로 밀려나 보였음 — 크기를 .92rem으로 줄이고, 480px 이하 화면에서는 아예 숨김(드롭다운 자체가 이미 선택된 유형을 보여주므로 중복 정보). (2) 첫 화면(웰컴)의 제목·설명·유형칩 글씨가 커지면서 상단 여백(7vh)과 합쳐져 좁은 화면에서 화면 아래로 많이 밀려나 스크롤해야 보이는 문제 — 480px 이하에서만 상단 여백과 글씨 크기를 다시 적당히 줄여 한 화면에 들어오도록 조정(넓은 화면·태블릿은 기존 크기 유지). (Claude / 관리자 세션 — 실사용 피드백 대응)'},
     {tag:'v0.45', date:'2026-09-04', title:'STT 한국어 강제 인식(모델 교체) + 안내문 접기 위치버그·추가 안내문 정리 + 변환중 애니메이션', desc:'(1) 녹음 시 영어가 섞여 나오는 문제가 language:"ko" 파라미터를 붙인 뒤에도 계속 보고됨 — 확인해보니 OpenAI 공식 문서상으로는 gpt-4o-transcribe-diarize가 language 파라미터를 지원한다고 되어있지만, 실제로는(OpenAI 커뮤니티·Microsoft Q&A에 다수 보고) 언어모델 기반 STT 계열(gpt-4o-transcribe, gpt-4o-transcribe-diarize)에서 language가 "강제"가 아니라 "힌트"로만 취급되어 한국어 음성에도 영어가 섞여 나오는 알려진 문제였음. 반면 whisper-1은 디코더 단계에서 language가 실제로 강제되는 구모델이라 안정적으로 한국어만 나옴 — stt-transcribe Edge Function을 gpt-4o-transcribe-diarize→whisper-1로 교체(response_format도 diarized_json→verbose_json). 대신 whisper-1은 화자분리를 지원하지 않아 화자별 구분(bySpeaker)은 당분간 비워둠(빈 값이면 화면에서 자동으로 안 보이게 이미 처리되어 있어 화면 깨짐 없음) — 화자분리는 이 안정성 문제가 정리되면 재검토 예정(todo 문서에 기록). (2) 안내문 접기(?) 팝오버가 모바일에서 물음표 버튼이 화면 오른쪽 끝 가까이 있을 때 화면 밖으로 삐져나가던 버그 수정 — position:absolute+left:0 방식에서 position:fixed로 바꾸고, 열 때마다 버튼 위치·화면 크기를 기준으로 좌우/상하로 넘치지 않도록 JS에서 좌표를 직접 계산해서 clamp(toggleInfoPop), 화면 회전/크기 변경 시에는 열려 있던 안내문을 닫음. (3) "실제 일정관리 프로그램 자동 연동은…" 안내문과 사유서 화면의 "개인식별정보는 [___]로 두었습니다" 안내문, ".hwpx는 한글 프로그램에서 곧바로 열리는…" 안내문도 같은 물음표 접기 패턴으로 정리(짧은 제목만 보이고 눌러야 자세한 설명이 뜸). (4) 사유서 화면의 "AI로 초안 다듬기(선택)" 섹션 전체를 기능은 그대로 둔 채 화면에서만 숨김(display:none) — 삭제는 아니고, 추후 다시 켤 수 있도록 코드는 유지. (5) 녹음 결과 화면에서 "음성을 텍스트로 변환하는 중이에요" 문구 오른쪽에 CSS만으로 움직이는 점(·/··/···) 애니메이션과 작은 회전 스피너를 추가해서 처리 중임을 시각적으로 표시. (Claude / 관리자 세션 — 실사용 피드백 대응)'},
     {tag:'v0.44', date:'2026-09-04', title:'재녹음/다음 버튼 5:5·이름 축약, 안내문 접기 확대 적용, 사이드바 임시저장 팝업 제거, RTF 삭제', desc:'(1) 녹음 결과 화면의 하단 버튼을 34:66에서 5:5(균등)로, 이름도 "재녹음하기"/"다음으로"에서 "재녹음"/"다음"으로 축약(data-wz-rec 카드에서만 #wzNav에 wz-even 클래스 적용). (2) v0.43에서 만든 "?" 안내문 접기 컴포넌트를 라벨 span 형제로 붙였더니 `.card .field>.lab{display:block}` 규칙 때문에 물음표가 라벨 오른쪽이 아니라 아래 줄로 밀려나던 버그 수정 — 라벨 span *안쪽*에 이어붙이는 방식으로 변경(이후 전부 이 방식 사용), 물음표 버튼 크기도 살짝 축소. 같은 패턴을 위기사유(법령근거·자동정렬 표시), 현재 거주형태·연령대·성별·국적체류자격·특수상황 안내문, 예비판단 결과의 "신청 가능 지원항목(공적)" 사용법 안내, 노숙인 전용 날씨위젯 설명문까지 넓게 적용. (3) v0.42에서 "가장 작은 글씨 2배" 규칙을 파일 전체에 기계적으로 적용하면서 사이드바 맨 아래 1회성 안내문(.side-note)까지 같이 커져서, 좁은 사이드바에서 줄바꿈이 늘어나며 "최근" 목록 영역을 밀어내 가리던 회귀 버그 수정(1.36rem → .86rem로 축소). (4) 로컬 임시저장(v0.41) 복원 확인창(confirm)이 새로고침마다 떠서 실사용에 방해된다는 피드백 — 팝업을 없애고, 로그인 여부와 무관하게 사이드바 "최근" 목록 맨 위에 "💾 임시 저장본(이 기기)" 항목으로 조용히 노출, 눌렀을 때만 이어서 진행하도록 변경(resumeLocalDraft). (5) RTF(.rtf) 다운로드 버튼과 관련 기능 전체 삭제(downloadDoc은 이제 txt만 생성), hwpx 실패 안내문에서도 .rtf 언급 제거. (Claude / 관리자 세션 — 실사용 피드백 대응)'},
@@ -1270,12 +1274,20 @@
       };
       media.secs=0; media.rec.start();
       btn.classList.add('rec'); showMicPrivBubble(); var t=document.getElementById('recTimer'); t.classList.add('on'); t.textContent='● 00:00';
-      media.timer=setInterval(()=>{ media.secs++; t.textContent='● '+fmt(media.secs); }, 1000);
+      media.timer=setInterval(()=>{
+        media.secs++; t.textContent='● '+fmt(media.secs);
+        var ct=document.getElementById('cardRecTimer'); if(ct) ct.textContent=fmt(media.secs);
+      }, 1000);
       /* 단계형(위저드) 화면에서는 하단 입력창(마이크 버튼·타이머 포함)이 숨겨져 있어 녹음 중이라는 게
-         전혀 안 보이는 문제가 있었음(현장 실사용 피드백) — 재녹음일 때는 이미 떠 있는 결과 카드를
-         "🔴 녹음 중…" 상태로 바꿔서 화면에 표시해준다. 최초 녹음(카드가 아직 없을 때)은 그대로
-         onstop에서 카드가 새로 생기므로 별도 처리 불필요. */
-      if(_activeRecCard){ updateRecCard(_activeRecCard, {status:'recording'}); }
+         전혀 안 보이는 문제가 있었음(현장 실사용 피드백, 재발) — 재녹음일 때는 이미 떠 있는 결과 카드를
+         "녹음 중…" 상태로 바꿔서 화면에 표시해준다. 눈에 잘 띄도록 빨간 배경의 펄스 점 + 카드 안에서도
+         직접 세는 타이머(cardRecTimer)를 넣고, 카드가 화면 밖에 있을 수도 있으니 확실히 보이게
+         scrollIntoView까지 호출(2026-09-04 재신고 — 표시가 너무 약해서 녹음 중인지 확인이 안 된다는 피드백).
+         최초 녹음(카드가 아직 없을 때)은 그대로 onstop에서 카드가 새로 생기므로 별도 처리 불필요. */
+      if(_activeRecCard){
+        updateRecCard(_activeRecCard, {status:'recording', secs:0});
+        _activeRecCard.scrollIntoView({behavior:'smooth', block:'center'});
+      }
     }catch(err){
       hideWelcome();
       if(_activeRecCard){
