@@ -142,6 +142,11 @@
   /* 단계 카드 */
   .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;max-width:88%;box-shadow:var(--shadow-sm)}
   .card .lab{font-size:1.34rem;font-weight:800;letter-spacing:.05em;color:var(--accent-ink);background:var(--accent-soft);display:inline-block;padding:4px 10px;border-radius:20px;margin-bottom:11px}
+  /* 물음표(ⓘ) 안내 버튼 — 라벨 옆에 붙여서 긴 안내문을 평소엔 숨겨두고 눌렀을 때만 보여줌 */
+  .infowrap{position:relative;display:inline-block}
+  .infoQBtn{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--accent-soft);color:var(--accent-ink);border:1.5px solid var(--accent);font-size:1.02rem;font-weight:800;font-family:inherit;cursor:pointer;margin-left:6px;padding:0;vertical-align:middle;line-height:1}
+  .infoPop{display:none;position:absolute;left:0;top:calc(100% + 6px);z-index:20;width:min(78vw,320px);background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow-md);padding:10px 12px;font-size:1.04rem;line-height:1.55;font-weight:400}
+  .infoPop.on{display:block}
   .card h3{margin:0 0 8px;font-size:1rem}
   .card .row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0}
   .card label{font-size:.99rem;color:var(--mut);display:block;margin-bottom:4px;font-weight:500}
@@ -611,35 +616,71 @@
     return res.json(); // { text, segments, bySpeaker, duration }
   }
   /* 변환된 텍스트를 기존 자유입력 처리 흐름(①위기사유 카드 자동체크)에 그대로 태움 */
-  function handleTranscribedText(text, bySpeaker, audioUrl, recLabel){
+  /* ===== 녹음/파일업로드 결과 화면 (v0.43) =====
+     이전 버전은 인식 결과를 "확인" 카드로 새로 만들고 "맞아요, 다음 ▸"을 눌러야 다음으로 넘어가게
+     했는데, 실사용해보니 (1) 녹음 직후 뜨는 "녹음 완료" 카드와 (2) 인식 끝나고 뜨는 "확인" 카드가
+     서로 다른 카드였다가, 인식 결과가 없을 때는 (2)가 자동으로 안 넘어가서 사용자가 계속 (1)에 머문
+     채로 "다음"을 눌러야 겨우 "인식 결과 없음"을 보게 되고, 그 화면에선 더 이상 아무 것도 안 되는
+     막다른 상태였음. 이제는 카드를 하나만 만들고 상태(녹음중→변환중→결과)에 따라 그 카드 내용만
+     갱신한다. 이 카드에서는 하단 내비게이션도 "이전"이 아니라 "재녹음하기"로 동작(wzRefreshNav/
+     wzNext/wzPrev에서 data-wz-rec="1" 속성으로 분기). */
+  function recCardBody(st){
+    var html = '';
+    if(st.url){
+      html += '<div style="margin-bottom:8px"><audio controls src="'+st.url+'" style="width:100%"></audio>'
+        + (st.recLabel ? ' <span style="font-size:1.04rem;color:var(--mut)">'+st.recLabel+'</span>' : '') + '</div>';
+    }
+    if(st.status === 'recording'){
+      html += '<div style="font-size:1.17rem;color:var(--bad);font-weight:700">🔴 녹음 중… 다 말씀하셨으면 아래 [⏹ 녹음 중지]를 눌러주세요.</div>';
+    } else if(st.status === 'loading'){
+      html += '<div style="font-size:1.04rem;color:var(--mut)">음성을 텍스트로 변환하는 중이에요…</div>';
+    } else if(st.status === 'error'){
+      html += '<div style="color:var(--bad);font-weight:700">텍스트 변환 중 오류가 발생했어요.</div>'
+        + '<div style="font-size:1.04rem;color:var(--mut);margin-top:4px">'+String(st.error||'').replace(/</g,'&lt;')+'</div>'
+        + '<div style="font-size:1.04rem;color:var(--mut);margin-top:8px">재녹음하시거나 아래에 직접 입력해주세요.</div>';
+    } else if(st.status === 'empty'){
+      html += '<div style="font-size:1.17rem">인식된 내용이 없어요.</div>'
+        + '<div style="font-size:1.04rem;color:var(--mut);margin-top:6px">너무 짧거나 조용했을 수 있어요. 재녹음하시거나 직접 입력해주세요.</div>';
+    } else if(st.status === 'ok'){
+      var speakerNote = st.bySpeaker ? '<div style="font-size:1.04rem;color:var(--mut);white-space:pre-wrap;margin-top:6px;padding:8px;border-radius:8px;background:rgba(127,127,127,.08)">'+st.bySpeaker.replace(/</g,'&lt;')+'</div>' : '';
+      html += '<div style="font-size:1.17rem;line-height:1.55">🎧 인식된 내용</div>'
+        + '<div style="margin-top:6px;padding:11px 13px;border-radius:12px;background:rgba(127,127,127,.08);font-weight:700;font-size:1.17rem;line-height:1.5">"'+st.text.replace(/</g,'&lt;')+'"</div>'
+        + speakerNote
+        + '<div style="margin-top:10px;font-size:1.04rem">'+freeTextHintText(st.hintMatched)+'</div>'
+        + '<div style="font-size:1.04rem;color:var(--mut);margin-top:8px">내용이 실제와 다르면 재녹음하시거나 직접 입력해주세요.</div>';
+    }
+    return html;
+  }
+  function makeRecCard(st, title){
+    var w = botCard(title || '🎧 녹음 결과', recCardBody(st), null);
+    w.setAttribute('data-wz-rec','1');
+    w._recState = st;
+    return w;
+  }
+  function updateRecCard(w, patch, title){
+    w._recState = Object.assign({}, w._recState, patch);
+    markCardBody(w, title || '🎧 녹음 결과', recCardBody(w._recState));
+    wzRefreshNav();
+  }
+  function goToCrisisWithHint(matched, urgency){
+    _activeRecCard = null; // 녹음 단계는 끝났으므로 참조 해제(다음에 다시 녹음하면 새 카드로 시작)
+    botCard('① 위기사유·긴급성', '<div style="font-size:1.11rem;color:var(--mut);margin-bottom:10px">긴급성과 해당하는 위기사유를 선택해 주세요.</div>' + TPL_CRISIS, '다음 ▸', ()=>goHousehold(), 'crisis');
+    renderCrisis();
+    if(matched){ applyFreeTextChecks(matched, urgency); }
+  }
+  function handleTranscribedText(w, text, bySpeaker){
     if(!text || !text.trim()){
       unlockMainInput();
-      var noneBody = '녹음(또는 파일)에서 텍스트를 찾지 못했어요. 너무 짧거나 조용했을 수 있어요. 다시 녹음하거나 직접 입력해주세요.';
-      if(audioUrl){ noneBody += '<div style="margin-top:10px"><audio controls src="'+audioUrl+'" style="width:100%"></audio></div>'; }
-      botCard('음성 인식 결과 없음', noneBody, null);
+      updateRecCard(w, {status:'empty'});
+      w._advance = function(){ goToCrisisWithHint(null, null); };
       return;
     }
     lastFreeText = text;
     autoRunAnonFromText(text);
-    lockMainInput();
+    unlockMainInput();
     var hint = matchFreeText(text);
-    var speakerNote = bySpeaker ? '<div style="font-size:1.04rem;color:var(--mut);white-space:pre-wrap;margin-top:6px;padding:8px;border-radius:8px;background:rgba(127,127,127,.08)">'+bySpeaker.replace(/</g,'&lt;')+'</div>' : '';
-    /* 이전에는 이 확인 내용을 botMsgHTML(카드가 아닌 일반 말풍선)로 띄우고 바로 다음 카드로 넘어갔는데,
-       단계형(위저드) UI에서는 botCard()로 만든 카드만 화면에 보이고 나머지 말풍선은 전부 숨겨지기 때문에
-       녹음 내용을 확인할 새도 없이 곧바로 다음 화면으로 넘어가 버리는 문제가 있었음(현장 실사용 피드백,
-       2026-09-04). 인식된 텍스트(+가능하면 재생 가능한 녹음)를 별도 확인 카드로 만들어, 사용자가 직접
-       확인하고 "다음"을 눌러야 다음 단계로 넘어가도록 수정. */
-    var confirmBody = (audioUrl ? '<div style="margin-bottom:10px"><audio controls src="'+audioUrl+'" style="width:100%"></audio>'+(recLabel?' <span style="font-size:1.04rem;color:var(--mut)">'+recLabel+'</span>':'')+'</div>' : '')
-      + '<div style="font-size:1.17rem;line-height:1.55">🎧 인식된 내용</div>'
-      + '<div style="margin-top:6px;padding:11px 13px;border-radius:12px;background:rgba(127,127,127,.08);font-weight:700;font-size:1.17rem;line-height:1.5">"'+text.replace(/</g,'&lt;')+'"</div>'
-      + speakerNote
-      + '<div style="margin-top:10px;font-size:1.04rem">'+freeTextHintText(hint.matched)+'</div>'
-      + '<div style="font-size:1.04rem;color:var(--mut);margin-top:8px">내용이 실제와 다르면 다시 녹음하거나 직접 입력해주세요.</div>';
-    botCard('🎧 인식 결과 확인', confirmBody, '맞아요, 다음 ▸', function(){
-      botCard('① 위기사유·긴급성', '<div style="font-size:1.11rem;color:var(--mut);margin-bottom:10px">긴급성과 해당하는 위기사유를 선택해 주세요.</div>' + TPL_CRISIS, '다음 ▸', ()=>goHousehold(), 'crisis');
-      renderCrisis();
-      applyFreeTextChecks(hint.matched, hint.urgency);
-    }, 'sttConfirm');
+    updateRecCard(w, {status:'ok', text:text, bySpeaker:bySpeaker, hintMatched:hint.matched, hintUrgency:hint.urgency});
+    w._advance = function(){ goToCrisisWithHint(hint.matched, hint.urgency); };
   }
 
   /* 사이드바 (기본 숨김 · 오버레이) */
@@ -1059,6 +1100,7 @@
      VERSION_LOG 배열 맨 앞에 새 항목을 추가할 것. 같은 날 여러 건이면 tag만 올려서(v0.x) 여러 줄 추가.
      "나중에 몰아서 기록"은 누락으로 이어지므로, 수정 직후 그 자리에서 바로 추가할 것. */
   var VERSION_LOG = [
+    {tag:'v0.43', date:'2026-09-04', title:'녹음 결과 화면 재설계(재녹음하기) + 안내문 접기(물음표 버튼) 도입', desc:'(1) v0.42의 "확인 카드" 방식이 실사용에서 막다른 상태를 만들었음 — 녹음완료 카드와 인식결과 카드가 서로 다른 카드였는데, 인식 결과가 없을 때 뒤 카드로 자동 전환이 안 돼 이전 카드에 계속 머물렀고(이전 버튼은 첫 카드라 비활성화라 다음밖에 못 누름), 다음을 눌러 겨우 "결과 없음" 화면에 가도 그 카드도 마지막 카드라 아무 버튼도 동작하지 않는 막다른 상태였음. 카드를 하나만 만들고 상태(녹음중→변환중→결과/빈결과/오류)에 따라 그 자리에서 내용만 갱신하도록 재설계(recCardBody/makeRecCard/updateRecCard). (2) 이 카드에 있는 동안 하단 내비게이션의 "이전"을 "🔄 재녹음하기"로 바꿔서 실제로 재녹음이 되게 함(wzRefreshNav/wzNext/wzPrev가 카드의 data-wz-rec 속성을 보고 분기) — 녹음 중에는 같은 버튼이 "⏹ 녹음 중지"로 바뀌고, 위저드 모드에서 안 보이는 마이크 버튼 대신 카드 자체에 "🔴 녹음 중…" 상태를 표시. 연속 재녹음 시 이전 변환 요청이 늦게 도착해 최신 결과를 덮어쓰는 경쟁 상태도 세대 번호로 방지. "다음" 버튼 문구도 "맞아요, 다음 ▸"처럼 카드마다 다른 문구 대신 그냥 "다음으로"로 통일. 마이크 녹음·파일 업로드 두 경로 모두 반영. (3) 안내문 접기(ⓘ) 기능 도입 — 라벨 옆에 동그란 물음표(?) 버튼을 붙이고 누르면 안내문이 팝오버로 뜨고 화면 아무 곳이나 누르면 닫히는 공용 컴포넌트(toggleInfoPop/.infoQBtn/.infoPop) 추가, 우선 ②단계 "거주지역(시·도)" 필드의 긴 안내문에 적용(위치 자동 감지 상태 메시지는 별도 영역에 그대로 유지해서 기존 기능 안 깨지게 함). 다른 단계의 긴 안내문에도 같은 패턴을 넓게 적용하는 건 다음 작업으로 남김. (Claude / 관리자 세션 — 실사용 피드백 대응)'},
     {tag:'v0.42', date:'2026-09-04', title:'실사용 피드백 4건 반영 — 녹음결과 확인 화면, STT 한국어 고정, 모바일 글씨 확대, 가로스크롤/box-sizing 수정', desc:'(1) 녹음/파일업로드 후 곧바로 다음 단계로 넘어가 인식 결과를 확인할 수 없던 문제 — 단계형(위저드) UI는 botCard()로 만든 카드만 보이고 일반 말풍선(botMsgHTML/userMsgHTML)은 전부 숨기는데, 녹음완료·STT결과 안내가 말풍선으로만 떠서 그대로 가려졌던 것. 녹음 재생 + 인식 텍스트를 확인 카드(botCard, "맞아요, 다음 ▸")로 바꿔 사용자가 직접 확인 후 다음으로 넘어가게 함(마이크 녹음·파일 업로드 두 경로 모두 반영). (2) STT 언어가 고정 안 돼 있어 한 녹음 안에서 한국어/영어가 섞여 나오던 문제 — Supabase Edge Function stt-transcribe에서 OpenAI 호출 시 language 파라미터를 ko로 추가(버전 4 배포 완료). (3) 모바일에서 글씨가 너무 작던 문제 — 전역 box-sizing 리셋이 없어 padding이 width:100%에 더해지며 가로 스크롤도 같이 발생하던 것을 *{box-sizing:border-box}로 수정하고 body/.chat에 overflow-x:hidden 추가. 가장 작았던 라벨/뱃지 텍스트(.65~.75rem)는 2배로, 본문/보조 텍스트(.76~.96rem)는 약 1.3배로 확대(파일 전체 font-size 일괄 치환). 페이지 내용을 한 화면에 다 담기 위한 단계 세분화(진행바·안내문 접기 등)는 더 큰 설계 작업이라 이번 패치에는 포함하지 않음 — 다음 작업으로 남김. (Claude / 관리자 세션 — 실사용 피드백 대응)'},
     {tag:'v0.41', date:'2026-09-04', title:'긴급 패치 — 비로그인 상태 실사용 중 녹음/입력 소실 방지(로컬 임시저장 안전망)', desc:'saveCaseProgress()는 로그인 상태일 때만 Supabase에 저장되는데(v0.17), 현장 실사용은 대부분 비로그인으로 진행되어 그 경우 녹음→변환된 텍스트·입력 내용이 화면 메모리에만 존재 — 9/3 현장 실사용 중 "사무실에서 업데이트했더니 녹음이 사라졌다" 사고가 이걸로 발생. 로그인 여부와 무관하게 항상 동작하는 localStorage 임시저장(saveDraftLocal)을 botCard 표시 시점·STT 변환 직후마다 자동 실행하도록 추가하고, 새로고침/재접속 시 저장된 초안이 있으면 이어서 진행할지 물어보는 복원 로직과, 상담 중 탭을 닫거나 새로고침할 때 한 번 경고하는 beforeunload 핸들러를 추가함. 서버 저장(Supabase)을 대체하는 것이 아니라 서버 저장이 안 되는 상황(비로그인/네트워크 문제/배포 중 새로고침)의 최후 안전망. (Claude / 관리자 세션 — 현장 실사용 긴급 리포트 대응)'},
     {tag:'v0.40', date:'2026-09-04', title:'단계형(위저드) UI 이어하기 시 화면이 완전히 비는 치명적 버그 수정', desc:'v0.39에서 v3에 직접 적용된 단계형(페이지 넘김) 스킨은 botCard()로 새 카드가 생길 때만 wzCards 배열에 등록해서 그 카드에 wz-cur 클래스를 붙이는 방식인데, restoreCaseState()는 chat.innerHTML을 통째로 교체해서 복원하므로 botCard()를 거치지 않음 → 복원된 카드들이 wzCards에 하나도 등록되지 않고, 위저드 CSS(".chat .msg{display:none !important}")가 전부 가려버려서 사이드바에서 진행중/완료된 상담을 다시 열면(이어하기) 화면이 완전히 빈 채로 보이던 버그. restoreCaseState()에서 복원 직후 chat 안의 모든 .msg를 wzCards로 다시 등록하고 가장 최근 카드를 wzShow()로 표시하도록 수정. (Claude / 관리자 세션 — v0.37~v0.39 커밋 당시 VERSION_LOG 기록이 누락되어 있었던 것을 커밋 로그 대조로 뒤늦게 채워 넣음)'},
@@ -1137,12 +1179,13 @@
     lockMainInput();
     var fileUrl; try{ fileUrl = URL.createObjectURL(f); }catch(e){ fileUrl = null; }
     var fileLabel = f.name+' ('+Math.round(f.size/1024)+'KB)';
-    botCard('파일 업로드', '🎧 녹음 파일 첨부: '+fileLabel+'<div style="font-size:1.04rem;color:var(--mut);margin-top:6px">음성을 텍스트로 변환하는 중이에요…</div>', null);
+    var w = makeRecCard({status:'loading', url:fileUrl, recLabel:fileLabel}, '파일 업로드');
     transcribeAudio(f, f.name).then(function(r){
-      handleTranscribedText(r.text, r.bySpeaker, fileUrl, fileLabel);
+      handleTranscribedText(w, r.text, r.bySpeaker);
     }).catch(function(err){
       unlockMainInput();
-      botCard('음성 변환 실패', '텍스트 변환 중 오류가 발생했어요.<br><span style="color:var(--mut);font-size:1.04rem">'+String(err.message||err).replace(/</g,'&lt;')+'</span><br>직접 아래에 입력해주셔도 됩니다.', null);
+      updateRecCard(w, {status:'error', error:String(err.message||err)}, '파일 업로드');
+      w._advance = function(){ goToCrisisWithHint(null, null); };
     });
     inp.value='';
   }
@@ -1168,6 +1211,7 @@
     if(mime.indexOf('ogg')!==-1) return 'ogg';
     return 'webm';
   }
+  var _activeRecCard = null; // 현재 녹음/재녹음 흐름에서 계속 갱신 중인 카드(없으면 이번이 처음)
   async function toggleRec(){
     var btn=document.getElementById('micBtn');
     if(media.rec && media.rec.state==='recording'){ media.rec.stop(); return; }
@@ -1185,20 +1229,38 @@
         var recLabel='녹음 '+fmt(media.secs);
         hideWelcome();
         lockMainInput();
-        botCard('녹음 완료', '<div style="margin-bottom:6px"><audio controls src="'+url+'" style="width:100%"></audio></div><div style="font-size:1.04rem;color:var(--mut)">'+recLabel+' · 음성을 텍스트로 변환하는 중이에요…</div>', null);
+        var w = _activeRecCard;
+        if(w){ updateRecCard(w, {status:'loading', url:url, recLabel:recLabel}); }
+        else { w = makeRecCard({status:'loading', url:url, recLabel:recLabel}); _activeRecCard = w; }
+        // 재녹음을 연달아 누르면 이전 변환 요청이 나중에 응답으로 돌아와 최신 결과를 덮어쓸 수 있어서
+        // (경쟁 상태) 매 시도마다 세대 번호를 매기고, 응답이 왔을 때 그게 여전히 최신 시도인지 확인한다.
+        var myGen = (w._recGen = (w._recGen||0) + 1);
         transcribeAudio(blob, 'recording.'+recFileExt(actualMime)).then(function(r){
-          handleTranscribedText(r.text, r.bySpeaker, url, recLabel);
+          if(w._recGen !== myGen) return; // 그 사이 재녹음이 또 시작됨 — 이 결과는 버림
+          handleTranscribedText(w, r.text, r.bySpeaker);
         }).catch(function(err){
+          if(w._recGen !== myGen) return;
           unlockMainInput();
-      botCard('음성 변환 실패', '<div style="margin-bottom:10px"><audio controls src="'+url+'" style="width:100%"></audio></div>텍스트 변환 중 오류가 발생했어요.<br><span style="color:var(--mut);font-size:1.04rem">'+String(err.message||err).replace(/</g,'&lt;')+'</span><br>직접 아래에 입력해주셔도 됩니다.', null);
+          updateRecCard(w, {status:'error', error:String(err.message||err)});
+          w._advance = function(){ goToCrisisWithHint(null, null); };
         });
       };
       media.secs=0; media.rec.start();
       btn.classList.add('rec'); showMicPrivBubble(); var t=document.getElementById('recTimer'); t.classList.add('on'); t.textContent='● 00:00';
       media.timer=setInterval(()=>{ media.secs++; t.textContent='● '+fmt(media.secs); }, 1000);
+      /* 단계형(위저드) 화면에서는 하단 입력창(마이크 버튼·타이머 포함)이 숨겨져 있어 녹음 중이라는 게
+         전혀 안 보이는 문제가 있었음(현장 실사용 피드백) — 재녹음일 때는 이미 떠 있는 결과 카드를
+         "🔴 녹음 중…" 상태로 바꿔서 화면에 표시해준다. 최초 녹음(카드가 아직 없을 때)은 그대로
+         onstop에서 카드가 새로 생기므로 별도 처리 불필요. */
+      if(_activeRecCard){ updateRecCard(_activeRecCard, {status:'recording'}); }
     }catch(err){
       hideWelcome();
-      botCard('마이크 권한 필요', '녹음을 하려면 브라우저의 <b>마이크 사용 권한</b>을 허용해야 합니다. (권한 거부됨 또는 지원 안 됨)<br><span style="color:var(--mut)">대신 ＋ → 녹음 파일 올리기, 또는 아래에 직접 입력하셔도 됩니다.</span>', null);
+      if(_activeRecCard){
+        updateRecCard(_activeRecCard, {status:'error', error:'마이크 권한이 거부되었거나 사용할 수 없습니다.'});
+        _activeRecCard._advance = function(){ goToCrisisWithHint(null, null); };
+      } else {
+        botCard('마이크 권한 필요', '녹음을 하려면 브라우저의 <b>마이크 사용 권한</b>을 허용해야 합니다. (권한 거부됨 또는 지원 안 됨)<br><span style="color:var(--mut)">대신 ＋ → 녹음 파일 올리기, 또는 아래에 직접 입력하셔도 됩니다.</span>', null);
+      }
     }
   }
   function fmt(s){ var m=Math.floor(s/60), r=s%60; return (m<10?'0':'')+m+':'+(r<10?'0':'')+r; }
@@ -1217,9 +1279,9 @@
     </div>
 `;
   var TPL_HOUSEHOLD = `    <div class="grid">
-      <div class="field"><span class="lab">거주지역(시·도)</span>
+      <div class="field"><span class="lab">거주지역(시·도)</span><span class="infowrap"><button type="button" class="infoQBtn" onclick="toggleInfoPop(this,event)">?</button><div class="infoPop">누를 때마다 브라우저 위치 권한을 새로 물어보며, 시·도 판별에만 1회 사용하고 저장하지 않습니다.</div></span>
         <button type="button" class="btn small secondary" onclick="detectRegion()" style="margin-top:0">현재 위치로 자동 선택</button>
-        <div class="note" id="regionDetectNote">누를 때마다 브라우저 위치 권한을 새로 물어보며, 시·도 판별에만 1회 사용하고 저장하지 않습니다.</div>
+        <div class="note" id="regionDetectNote" style="min-height:1.2em"></div>
         <select id="region" style="margin-top:.5rem">
           <option value="서울특별시">서울특별시</option>
           <option value="부산광역시">부산광역시</option>
@@ -1542,6 +1604,15 @@
   function hideWelcome(){ if(welcome){ welcome.remove(); welcome=null; } }
   function userMsg(t){ addMsg('user','<div class="bubble"></div>', t); }
   function userMsgHTML(h){ var w=document.createElement('div'); w.className='msg user'; w.innerHTML='<div class="bubble">'+h+'</div>'; chat.appendChild(w); scroll(); }
+  /* 물음표 안내 버튼 — 누르면 열리고, 화면 다른 곳을 누르면 닫힘 */
+  function toggleInfoPop(btn, ev){
+    if(ev) ev.stopPropagation();
+    var pop = btn.nextElementSibling;
+    var wasOn = pop && pop.classList.contains('on');
+    document.querySelectorAll('.infoPop.on').forEach(function(p){ p.classList.remove('on'); });
+    if(pop && !wasOn){ pop.classList.add('on'); }
+  }
+  document.addEventListener('click', function(){ document.querySelectorAll('.infoPop.on').forEach(function(p){ p.classList.remove('on'); }); });
   function addMsg(cls, tpl, text){ var w=document.createElement('div'); w.className='msg '+cls; w.innerHTML=(cls==='bot'?'<div class="av">'+LOGO_HTML+'</div>':'')+tpl; w.querySelector('.bubble').textContent=text; chat.appendChild(w); scroll(); }
   function botMsgHTML(html){ var w=document.createElement('div'); w.className='msg bot'; w.innerHTML='<div class="av">'+LOGO_HTML+'</div><div class="bubble">'+html+'</div>'; chat.appendChild(w); scroll(); }
   var STEP = {}; // stepKey -> {wrap, btn}
@@ -1651,6 +1722,7 @@
     // currentCaseId를 비워서 다음 saveCaseProgress()가 새 row를 만들게 함.
     currentCaseId = null;
     resultDone = false; resultCards = null; lastFreeText = ''; STEP = {};
+    _activeRecCard = null; // 새 상담이므로 이전 녹음결과 카드 참조를 끊어서 다음 녹음이 새 카드로 시작되게 함
     step=0; setStep(0);
     chat.innerHTML=''; var w=document.createElement('div'); w.className='welcome';
     w.innerHTML='<div class="wmark">'+LOGO_HTML+'</div><h1>어떤 이웃을 만나셨나요?</h1><p>대상자 유형을 고르고, 상황을 <b>말하거나('+MICSVG+') 입력</b>하면<br>긴급지원 판단부터 사유서까지 단계별로 도와드려요.</p>'
@@ -2768,13 +2840,25 @@ ${d.memo ? '\n메모: '+d.memo : ''}
   })();
   function wzRefreshNav(){
     if(wzCur<0||wzCur>=wzCards.length) return;
-    var pB=document.querySelector('#wzNav .wzprev'); if(pB) pB.disabled=(wzCur===0);
+    var cur = wzCards[wzCur];
+    var pB=document.querySelector('#wzNav .wzprev');
     var nB=document.querySelector('#wzNav .wznext');
+    /* 녹음(마이크/파일) 결과 카드에서는 "이전으로 돌아가기"가 의미가 없고(뒤로 가도 다시 녹음할 방법이
+       없었음 — 현장 실사용 피드백), 대신 "재녹음하기"가 훨씬 자연스러워서 이 카드에 한해 하단 내비게이션
+       버튼 두 개의 동작과 문구를 모두 바꿔서 쓴다. */
+    if(cur.getAttribute('data-wz-rec')==='1'){
+      var recording = !!(media.rec && media.rec.state==='recording');
+      if(pB){ pB.disabled=false; pB.textContent = recording ? '⏹ 녹음 중지' : '🔄 재녹음하기'; }
+      if(nB){ nB.disabled = recording; nB.textContent = '다음으로'; }
+      return;
+    }
+    if(pB){ pB.disabled=(wzCur===0); pB.textContent='◀ 이전'; }
     if(nB){
-      var ib=wzCards[wzCur].querySelector('.nextbtn');
+      nB.disabled=false;
+      var ib=cur.querySelector('.nextbtn');
       if(ib){ nB.textContent = ib.textContent||'다음 ▶'; }
       else if(wzCur<wzCards.length-1){ nB.textContent='다음 ▶'; }
-      else { nB.textContent = wzFindReset(wzCards[wzCur]) ? '＋ 새 상담' : '완료'; }
+      else { nB.textContent = wzFindReset(cur) ? '＋ 새 상담' : '완료'; }
     }
   }
   function wzShow(i){
@@ -2792,12 +2876,21 @@ ${d.memo ? '\n메모: '+d.memo : ''}
   }
   window.wzNext=function(){
     var card=wzCards[wzCur]; if(!card) return;
+    if(card.getAttribute('data-wz-rec')==='1'){
+      if(media.rec && media.rec.state==='recording') return; // 녹음 중엔 무시(버튼도 disabled 처리됨)
+      if(typeof card._advance === 'function'){ card._advance(); }
+      return;
+    }
     var ib=card.querySelector('.nextbtn');
     if(ib && !ib.disabled){ ib.click(); setTimeout(function(){ if(wzCur<wzCards.length-1 && wzCards[wzCur]===card){ wzShow(wzCur+1); } }, 50); return; }
     if(wzCur<wzCards.length-1){ wzShow(wzCur+1); return; }
     var rb=wzFindReset(card); if(rb){ rb.click(); }   // 마지막 카드: '＋ 새 상담'
   };
-  window.wzPrev=function(){ if(wzCur>0){ wzShow(wzCur-1); } };
+  window.wzPrev=function(){
+    var card=wzCards[wzCur];
+    if(card && card.getAttribute('data-wz-rec')==='1'){ toggleRec(); return; } // 재녹음하기/녹음 중지 겸용
+    if(wzCur>0){ wzShow(wzCur-1); }
+  };
   var _wzBotCard = botCard;
   botCard = function(){
     var w=_wzBotCard.apply(this, arguments);
