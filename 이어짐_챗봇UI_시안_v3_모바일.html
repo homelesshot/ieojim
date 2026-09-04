@@ -672,7 +672,8 @@
   var step = 0;                 // 진행 단계
   var chat = document.getElementById('chatInner');
   var welcome = document.getElementById('welcome');
-  var media = {rec:null, chunks:[], timer:null, secs:0};
+  var media = {rec:null, chunks:[], timer:null, secs:0, autoStopped:false};
+  var _wakeLock = null; // 녹음 중 화면 꺼짐 방지용 Screen Wake Lock sentinel
 
   /* ===== 음성→텍스트(STT) — Supabase Edge Function 프록시 경유, OpenAI gpt-4o-transcribe-diarize ===== */
   var STT_URL = 'https://ueidoudgwhuanrtowudy.supabase.co/functions/v1/stt-transcribe';
@@ -1409,6 +1410,7 @@
      VERSION_LOG 배열 맨 앞에 새 항목을 추가할 것. 같은 날 여러 건이면 tag만 올려서(v0.x) 여러 줄 추가.
      "나중에 몰아서 기록"은 누락으로 이어지므로, 수정 직후 그 자리에서 바로 추가할 것. */
   var VERSION_LOG = [
+    {tag:'v0.50', date:'2026-09-04', title:'녹음 중 화면 꺼짐으로 마이크가 끊기는 문제 대응 — Screen Wake Lock + 자동 중단 후 자동 진행', desc:'실사용 중 확인된 사고(화면 자동 꺼짐 시간 1분30초로 설정된 기기에서 2분 넘게 녹음 → 90초 지점부터 내용이 끊기고, 마지막엔 "시청해주셔서 감사합니다"가 5번 반복되는 등 이상한 텍스트가 나오고, 이후 다음버튼도 안 눌리던 문제) 대응 1단계. 원인: 화면이 꺼지면 브라우저가 백그라운드 탭의 마이크 입력을 억제/차단해서 뒷부분이 무음·깨진 오디오로 채워지고, Whisper가 무음 구간에서 같은 문장을 반복 출력하는 것으로 널리 보고된 환각(hallucination) 현상까지 겹친 것으로 추정. (1) 녹음 시작 시 Screen Wake Lock(navigator.wakeLock)으로 화면이 자동으로 안 꺼지게 잡아두고, 시작할 때 "🔒 화면 꺼짐 방지 기능이 작동 중이에요 / 화면을 끄면 녹음이 중단돼요" 안내 팝업 표시. (2) 그래도 화면이 백그라운드로 전환되면(전원버튼으로 직접 끄는 경우 등 Wake Lock으로 못 막는 경우 포함, visibilitychange 감지) 그 즉시 녹음을 중단시켜 더 이상 무음이 쌓이지 않게 하고, 변환된 텍스트가 나오면 사용자가 다음버튼을 누를 필요 없이 자동으로 다음 단계로 진행되도록 함(요청에 따라 별도 안내 메시지 없이 조용히 처리). 다음버튼이 안 눌리던 증상(MediaRecorder.state 값이 백그라운드 처리 중 꼬여서 발생한 것으로 추정)은 이번 조치로 함께 완화될 것으로 예상되나, 근본 수정(다음버튼 판단 기준을 state 값 대신 화면 상태로 바꾸는 것)은 다음 단계로 미룸(요청에 따라 한 번에 다 반영하지 않음). (Claude / 관리자 세션 — 현장 실사용 사고 대응)'},
     {tag:'v0.49', date:'2026-09-04', title:'상단바 세로폭 축소 — 메뉴·버전기록 버튼을 떠있는 별도 버튼으로 분리, 진행단계 표시 단순화', desc:'"화면을 더 넓게 쓰자"는 아이디어 반영 — (1) 상단바 안에 나란히 있던 메뉴(☰)·버전기록(📜) 아이콘 버튼을 상단바 바깥으로 빼서 화면 좌/우 위에 떠있는 동그란 버튼(.floatBtn)으로 바꾸고, 상단바에는 "이어짐 프로토타입" 글자만 남기고 부제("위기가구 긴급지원 상담 도우미")는 숨김, 위아래 padding도 최소화해서 상단바 높이를 크게 줄임(z-index는 사이드바(40)·바텀시트(55~56)보다 낮게 둬서 그 화면들이 열렸을 때는 버튼이 자연스럽게 가려지도록 함). (2) 진행 단계(1/7) 표시에서 막대 모양 배경·아래쪽 테두리선을 없애고 색깔 있는 점 모양만 남기고, "1/7" 숫자 라벨은 화면에서 숨김(내부적으로 setStep/markDone이 계속 그 값을 쓰긴 하지만 시각적으로는 안 보임). (Claude / 관리자 세션 — 사용자 UI 아이디어 반영)'},
     {tag:'v0.48', date:'2026-09-04', title:'개인정보 비밀키(제로지식 암호화) 클라이언트 구현 — 협업자 SQL 실행 전까지는 자동 대기', desc:'`보안_비밀키_복구_설계.md`(sunny님 결정 + Claude 설계) 반영 1단계 — 상담 데이터를 서버가 아니라 상담원 본인 비밀키로 브라우저에서 직접 암호화하는 봉투 암호화(envelope encryption) 방식 구현. 계정 설정(⚙️) 화면에 "🔐 개인정보 비밀키" 섹션 추가: 최초 비밀키 설정(PBKDF2 200,000회로 래핑키 유도 + AES-GCM 256으로 DEK 암호화), 복구 코드 1회 표시(잊었을 때 대비), 다음 로그인부터는 비밀키 입력으로 잠금 해제(DEK는 새로고침하면 사라지는 메모리 전용 — 의도된 동작), 복구 코드로 비밀키 재설정하는 흐름까지 포함. saveCaseProgress/resumeCase는 비밀키로 잠금 해제된 상태(_dek 있음)면 새 방식(v2: 접두어)으로 암복호화하고, 아직 비밀키를 설정 안 했거나 잠긴 상태면 기존 서버측 암호화(encrypt_case_field/decrypt_case_field RPC)로 자동 폴백해서 저장/이어하기가 막히는 일은 없음. **주의**: 서버 쪽 `counselor_keys` 테이블(`db/2026-09-04_counselor_keys.sql`)은 아직 구흥모님이 Supabase SQL Editor에서 실행 전이라(이 세션에서 list_tables로 확인) 지금은 계정 설정을 열면 "서버 설정이 끝나면 사용할 수 있어요(준비 중)"로만 뜨고 기능이 비활성 상태 — SQL 실행 후 별도 작업 없이 바로 활성화됨. (Claude / 관리자 세션 — 협업자 설계 문서 반영, 클라이언트 파트만 담당)'},
     {tag:'v0.47', date:'2026-09-04', title:'재녹음 시 녹음 중 표시가 너무 약해서 확인이 안 되던 문제 수정', desc:'단계형(위저드) 화면에서는 하단 입력창(마이크·타이머 포함)이 숨겨져 있어서, 녹음 결과 카드의 작은 빨간 글씨 하나("🔴 녹음 중…")만으로는 재녹음 시 실제로 녹음 중인지 확인하기 어렵다는 재신고 — 눈에 훨씬 잘 띄도록 빨간 배경 박스 + 펄스 애니메이션 점 + 카드 안에서 직접 올라가는 초 단위 타이머(cardRecTimer)로 바꾸고, 재녹음 버튼을 누르면 해당 카드로 자동 스크롤(scrollIntoView)해서 화면 밖에 있어도 놓치지 않게 함. (Claude / 관리자 세션 — 실사용 피드백 대응)'},
@@ -1526,6 +1528,17 @@
     if(mime.indexOf('ogg')!==-1) return 'ogg';
     return 'webm';
   }
+  // 녹음 중 화면이 자동으로 꺼지면(설정한 화면 꺼짐 시간이 짧은 기기) 백그라운드로 넘어간 탭의
+  // 마이크 입력이 끊기거나 무음으로 채워져서, 녹음이 중간에 끊기고 STT가 이상한 문장을 반복
+  // 출력하는 문제가 실사용 중 확인됨(2026-09-04, 화면 꺼짐 1분30초 설정 기기). 녹음 시작 시
+  // Screen Wake Lock으로 화면이 꺼지지 않게 잡아둔다. 미지원 브라우저(구형 iOS 등)에서는
+  // 조용히 무시하고, 그 경우는 아래 visibilitychange 자동 중단 로직이 대신 대응한다.
+  async function acquireWakeLock(){
+    try{ if('wakeLock' in navigator){ _wakeLock = await navigator.wakeLock.request('screen'); } }catch(e){ /* 무시 */ }
+  }
+  function releaseWakeLock(){
+    try{ if(_wakeLock){ _wakeLock.release(); _wakeLock = null; } }catch(e){}
+  }
   var _activeRecCard = null; // 현재 녹음/재녹음 흐름에서 계속 갱신 중인 카드(없으면 이번이 처음)
   async function toggleRec(){
     var btn=document.getElementById('micBtn');
@@ -1536,6 +1549,8 @@
       media.chunks=[]; media.rec = pickedMime ? new MediaRecorder(stream, {mimeType:pickedMime}) : new MediaRecorder(stream);
       media.rec.ondataavailable=e=>{ if(e.data.size)media.chunks.push(e.data); };
       media.rec.onstop=()=>{
+        releaseWakeLock();
+        var wasAutoStopped = media.autoStopped; media.autoStopped = false;
         clearInterval(media.timer); document.getElementById('recTimer').classList.remove('on');
         btn.classList.remove('rec'); stream.getTracks().forEach(t=>t.stop());
         hideMicPrivBubble();
@@ -1553,6 +1568,8 @@
         transcribeAudio(blob, 'recording.'+recFileExt(actualMime)).then(function(r){
           if(w._recGen !== myGen) return; // 그 사이 재녹음이 또 시작됨 — 이 결과는 버림
           handleTranscribedText(w, r.text, r.bySpeaker);
+          // 화면 꺼짐으로 자동 중단된 녹음은 사용자가 다음 버튼을 누를 필요 없이 바로 다음 단계로 진행
+          if(wasAutoStopped && w === _activeRecCard && typeof w._advance === 'function'){ w._advance(); }
         }).catch(function(err){
           if(w._recGen !== myGen) return;
           unlockMainInput();
@@ -1562,6 +1579,8 @@
       };
       media.secs=0; media.rec.start();
       btn.classList.add('rec'); showMicPrivBubble(); var t=document.getElementById('recTimer'); t.classList.add('on'); t.textContent='● 00:00';
+      acquireWakeLock();
+      showSaveToast('🔒 <b>화면 꺼짐 방지 기능</b>이 작동 중이에요<br><span style="opacity:.85">화면을 끄면 녹음이 중단돼요</span>');
       media.timer=setInterval(()=>{
         media.secs++; t.textContent='● '+fmt(media.secs);
         var ct=document.getElementById('cardRecTimer'); if(ct) ct.textContent=fmt(media.secs);
@@ -1587,6 +1606,14 @@
     }
   }
   function fmt(s){ var m=Math.floor(s/60), r=s%60; return (m<10?'0':'')+m+':'+(r<10?'0':'')+r; }
+  // 화면이 꺼지거나 다른 화면/앱으로 전환되면 마이크가 무음·깨진 채로 계속 녹음되는 걸 막기
+  // 위해 그 즉시 녹음을 중단한다(위 Wake Lock이 실패했거나 미지원인 경우의 안전장치이기도 함).
+  document.addEventListener('visibilitychange', function(){
+    if(document.hidden && media.rec && media.rec.state==='recording'){
+      media.autoStopped = true;
+      media.rec.stop();
+    }
+  });
 
   /* ===== 실제 판정엔진 연동용 카드 템플릿 ===== */
   var TPL_CRISIS = `      <div class="field"><span class="lab">긴급성</span>
