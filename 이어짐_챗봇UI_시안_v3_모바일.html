@@ -1044,6 +1044,7 @@
      VERSION_LOG 배열 맨 앞에 새 항목을 추가할 것. 같은 날 여러 건이면 tag만 올려서(v0.x) 여러 줄 추가.
      "나중에 몰아서 기록"은 누락으로 이어지므로, 수정 직후 그 자리에서 바로 추가할 것. */
   var VERSION_LOG = [
+    {tag:'v0.41', date:'2026-09-04', title:'긴급 패치 — 비로그인 상태 실사용 중 녹음/입력 소실 방지(로컬 임시저장 안전망)', desc:'saveCaseProgress()는 로그인 상태일 때만 Supabase에 저장되는데(v0.17), 현장 실사용은 대부분 비로그인으로 진행되어 그 경우 녹음→변환된 텍스트·입력 내용이 화면 메모리에만 존재 — 9/3 현장 실사용 중 "사무실에서 업데이트했더니 녹음이 사라졌다" 사고가 이걸로 발생. 로그인 여부와 무관하게 항상 동작하는 localStorage 임시저장(saveDraftLocal)을 botCard 표시 시점·STT 변환 직후마다 자동 실행하도록 추가하고, 새로고침/재접속 시 저장된 초안이 있으면 이어서 진행할지 물어보는 복원 로직과, 상담 중 탭을 닫거나 새로고침할 때 한 번 경고하는 beforeunload 핸들러를 추가함. 서버 저장(Supabase)을 대체하는 것이 아니라 서버 저장이 안 되는 상황(비로그인/네트워크 문제/배포 중 새로고침)의 최후 안전망. (Claude / 관리자 세션 — 현장 실사용 긴급 리포트 대응)'},
     {tag:'v0.40', date:'2026-09-04', title:'단계형(위저드) UI 이어하기 시 화면이 완전히 비는 치명적 버그 수정', desc:'v0.39에서 v3에 직접 적용된 단계형(페이지 넘김) 스킨은 botCard()로 새 카드가 생길 때만 wzCards 배열에 등록해서 그 카드에 wz-cur 클래스를 붙이는 방식인데, restoreCaseState()는 chat.innerHTML을 통째로 교체해서 복원하므로 botCard()를 거치지 않음 → 복원된 카드들이 wzCards에 하나도 등록되지 않고, 위저드 CSS(".chat .msg{display:none !important}")가 전부 가려버려서 사이드바에서 진행중/완료된 상담을 다시 열면(이어하기) 화면이 완전히 빈 채로 보이던 버그. restoreCaseState()에서 복원 직후 chat 안의 모든 .msg를 wzCards로 다시 등록하고 가장 최근 카드를 wzShow()로 표시하도록 수정. (Claude / 관리자 세션 — v0.37~v0.39 커밋 당시 VERSION_LOG 기록이 누락되어 있었던 것을 커밋 로그 대조로 뒤늦게 채워 넣음)'},
     {tag:'v0.39', date:'2026-09-04', title:'v3에 단계형(페이지 넘김) UI 직접 적용 + 연령대 7단계 세분화', desc:'채팅 카드 흐름을 한 번에 한 단계만 표시하고 하단 [◀ 이전][다음 ▶] 버튼으로 넘기는 위저드 스킨을 임시 파일(이어짐_단계형_통합본.html)에서 v3 본체로 직접 병합, 임시 파일은 삭제. 결과 단계에서는 기존 하단 고정바(#doneBar)를 숨기고 wzNav로 이동하며 마지막 카드는 "다음"이 "＋새 상담"으로 동작. 연령대 구간을 4단계(미성년/19~39/40~64/65+)에서 7단계(미성년/19~29/30~39/40~49/50~64/65~74/75+)로 세분화. 판정엔진·사유서 hwpx·가명화·STT·저장·사이드바·로그인 로직은 변경 없이 유지. (Claude Opus 4.8, 협업자 구흥모 세션 — 커밋 당시 VERSION_LOG 기록 누락, 관리자 세션에서 커밋 로그 대조로 뒤늦게 기록)'},
     {tag:'v0.38', date:'2026-09-04', title:'갤럭시 카톡 탈출 방식 개선 — 카카오 공식 스킴 우선', desc:'카카오톡 인앱브라우저에서 intent:// 링크 클릭을 가로채 무시하는 경우가 있어, 카카오 공식 스킴(kakaotalk://web/openExternal — 기기 기본 브라우저를 강제로 열어줌)을 1순위 버튼으로, 크롬 지정 intent://는 2순위 폴백 버튼으로 병행 표시하도록 개선. 배너 닫기(×) 버튼이 안내문과 겹치던 여백 문제도 수정. (Claude Opus 4.8, 협업자 구흥모 세션 — 커밋 당시 VERSION_LOG 기록 누락, 관리자 세션에서 커밋 로그 대조로 뒤늦게 기록)'},
@@ -2792,6 +2793,65 @@ ${d.memo ? '\n메모: '+d.memo : ''}
   };
   var _wzReset = resetChat;
   resetChat = function(){ wzCards=[]; wzCur=-1; document.body.classList.remove('wz-flow'); return _wzReset.apply(this, arguments); };
+
+  /* ===== 로컬 임시저장(초안) 안전망 — v0.41 (2026-09-04 긴급 패치) =====
+     saveCaseProgress()는 로그인 상태일 때만 Supabase에 저장됨(v0.17 설계, 585번 줄 주석 참고).
+     그런데 현장 실사용은 대부분 비로그인 상태로 진행되고 있어, 그 경우 진행 중이던 녹음·변환
+     텍스트·입력 내용은 오직 화면 메모리(DOM)에만 존재 — 새로고침/앱 업데이트 배포/브라우저 재시작이
+     일어나면 통째로 사라짐. 2026-09-03 현장 실사용 중 "사무실에서 업데이트했더니 녹음이 사라졌다"는
+     사고가 실제로 이걸로 발생. 로그인 여부와 무관하게 항상 동작하는 브라우저 localStorage 임시저장으로
+     이 사고를 막는다. (서버 저장을 대체하는 것이 아니라, 서버 저장이 안 되는 상황의 최후 안전망) */
+  var LS_DRAFT_KEY = 'ieojim_draft_v1';
+  function saveDraftLocal(){
+    try{
+      if(!chat || !chat.children || !chat.children.length) return; // 상담 시작 전이면 저장할 것 없음
+      var snap = snapshotCaseState();
+      localStorage.setItem(LS_DRAFT_KEY, JSON.stringify(snap));
+    }catch(e){ console.warn('로컬 임시저장 실패(무시하고 계속 진행):', e); }
+  }
+  function clearDraftLocal(){ try{ localStorage.removeItem(LS_DRAFT_KEY); }catch(e){} }
+  var _draftBotCard = botCard;
+  botCard = function(){
+    var w = _draftBotCard.apply(this, arguments);
+    saveDraftLocal();
+    return w;
+  };
+  var _draftReset = resetChat;
+  resetChat = function(){ clearDraftLocal(); return _draftReset.apply(this, arguments); };
+  // 녹음→STT 변환 직후 다음 카드가 뜨기 전에도 한 번 더 저장(변환된 텍스트 자체를 지키기 위함)
+  var _origHandleTranscribedText = handleTranscribedText;
+  handleTranscribedText = function(){
+    var r = _origHandleTranscribedText.apply(this, arguments);
+    saveDraftLocal();
+    return r;
+  };
+  // 상담 진행 중 실수로 탭을 닫거나 새로고침하면 한 번 경고(강제 새로고침 자체는 막을 수 없지만
+  // 실수로 인한 손실은 줄여줌)
+  window.addEventListener('beforeunload', function(e){
+    try{
+      if(chat && chat.children && chat.children.length && !resultDone){
+        e.preventDefault(); e.returnValue = '';
+      }
+    }catch(err){}
+  });
+  // 페이지 로드 시 저장 안 된 채 끊긴 초안이 있으면 이어서 진행할지 물어봄(로그인 불필요)
+  (function tryRestoreDraftOnLoad(){
+    try{
+      var raw = localStorage.getItem(LS_DRAFT_KEY);
+      if(!raw) return;
+      var snap = JSON.parse(raw);
+      if(!snap || !snap.chatHTML) { clearDraftLocal(); return; }
+      var ageMin = (Date.now() - (snap.savedAt||0)) / 60000;
+      if(ageMin > 720){ clearDraftLocal(); return; } // 12시간 넘으면 만료 처리
+      setTimeout(function(){
+        if(confirm('저장되지 않은 채 끊긴 상담 초안이 있어요. 이어서 진행할까요?\n(취소 시 이 초안은 삭제되고 새로 시작합니다)')){
+          restoreCaseState(snap);
+        } else {
+          clearDraftLocal();
+        }
+      }, 300);
+    }catch(e){ console.warn('로컬 초안 복원 실패:', e); }
+  })();
 
 </script>
 </body>
