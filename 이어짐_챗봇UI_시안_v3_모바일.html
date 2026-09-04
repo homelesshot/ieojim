@@ -2009,16 +2009,16 @@
   }
 
   // ---------- 연령대 · 성별: 대상유형별 기본 정렬(국내 실태조사 경향 참고, 프로토타입 가정치) ----------
-  const AGE_LABEL = {'미성년':'미성년(18세 미만)','19-39':'19~39세','40-64':'40~64세','65+':'65세 이상'};
+  const AGE_LABEL = {'미성년':'미성년(18세 이하)','19-29':'19~29세','30-39':'30~39세','40-49':'40~49세','50-64':'50~64세','65-74':'65~74세','75+':'75세 이상'};
   const GENDER_LABEL = {'여성':'여성','남성':'남성','기타/응답거부':'기타·응답거부'};
-  const AGE_DEFAULT = ['미성년','19-39','40-64','65+'];
+  const AGE_DEFAULT = ['미성년','19-29','30-39','40-49','50-64','65-74','75+'];
   const GENDER_DEFAULT = ['여성','남성','기타/응답거부'];
   const AGE_PRESET = {
-    '노숙인': ['40-64','65+','19-39','미성년'],
-    '쪽방주민': ['65+','40-64','19-39','미성년'],
-    '가정폭력피해': ['19-39','40-64','미성년','65+'],
-    '취약노인': ['65+','40-64','19-39','미성년'],
-    '외국인노동자': ['19-39','40-64','65+','미성년'],
+    '노숙인': ['50-64','40-49','65-74','30-39','75+','19-29','미성년'],
+    '쪽방주민': ['65-74','75+','50-64','40-49','30-39','19-29','미성년'],
+    '가정폭력피해': ['30-39','40-49','19-29','50-64','미성년','65-74','75+'],
+    '취약노인': ['75+','65-74','50-64','40-49','30-39','19-29','미성년'],
+    '외국인노동자': ['30-39','19-29','40-49','50-64','65-74','75+','미성년'],
     '위기가구': AGE_DEFAULT,
     '기타': AGE_DEFAULT
   };
@@ -2693,6 +2693,74 @@ ${d.memo ? '\n메모: '+d.memo : ''}
   if(isKakaoInApp()){
     showKakaoBanner();  // 상단에 항상 보이는 배너로 시작 전 크롬 유도(원탭)
   }
+
+  /* ===== 단계형(위저드) 스킨 — 챗봇 흐름을 한 화면씩 + 이전/다음으로 표시. 엔진/저장/판정은 그대로 ===== */
+  var wzCards=[], wzCur=-1;
+  (function(){
+    var css=''
+      +'.chat .msg{display:none !important;}'
+      +'.chat .msg.wz-cur{display:flex !important;}'
+      +'.chat .msg.wz-cur .av{display:none;}'
+      +'.chat .msg.wz-cur .card{max-width:100% !important;width:100%;}'
+      +'.chat .msg.wz-cur .bubble{max-width:100% !important;}'
+      +'.chat .nextbtn{display:none !important;}'
+      +'#wzNav{position:sticky;bottom:0;display:flex;gap:10px;padding:12px 16px;background:var(--surface);border-top:1px solid var(--line);z-index:6}'
+      +'#wzNav button{border-radius:12px;padding:14px;font-size:1rem;font-weight:800;font-family:inherit;cursor:pointer;border:0}'
+      +'#wzNav .wzprev{flex:0 0 34%;background:var(--surface-2);color:var(--mut);border:1.5px solid var(--line)}'
+      +'#wzNav .wzprev:disabled{opacity:.4}'
+      +'#wzNav .wznext{flex:1;background:var(--accent);color:#fff}'
+      +'body.wz-flow .composer{display:none !important;}'
+      +'body.wz-flow #doneBar{display:none !important;}'
+      +'body:not(.wz-flow) #wzNav{display:none !important;}';
+    var st=document.createElement('style'); st.textContent=css; document.head.appendChild(st);
+    var nav=document.createElement('div'); nav.id='wzNav';
+    nav.innerHTML='<button class="wzprev" onclick="wzPrev()">◀ 이전</button><button class="wznext" onclick="wzNext()">다음 ▶</button>';
+    var comp=document.querySelector('.composer'); if(comp&&comp.parentNode){ comp.parentNode.insertBefore(nav, comp.nextSibling); }
+  })();
+  function wzRefreshNav(){
+    if(wzCur<0||wzCur>=wzCards.length) return;
+    var pB=document.querySelector('#wzNav .wzprev'); if(pB) pB.disabled=(wzCur===0);
+    var nB=document.querySelector('#wzNav .wznext');
+    if(nB){
+      var ib=wzCards[wzCur].querySelector('.nextbtn');
+      if(ib){ nB.textContent = ib.textContent||'다음 ▶'; }
+      else if(wzCur<wzCards.length-1){ nB.textContent='다음 ▶'; }
+      else { nB.textContent = wzFindReset(wzCards[wzCur]) ? '＋ 새 상담' : '완료'; }
+    }
+  }
+  function wzShow(i){
+    if(i<0||i>=wzCards.length) return;
+    wzCards.forEach(function(c){ c.classList.remove('wz-cur'); });
+    wzCards[i].classList.add('wz-cur'); wzCur=i;
+    wzRefreshNav();
+    var c=document.getElementById('chat'); if(c) c.scrollTop=0;
+  }
+  function wzFindReset(card){
+    if(!card) return null;
+    var bs=card.querySelectorAll('button'), i;
+    for(i=0;i<bs.length;i++){ if(/새\s*상담/.test(bs[i].textContent)) return bs[i]; }
+    return null;
+  }
+  window.wzNext=function(){
+    var card=wzCards[wzCur]; if(!card) return;
+    var ib=card.querySelector('.nextbtn');
+    if(ib && !ib.disabled){ ib.click(); setTimeout(function(){ if(wzCur<wzCards.length-1 && wzCards[wzCur]===card){ wzShow(wzCur+1); } }, 50); return; }
+    if(wzCur<wzCards.length-1){ wzShow(wzCur+1); return; }
+    var rb=wzFindReset(card); if(rb){ rb.click(); }   // 마지막 카드: '＋ 새 상담'
+  };
+  window.wzPrev=function(){ if(wzCur>0){ wzShow(wzCur-1); } };
+  var _wzBotCard = botCard;
+  botCard = function(){
+    var w=_wzBotCard.apply(this, arguments);
+    document.body.classList.add('wz-flow');
+    var hadBtn = w.querySelector('.nextbtn');
+    wzCards.push(w);
+    if(hadBtn){ wzShow(wzCards.length-1); }
+    else { var prev=wzCards[wzCards.length-2]; if(!prev || prev.querySelector('.nextbtn')){ wzShow(wzCards.length-1); } else { wzRefreshNav(); } }
+    return w;
+  };
+  var _wzReset = resetChat;
+  resetChat = function(){ wzCards=[]; wzCur=-1; document.body.classList.remove('wz-flow'); return _wzReset.apply(this, arguments); };
 
 </script>
 </body>
