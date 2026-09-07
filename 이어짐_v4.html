@@ -202,9 +202,10 @@
   .cbtn.send{background:var(--accent);color:#fff}
   .cbtn.mic.rec{background:#c0392b;color:#fff;animation:pulse 1s infinite}
   .micwrap{position:relative;display:inline-flex}
-  .privBubble{position:absolute;bottom:100px;right:-8px;width:200px;background:var(--ink);color:var(--surface);font-size:1.4rem;line-height:1.5;padding:8px 10px;border-radius:10px;box-shadow:var(--shadow-md);opacity:0;transform:translateY(4px);pointer-events:none;transition:opacity .18s,transform .18s;z-index:15}
-  .privBubble::after{content:'';position:absolute;bottom:-5px;right:16px;width:10px;height:10px;background:var(--ink);transform:rotate(45deg)}
-  .privBubble.show{opacity:1;transform:translateY(0)}
+  .cbtn.mic-hero{width:68px;height:68px;background:var(--accent);color:#fff;box-shadow:0 4px 16px rgba(0,0,0,.2)}
+  .privBubble{position:absolute;bottom:82px;left:50%;width:210px;background:var(--ink);color:var(--surface);font-size:1.4rem;line-height:1.5;padding:8px 10px;border-radius:10px;box-shadow:var(--shadow-md);opacity:0;transform:translateX(-50%) translateY(4px);pointer-events:none;transition:opacity .18s,transform .18s;z-index:15}
+  .privBubble::after{content:'';position:absolute;bottom:-5px;left:50%;width:10px;height:10px;background:var(--ink);transform:translateX(-50%) rotate(45deg)}
+  .privBubble.show{opacity:1;transform:translateX(-50%) translateY(0)}
   .composer.locked textarea:disabled,.composer.locked .cbtn:disabled{opacity:.4;cursor:not-allowed}
   .composer.locked textarea:disabled{background:transparent}
   .composer .lockhint{display:none;font-size:1.44rem;color:var(--mut);text-align:center;margin-top:6px}
@@ -289,7 +290,7 @@
   .card .order-note{font-size:1.36rem;color:var(--accent-ink);background:var(--accent-soft);display:inline-block;padding:3px 8px;border-radius:20px;margin-bottom:5px;font-weight:700}
   .card .reset-link{background:none;border:0;color:var(--mut);font-size:1.36rem;text-decoration:underline;cursor:pointer;padding:0;margin-left:4px;font-family:inherit}
   .card .note{font-size:1.48rem;color:var(--mut);margin-top:7px;line-height:1.55}
-  .card label.check-inline{display:flex;align-items:center;gap:7px;font-size:1.07rem;font-weight:600;margin-top:7px}
+  .card label.check-inline{display:flex;align-items:center;gap:7px;font-size:1.07rem;font-weight:600;margin-top:7px}.card label.check-inline span{flex:1;min-width:0;word-break:keep-all;overflow-wrap:break-word}
   .card code{background:var(--surface-2);border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-size:.85em}
 
   .card .btn{width:100%;background:var(--accent);color:#fff;border:0;border-radius:10px;padding:10px 14px;font-size:1.13rem;font-weight:700;cursor:pointer;margin-top:9px;font-family:inherit;transition:filter .15s}
@@ -415,6 +416,15 @@
             <div class="c" onclick="quickPick('외국인노동자')">외국인노동자</div>
           </div>
           <button onclick="skipToFlow()" style="margin-top:16px;background:var(--accent-soft);color:var(--accent-ink);border:1.5px solid var(--accent);border-radius:22px;padding:10px 20px;font-size:1.17rem;font-weight:700;cursor:pointer;font-family:inherit">상황 입력 없이 바로 진행 ▸</button>
+          <div style="margin-top:24px;display:flex;flex-direction:column;align-items:center;gap:8px">
+            <span class="micwrap">
+              <div class="privBubble" id="micPrivBubble">🔒 서버로 전송되지만 학습에는 쓰이지 않고, 악용 방지 목적으로 최대 30일 후 삭제돼요(OpenAI)</div>
+              <button class="cbtn mic mic-hero" id="micBtn" onclick="toggleRec()" title="녹음">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Z"/><path d="M19 11a7 7 0 0 1-14 0"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>
+              </button>
+            </span>
+            <span style="font-size:.98rem;color:var(--mut)">눌러서 상황을 말로 녹음하기</span>
+          </div>
         </div>
       </div>
     </div>
@@ -446,13 +456,7 @@
             </div>
             <input type="file" id="fileIn" accept="audio/*" style="display:none" onchange="onFile(this)">
           </div>
-          <textarea id="input" rows="1" placeholder="상황을 입력하거나, 오른쪽 버튼으로 녹음하세요…" oninput="autogrow(this)" onkeydown="onKey(event)"></textarea>
-          <span class="micwrap">
-            <div class="privBubble" id="micPrivBubble">🔒 서버로 전송되지만 학습에는 쓰이지 않고, 악용 방지 목적으로 최대 30일 후 삭제돼요(OpenAI)</div>
-            <button class="cbtn mic" id="micBtn" onclick="toggleRec()" title="녹음">
-              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Z"/><path d="M19 11a7 7 0 0 1-14 0"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>
-            </button>
-          </span>
+          <textarea id="input" rows="1" placeholder="상황을 입력하세요…" oninput="autogrow(this)" onkeydown="onKey(event)"></textarea>
           <button class="cbtn send" onclick="send()" title="보내기">↑</button>
         </div>
       </div>
@@ -491,7 +495,7 @@
         <textarea id="anonNames" rows="3" placeholder="김영수=대상자&#10;박철호=가해자&#10;작전동=[비공개]" oninput="runAnon()"></textarea>
       </div>
 
-      <label class="check-inline"><input type="checkbox" id="anonSix" checked onchange="runAnon()"/> 6자리 숫자(생년월일 앞자리 등)도 가리기</label>
+      <label class="check-inline"><input type="checkbox" id="anonSix" checked onchange="runAnon()"/><span>6자리 숫자(생년월일 앞자리 등)도 가리기</span></label>
 
       <div class="field" style="margin-top:.6rem"><span class="lab">③ 가명화 결과 <span class="hint" style="display:inline">— <b style="color:var(--bad)">빨간 표시</b>는 남아있을 수 있는 정보이니 사람이 직접 확인·수정하세요</span></span>
         <div id="anonOutput" class="doc" style="min-height:5rem"></div>
@@ -891,9 +895,7 @@
     if(sec) sec.style.display = '';
     try{ generateAiDraft(); }catch(e){ console.warn('자동 AI초안 생성 실패:', e); }
   }
-  async function autoRunFromRecording(w, text){
-    updateRecCard(w, {status:'loading'});
-    var ex = null;
+  async function requestExtractionV4(text){
     try{
       var prompt = buildExtractionPrompt(text);
       var res = await fetch(AI_DRAFT_URL, {
@@ -902,25 +904,20 @@
         body: JSON.stringify({prompt: prompt})
       });
       var data = await res.json().catch(function(){ return {}; });
-      if(res.ok && data.text){ ex = parseExtractionJson(data.text); }
+      if(res.ok && data.text){ return parseExtractionJson(data.text); }
     }catch(e){ console.warn('v4 자동 채움 추출 실패:', e); }
+    return null;
+  }
 
-    var hint = matchFreeText(text);
-    updateRecCard(w, {status:'ok', text:text, bySpeaker:w._recState?w._recState.bySpeaker:null, hintMatched:hint.matched, hintUrgency:hint.urgency});
-
-    if(!ex){
-      botMsgHTML('⚠ AI 자동 채움 요청이 실패해서, 위기사유만 자동으로 확인하고 나머지는 직접 입력하는 기존 방식으로 진행할게요.');
-      goToCrisisWithHint(hint.matched, hint.urgency);
-      return;
-    }
-
-    _activeRecCard = null;
+  // 녹음이든 타이핑이든, 구조화 JSON(ex)만 손에 들어오면 그 다음부터는 완전히 동일한 절차로
+  // 위저드를 자동 진행시킨다(단계별로 그 화면 항목이 전부 확실하면 다음으로, 하나라도 불확실하면
+  // 그 화면에서 멈춤). autoRunFromRecording()·autoRunFromText() 둘 다 이 함수를 공유한다.
+  function runAutoFillStepsV4(ex){
     if(ex.targetType && TARGETTYPE_LIST_V4.indexOf(ex.targetType)!==-1){
       var tt = document.getElementById('targetType'); if(tt){ tt.value = ex.targetType; syncType(); }
     }
 
     // ① 위기사유·긴급성
-    botMsgHTML('🧠 AI가 녹음 내용에서 항목을 자동으로 채우고 있어요. 확실하지 않은 항목은 직접 확인하는 화면에서 멈출게요.');
     botCard('① 위기사유·긴급성', '<div style="font-size:1.11rem;color:var(--mut);margin-bottom:10px">긴급성과 해당하는 위기사유를 선택해 주세요.</div>' + TPL_CRISIS, '다음 ▸', ()=>goHousehold(), 'crisis');
     renderCrisis();
     var exCrisis = Array.isArray(ex.crisis) ? ex.crisis.filter(function(v){ return CRISIS_LIST_V4.indexOf(v)!==-1; }) : [];
@@ -972,6 +969,42 @@
     // ④-b 지원이력·특수상황 — AI가 추출하지 않는 항목(수동 입력 전용)이라 바로 다음(예비판단 실행)으로 진행
     STEP['health2'].btn.click(); // → goResult() 자동 실행, 결과·사유서까지 완성됨
     autoRunAiDraftAfterResultV4();
+  }
+
+  async function autoRunFromRecording(w, text){
+    updateRecCard(w, {status:'loading'});
+    var ex = await requestExtractionV4(text);
+    var hint = matchFreeText(text);
+    updateRecCard(w, {status:'ok', text:text, bySpeaker:w._recState?w._recState.bySpeaker:null, hintMatched:hint.matched, hintUrgency:hint.urgency});
+
+    if(!ex){
+      botMsgHTML('⚠ AI 자동 채움 요청이 실패해서, 위기사유만 자동으로 확인하고 나머지는 직접 입력하는 기존 방식으로 진행할게요.');
+      goToCrisisWithHint(hint.matched, hint.urgency);
+      return;
+    }
+
+    _activeRecCard = null;
+    botMsgHTML('🧠 AI가 녹음 내용에서 항목을 자동으로 채우고 있어요. 확실하지 않은 항목은 직접 확인하는 화면에서 멈출게요.');
+    runAutoFillStepsV4(ex);
+  }
+
+  // v4: 타이핑으로 시작한 경우에도 녹음과 동일하게 Gemini 자동 구조화 추출 → 위저드 자동 진행을
+  // 시도한다(기존에는 녹음에만 적용됐고, 타이핑은 위기사유 키워드 매칭만 해주고 나머지는 전부
+  // 직접 입력해야 했음 — 관리자님 요청으로 확대).
+  async function autoRunFromText(text){
+    var ex = await requestExtractionV4(text);
+    var hint = matchFreeText(text);
+
+    if(!ex){
+      botMsgHTML(freeTextHintText(hint.matched));
+      botCard('① 위기사유·긴급성', '<div style="font-size:1.11rem;color:var(--mut);margin-bottom:10px">긴급성과 해당하는 위기사유를 선택해 주세요.</div>' + TPL_CRISIS, '다음 ▸', ()=>goHousehold(), 'crisis');
+      renderCrisis();
+      applyFreeTextChecks(hint.matched, hint.urgency);
+      return;
+    }
+
+    botMsgHTML('🧠 AI가 입력하신 내용에서 항목을 자동으로 채우고 있어요. 확실하지 않은 항목은 직접 확인하는 화면에서 멈출게요.');
+    runAutoFillStepsV4(ex);
   }
 
   /* 사이드바 (기본 숨김 · 오버레이) */
@@ -1609,6 +1642,12 @@
      VERSION_LOG 배열 맨 앞에 새 항목을 추가할 것. 같은 날 여러 건이면 tag만 올려서(v0.x) 여러 줄 추가.
      "나중에 몰아서 기록"은 누락으로 이어지므로, 수정 직후 그 자리에서 바로 추가할 것. */
   var VERSION_LOG = [
+    {tag:'v4-track a5', date:'2026-09-07', title:'녹음 무음 구간에서 나오던 Whisper 환각 문구(가짜 뉴스·스포츠 멘트 등) 필터링', desc:'Whisper(whisper-1)가 무음·깨진 오디오를 유튜브·뉴스 자막 데이터로 학습된 "환각" 문구로 채우는 문제가 현장에서 재발("지금까지 뉴스 스포츠였습니다" 등) — stt-transcribe Edge Function(버전 7)에서 verbose_json이 내려주는 segment별 no_speech_prob(무음일 확률)·avg_logprob(신뢰도)를 검사해 무음 구간으로 추정되는 segment를 최종 텍스트에서 제외하고, 알려진 환각 문구(시청해주셔서 감사합니다/구독과 좋아요/다음 뉴스/스포츠였습니다 등) 패턴도 한 번 더 걸러내도록 서버 로직 보강. (Claude / 구흥모 세션)'},
+    {tag:'v4-track a6', date:'2026-09-07', title:'위치·날씨 위젯의 체크박스 문구가 세로로 깨져 나오던 iOS 레이아웃 버그 수정(v3도 동일 적용)', desc:'iOS Safari에서 flex 컨테이너(.check-inline) 안에 체크박스 뒤 안내 문구가 <span> 없이 "벌거벗은 텍스트 노드"로 들어가 있으면 익명 flex item 처리가 꼬여 한글이 한 글자씩 세로로 쭉 쌓여 화면 오른쪽 끝까지 밀려나는 문제(현장 스크린샷으로 확인 — "현재 위치·날씨로 지원물품 확인" 결과의 "사유서 초안에 이 위치 정보 포함" 체크박스에서 재현) — 문구를 <span>으로 감싸 정상적인 flex item으로 만들고 word-break:keep-all을 추가해 해결. 같은 패턴을 쓰는 "가명화 도우미"의 6자리 숫자 가리기 체크박스도 함께 방어적으로 수정. (v3에도 동일 적용) (Claude / 구흥모 세션)'},
+    {tag:'v4-track a7', date:'2026-09-07', title:'녹음 버튼을 입력창 옆에서 첫 화면 중앙의 큰 원형 버튼으로 이동', desc:'첫 화면 안내 문구를 "상황을 입력하거나, 오른쪽 버튼으로 녹음하세요"에서 "상황을 입력하세요"로 단순화하고, 입력창 옆에 작게 붙어있던 녹음 버튼을 없앤 뒤 "상황 입력 없이 바로 진행" 버튼 아래, 화면 중앙에 손가락으로 누르기 좋은 크기(68px)의 둥근 녹음 버튼으로 옮김(resetChat()의 웰컴 화면 재생성 코드에도 동일 반영). (관리자님 요청 — UI 재배치)'},
+    {tag:'v4-track a8', date:'2026-09-07', title:'녹음 중 "상황 입력 없이 바로 진행" 버튼을 누르면 녹음이 백그라운드에 남는 오류 수정', desc:'첫 화면에서 녹음 중일 때 "상황 입력 없이 바로 진행" 버튼을 누르면, 녹음이 뒤에서 계속 돌아가는 채로 다음 화면(위기사유 단계)으로 곧장 넘어가 버리는 오류를 현장에서 발견(관리자님 신고) — skipToFlow()가 녹음 중임을 감지하면 먼저 녹음을 중단시키고(그 녹음 내용은 사용하지 않고 버림), 실제 화면 전환은 녹음이 완전히 멈춘 뒤에 이어서 진행하도록 수정. (Claude / 구흥모 세션)'},
+    {tag:'v4-track a9', date:'2026-09-07', title:'타이핑 입력도 녹음과 동일하게 AI 자동 항목 추출·위저드 자동 진행 적용', desc:'지금까지는 녹음 트랙에만 있던 "AI가 상담 내용에서 위기사유·가구·소득·건강 항목을 구조화 JSON으로 자동 추출해서 위저드를 자동 진행" 기능을, 타이핑으로 시작하는 경우에도 동일하게 적용(관리자님 요청) — 추출 요청·단계별 자동 채움/멈춤 로직을 공용 함수(requestExtractionV4/runAutoFillStepsV4)로 정리해서 녹음(autoRunFromRecording)과 타이핑(autoRunFromText) 양쪽이 똑같은 파이프라인을 타도록 리팩터링. 추출이 실패하면 기존처럼 위기사유 키워드 매칭만 자동 체크하는 방식으로 자동 대체됨(동작 변화 없음). (Claude / 구흥모 세션)'},
+    {tag:'v4-track a10', date:'2026-09-07', title:'AI 초안 문장을 메인 사유서 메모란에도 반영 — 더 이상 원문 그대로 덤프하지 않음', desc:'"AI 초안 다듬기"(generateAiDraft)가 만든 정리된 문장이 지금까지는 별도의 "AI_사유서초안.hwpx" 다운로드에만 쓰이고, 정작 메인 사유서(⑦ 사유서 초안, 한글·텍스트 다운로드)의 비고란은 상담원이 녹음·타이핑한 원문을 "[상담원 최초 입력] ..." 형태로 그대로 덤프해서 문장이 어색했던 문제(관리자님 지적, 스크린샷 확인: "월 소득은 영원히 건강이상 없음" 등) — AI 초안이 만들어지면 그 정리된 문장을 메인 메모(#memo)에도 반영하고 사유서를 즉시 다시 그려서(rebuildDocIfVisible) 화면·다운로드 양쪽에 정리된 문장이 보이도록 수정. 녹음/타이핑 자동 채움 파이프라인 끝에서 AI 초안이 자동 실행되므로(autoRunAiDraftAfterResultV4) 결과적으로 녹음이든 타이핑이든 별도 조작 없이 정리된 메모가 채워짐. (Claude / 구흥모 세션)'},
     {tag:'v4-track a4', date:'2026-09-07', title:'v3의 ②가구·거주 / ④건강 단계 화면분할(v0.53)을 v4에 포팅 + 녹음 자동채움 로직도 새 화면 구성에 맞게 수정', desc:'협업자가 v3에서 모바일 한 화면에 안 들어가던 ②(거주지+가구·인적사항, 8필드)와 ④(건강상태 13개+지원이력·특수상황+메모)를 각각 두 화면(②→②-a/②-b, ④→④-a/④-b)으로 나눈 것(v0.53)을 v4에도 동일하게 적용(TPL_HOUSEHOLD→_A/_B, TPL_HEALTH→_A/_B, goHousehold2()·goHealth2() 추가, NEXT_STEP_KEY·STEP_ONNEXT 갱신, 건강·지원이력 체크박스 2열 압축용 .chk2 CSS 추가). 화면이 나뉘면서 v4의 녹음→AI자동채움(autoRunFromRecording)이 기존에 한 번에 채우던 가구·거주 항목(거주지역·거주형태·가구원수·연령대·성별·국적)과 건강 항목을 화면 순서에 맞춰 ②-a→②-b, ④-a→④-b 두 단계로 나눠 채우고 각 화면마다 그 화면 항목이 불확실하면 그 화면에서 멈추도록 수정(household→household2, health→health2 화면키 추가). 부가로 v3에서 STEP_ONNEXT 매핑에 household2/health2가 빠져 있던 것을 발견 — 사례를 household2·health2 화면에서 저장했다가 다시 열면(이어하기) "다음" 버튼이 연결되지 않는 잠재 버그였는데, v3·v4 양쪽 모두 매핑을 채워 수정. (Claude / 구흥모 세션)'},
     {tag:'v4-track a3', date:'2026-09-07', title:'중복되던 "⑦ 사유서 초안" 화면과 "✅ 상담 완료" 화면을 하나로 통합', desc:'v3에 적용한 것과 동일한 수정(관리자님 지적) — 완료 안내 문구는 "⑦ 사유서 초안" 카드 맨 위 배너로, "＋ 새 상담 시작" 버튼은 그 카드 맨 아래로 옮기고, 중복이던 별도 "✅ 상담 완료" 카드는 제거. (Claude / 구흥모 세션)'},
     {tag:'v4-track a2', date:'2026-09-07', title:'웹페이지 제목 변경 + 하단 고정 안내문 제거(녹음 시작 팝업으로 이동)', desc:'브라우저 탭 제목을 시안 파일명 느낌이 나던 것에서 실제 화면 상단바와 같은 이름으로 변경. 화면 최하단에 항상 떠 있던 "녹음은 이 기기에서만 처리됩니다 · 실명 대신 가명으로 · UI 시안" 문구는 상시 노출할 필요가 없다는 판단하에 제거하고, 그중 "녹음은 이 기기에서만 처리됩니다" 부분만 녹음 시작 시 뜨는 화면 꺼짐 방지 안내 팝업에 한 줄 추가해서 필요한 순간에만 보이도록 변경(녹음 버튼 자체는 그대로 유지). (Claude / 구흥모 세션 — UI 정리 요청)'},
@@ -1758,6 +1797,14 @@
         clearInterval(media.timer); document.getElementById('recTimer').classList.remove('on');
         btn.classList.remove('rec'); stream.getTracks().forEach(t=>t.stop());
         hideMicPrivBubble();
+        // "상황 입력 없이 바로 진행" 버튼을 녹음 도중에 눌렀을 때(현장 신고) — 방금 녹음한 내용은
+        // 쓰지 않고 버린 뒤, 눌러뒀던 skipToFlow()를 이제 실제로 진행한다(재귀 호출 시점엔 이미
+        // 녹음이 멈춘 상태라 바로 진행됨).
+        if(media.skipAfterStop){
+          media.skipAfterStop = false;
+          skipToFlow();
+          return;
+        }
         var actualMime = (media.rec && media.rec.mimeType) || pickedMime || 'audio/webm';
         var blob=new Blob(media.chunks,{type:actualMime}); var url=URL.createObjectURL(blob);
         var recLabel='녹음 '+fmt(media.secs);
@@ -2056,18 +2103,23 @@
     lastFreeText = txt;
     autoRunAnonFromText(txt);
     lockMainInput();
-    var hint = matchFreeText(txt);
+    // v4: 타이핑 입력도 녹음과 동일하게 AI 자동 채움 파이프라인을 시도한다(실패 시 기존처럼
+    // 위기사유 키워드 매칭만 자동 체크하고 나머지는 직접 입력하는 방식으로 자동 대체됨).
     botTyping(function(){
-      var t=document.getElementById('targetType').value;
-      botMsgHTML(freeTextHintText(hint.matched));
-      botCard('① 위기사유·긴급성', '<div style="font-size:1.11rem;color:var(--mut);margin-bottom:10px">긴급성과 해당하는 위기사유를 선택해 주세요.</div>' + TPL_CRISIS, '다음 ▸', ()=>goHousehold(), 'crisis');
-      renderCrisis();
-      applyFreeTextChecks(hint.matched, hint.urgency);
+      autoRunFromText(txt);
     });
   }
 
   // 상황 입력/녹음 없이 버튼으로 바로 위기사유 단계부터 시작
   function skipToFlow(){
+    // 녹음 중에 이 버튼을 누르면(현장 신고) 녹음을 먼저 중단시키고, 실제 진행은
+    // media.rec.onstop 안에서 이어서 처리한다(그렇지 않으면 녹음이 화면 뒤에서 계속 돌아간 채로
+    // 다음 단계 화면으로 넘어가 버리는 문제가 있었음).
+    if(media.rec && media.rec.state==='recording'){
+      media.skipAfterStop = true;
+      media.rec.stop();
+      return;
+    }
     hideWelcome();
     lockMainInput();
     botTyping(function(){
@@ -2312,7 +2364,12 @@
       +'<div class="c" onclick="quickPick(\'취약노인\')">취약노인</div>'
       +'<div class="c" onclick="quickPick(\'외국인노동자\')">외국인노동자</div>'
       +'</div>'
-      +'<button onclick="skipToFlow()" style="margin-top:16px;background:var(--accent-soft);color:var(--accent-ink);border:1.5px solid var(--accent);border-radius:22px;padding:10px 20px;font-size:1.17rem;font-weight:700;cursor:pointer;font-family:inherit">상황 입력 없이 바로 진행 ▸</button>';
+      +'<button onclick="skipToFlow()" style="margin-top:16px;background:var(--accent-soft);color:var(--accent-ink);border:1.5px solid var(--accent);border-radius:22px;padding:10px 20px;font-size:1.17rem;font-weight:700;cursor:pointer;font-family:inherit">상황 입력 없이 바로 진행 ▸</button>'
+      +'<div style="margin-top:24px;display:flex;flex-direction:column;align-items:center;gap:8px">'
+      +'<span class="micwrap"><div class="privBubble" id="micPrivBubble">🔒 서버로 전송되지만 학습에는 쓰이지 않고, 악용 방지 목적으로 최대 30일 후 삭제돼요(OpenAI)</div>'
+      +'<button class="cbtn mic mic-hero" id="micBtn" onclick="toggleRec()" title="녹음"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Z"/><path d="M19 11a7 7 0 0 1-14 0"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg></button></span>'
+      +'<span style="font-size:.98rem;color:var(--mut)">눌러서 상황을 말로 녹음하기</span>'
+      +'</div>';
     chat.appendChild(w); welcome=w;
     var s=document.getElementById('side');
     if(s.classList.contains('open')) toggleSide();
@@ -2337,7 +2394,7 @@
   function unlockMainInput(){
     mainInputLocked = false;
     var inp=document.getElementById('input'), mic=document.getElementById('micBtn'), plus=document.querySelector('.plusmenu .cbtn'), send=document.querySelector('.cbtn.send');
-    if(inp){ inp.disabled=false; inp.placeholder='상황을 입력하거나, 오른쪽 버튼으로 녹음하세요…'; }
+    if(inp){ inp.disabled=false; inp.placeholder='상황을 입력하세요…'; }
     if(mic) mic.disabled=false;
     if(plus) plus.disabled=false;
     if(send) send.disabled=false;
@@ -2595,7 +2652,15 @@
       }
       if(!res.ok){ throw new Error(data.error || ('HTTP '+res.status)); }
       if(!data.text){ throw new Error('응답에서 텍스트를 찾을 수 없습니다'); }
-      document.getElementById('aiDraftOutput').value = data.text.trim();
+      const draftTextForMemo = data.text.trim();
+      document.getElementById('aiDraftOutput').value = draftTextForMemo;
+      // 2026-09-07: 지금까지는 이 AI 초안이 별도의 "AI_사유서초안.hwpx" 다운로드에만 쓰이고,
+      // 정작 메인 사유서(⑦ 사유서 초안 / 한글·텍스트 다운로드)의 비고란은 상담원이 녹음·타이핑한
+      // 원문을 그대로 덤프하고 있어 문장이 어색했음(관리자님 지적) — AI가 정리한 문장을 메인
+      // 메모란에도 반영하고, 사유서를 다시 만들어서(run) 화면·다운로드에 바로 보이게 한다.
+      const memoEl = document.getElementById('memo');
+      if(memoEl){ memoEl.value = draftTextForMemo; }
+      try{ rebuildDocIfVisible(); }catch(e3){ console.warn('메모 반영 후 사유서 재생성 오류:', e3); }
       try{ saveCaseProgress(); }catch(e2){ console.warn('saveCaseProgress 오류:', e2); }
     }catch(e){
       note.innerHTML = '⚠ AI 요청 중 오류가 발생했습니다(' + e.message + '). 아래 "지시문 복사"로 Claude·ChatGPT 앱에 직접 붙여넣어 주세요.';
@@ -2943,7 +3008,7 @@
         res.innerHTML = '<div style="margin-top:.6rem">'
           + '<span class="chip">현재 기온 '+temp+'℃</span><span class="chip">'+placeText+' 인근</span>'
           + '<div class="note" style="margin-top:.5rem"><b>추천 지원물품</b>: '+items.join(', ')+'</div>'
-          + '<label class="check-inline"><input type="checkbox" id="includeLocInDoc" onchange="rebuildDocIfVisible()"/> 사유서 초안에 이 위치 정보(동 단위) 포함</label>'
+          + '<label class="check-inline"><input type="checkbox" id="includeLocInDoc" onchange="rebuildDocIfVisible()"/><span>사유서 초안에 이 위치 정보(동 단위) 포함</span></label>'
           + '</div>';
       }catch(e){
         res.innerHTML = '<div class="note">날씨 정보를 불러오지 못했습니다(네트워크 문제일 수 있음). 잠시 후 다시 시도해 주세요.</div>';

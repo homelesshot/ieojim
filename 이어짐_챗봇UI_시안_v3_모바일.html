@@ -289,7 +289,7 @@
   .card .order-note{font-size:1.36rem;color:var(--accent-ink);background:var(--accent-soft);display:inline-block;padding:3px 8px;border-radius:20px;margin-bottom:5px;font-weight:700}
   .card .reset-link{background:none;border:0;color:var(--mut);font-size:1.36rem;text-decoration:underline;cursor:pointer;padding:0;margin-left:4px;font-family:inherit}
   .card .note{font-size:1.48rem;color:var(--mut);margin-top:7px;line-height:1.55}
-  .card label.check-inline{display:flex;align-items:center;gap:7px;font-size:1.07rem;font-weight:600;margin-top:7px}
+  .card label.check-inline{display:flex;align-items:center;gap:7px;font-size:1.07rem;font-weight:600;margin-top:7px}.card label.check-inline span{flex:1;min-width:0;word-break:keep-all;overflow-wrap:break-word}
   .card code{background:var(--surface-2);border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-size:.85em}
 
   .card .btn{width:100%;background:var(--accent);color:#fff;border:0;border-radius:10px;padding:10px 14px;font-size:1.13rem;font-weight:700;cursor:pointer;margin-top:9px;font-family:inherit;transition:filter .15s}
@@ -491,7 +491,7 @@
         <textarea id="anonNames" rows="3" placeholder="김영수=대상자&#10;박철호=가해자&#10;작전동=[비공개]" oninput="runAnon()"></textarea>
       </div>
 
-      <label class="check-inline"><input type="checkbox" id="anonSix" checked onchange="runAnon()"/> 6자리 숫자(생년월일 앞자리 등)도 가리기</label>
+      <label class="check-inline"><input type="checkbox" id="anonSix" checked onchange="runAnon()"/><span>6자리 숫자(생년월일 앞자리 등)도 가리기</span></label>
 
       <div class="field" style="margin-top:.6rem"><span class="lab">③ 가명화 결과 <span class="hint" style="display:inline">— <b style="color:var(--bad)">빨간 표시</b>는 남아있을 수 있는 정보이니 사람이 직접 확인·수정하세요</span></span>
         <div id="anonOutput" class="doc" style="min-height:5rem"></div>
@@ -1412,6 +1412,7 @@
      VERSION_LOG 배열 맨 앞에 새 항목을 추가할 것. 같은 날 여러 건이면 tag만 올려서(v0.x) 여러 줄 추가.
      "나중에 몰아서 기록"은 누락으로 이어지므로, 수정 직후 그 자리에서 바로 추가할 것. */
   var VERSION_LOG = [
+    {tag:'v0.55', date:'2026-09-07', title:'위치·날씨 위젯의 체크박스 문구가 세로로 깨져 나오던 iOS 레이아웃 버그 수정', desc:'iOS Safari에서 flex 컨테이너(.check-inline) 안에 체크박스 뒤 안내 문구가 <span> 없이 "벌거벗은 텍스트 노드"로 들어가 있으면 익명 flex item 처리가 꼬여 한글이 한 글자씩 세로로 쭉 쌓여 화면 오른쪽 끝까지 밀려나는 문제(현장 스크린샷으로 확인 — "현재 위치·날씨로 지원물품 확인" 결과의 "사유서 초안에 이 위치 정보 포함" 체크박스에서 재현, v4에서 먼저 확인 후 v3에도 동일 적용) — 문구를 <span>으로 감싸 정상적인 flex item으로 만들고 word-break:keep-all을 추가해 해결. 같은 패턴을 쓰는 "가명화 도우미"의 6자리 숫자 가리기 체크박스도 함께 방어적으로 수정. (Claude / 구흥모 세션)'},
     {tag:'v0.54', date:'2026-09-07', title:'중복되던 "⑦ 사유서 초안" 화면과 "✅ 상담 완료" 화면을 하나로 통합', desc:'모바일 위저드(한 화면씩 넘기는) 흐름에서 예비판단·사유서까지 다 만들어지면 (1) "⑦ 사유서 초안" 카드(문서 미리보기 + 복사/한글·텍스트 다운로드 + AI 초안 다듬기)와 (2) 그 바로 다음에 뜨는 "✅ 상담 완료" 카드(같은 문구 + 똑같은 한글/텍스트 저장 버튼 + 새 상담 시작 버튼)가 연달아 나와 화면 두 개가 사실상 중복이었음(관리자님 현장 지적). "✅ 상담 완료" 카드는 없애고, 그 카드에만 있던 완료 안내 문구는 "⑦ 사유서 초안" 카드 맨 위 배너로, "＋ 새 상담 시작" 버튼은 그 카드 맨 아래로 옮겨 하나의 화면으로 정리(중복 저장 버튼은 제거, 화면 하단 고정바(#doneBar)는 그대로 유지 — 이건 스크롤 중에도 항상 보이는 별도 용도라 화면과는 안 겹침). (Claude / 구흥모 세션 — 화면 중복 지적 반영)'},
     {tag:'v0.53', date:'2026-09-07', title:'모바일 한 화면에 안 들어가던 ②·④ 단계를 각각 두 화면으로 분할(스크롤 제거)', desc:'현장 실사용 피드백 — 단계형(위저드) UI에서 ② 가구·거주·인적사항(8필드, 약 168px 초과)과 ④ 건강·특수상황(체크박스 20개+메모, 약 421px 초과)이 모바일 한 화면(약 692px)에 안 들어가 위아래 스크롤이 필요했음. 각 단계를 두 화면으로 분할: ②→②-a 거주지 정보(거주지역·지역유형·거주형태) + ②-b 가구·인적사항(가구원수·동반아동·연령대·성별·국적), ④→④-a 건강상태(13개) + ④-b 지원이력·특수상황·메모. TPL_HOUSEHOLD→TPL_HOUSEHOLD_A/B, TPL_HEALTH→TPL_HEALTH_A/B로 분할하고 goHousehold2()·goHealth2() 흐름 함수 추가(NEXT_STEP_KEY도 체인 갱신). 건강·지원이력 체크박스는 .chk2(2열)로 압축. 진행바 점은 7개 유지(하위 a/b는 같은 점 공유, 라벨은 이미 숨김). 판정엔진은 필드를 id로 읽으므로 화면만 나뉘고 로직 영향 없음. (Claude Opus 4.8, sunny님 현장 피드백 반영)'},
     {tag:'v0.52', date:'2026-09-07', title:'웹페이지 제목 변경 + 하단 고정 안내문 제거(녹음 시작 팝업으로 이동)', desc:'브라우저 탭 제목을 시안 파일명 느낌이 나던 것에서 실제 화면 상단바와 같은 이름으로 변경. 화면 최하단에 항상 떠 있던 "녹음은 이 기기에서만 처리됩니다 · 실명 대신 가명으로 · UI 시안" 문구는 상시 노출할 필요가 없다는 판단하에 제거하고, 그중 "녹음은 이 기기에서만 처리됩니다" 부분만 녹음 시작 시 뜨는 화면 꺼짐 방지 안내 팝업에 한 줄 추가해서 필요한 순간에만 보이도록 변경(녹음 버튼 자체는 그대로 유지). (Claude / 구흥모 세션 — UI 정리 요청)'},
@@ -2747,7 +2748,7 @@
         res.innerHTML = '<div style="margin-top:.6rem">'
           + '<span class="chip">현재 기온 '+temp+'℃</span><span class="chip">'+placeText+' 인근</span>'
           + '<div class="note" style="margin-top:.5rem"><b>추천 지원물품</b>: '+items.join(', ')+'</div>'
-          + '<label class="check-inline"><input type="checkbox" id="includeLocInDoc" onchange="rebuildDocIfVisible()"/> 사유서 초안에 이 위치 정보(동 단위) 포함</label>'
+          + '<label class="check-inline"><input type="checkbox" id="includeLocInDoc" onchange="rebuildDocIfVisible()"/><span>사유서 초안에 이 위치 정보(동 단위) 포함</span></label>'
           + '</div>';
       }catch(e){
         res.innerHTML = '<div class="note">날씨 정보를 불러오지 못했습니다(네트워크 문제일 수 있음). 잠시 후 다시 시도해 주세요.</div>';
