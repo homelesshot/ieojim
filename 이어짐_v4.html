@@ -800,38 +800,69 @@
 
   function buildExtractionPrompt(text){
     return [
-      '너는 한국 복지 상담원의 위기가구 현장 녹음(또는 타이핑 입력)을 분석해서, 아래 정해진 항목만 뽑아',
-      'JSON으로만 답하는 도구다. 반드시 아래 스키마의 키만 사용한 순수 JSON 객체 하나만 출력하라',
-      '(설명 문장, 코드블록 표시(```) 등 그 무엇도 앞뒤에 붙이지 마라).',
+      '너는 한국 복지 상담원의 위기가구 현장 녹음(또는 타이핑 입력)을 분석해서, 정해진 스키마의 항목만',
+      '뽑아내는 도구다(출력 형식 자체는 시스템이 스키마로 강제하니 형식 걱정은 하지 말고, 아래 판단',
+      '기준만 정확히 지켜라).',
       '내용에 명확히 언급되지 않았거나 확신할 수 없는 항목은 절대 추측하지 말고 반드시 null로 두어라',
-      '(빈 문자열이나 임의의 기본값 금지 — 특히 소득·재산 관련 숫자는 명시적으로 언급된 경우에만 채워라).',
+      '(임의의 기본값 금지 — 특히 소득·재산 관련 숫자는 명시적으로 언급된 경우에만 채워라).',
       '단, "재산 없음", "보증금 없음", "가진 돈 없음", "소득 없음"처럼 값이 없다고 명확히 말한 경우는',
       '모르는 것이 아니라 "0"이라는 확실한 정보이므로 null이 아니라 반드시 숫자 0으로 채워라',
       '(예: "재산은 없고 빚만 1억 있다" → deposit:0, fin:0, debt:100000000).',
+      '배열 항목(crisis, health)은 원문에 실제로 해당되는 것만 넣고, 하나도 해당 안 되면 빈 배열로 둬라.',
       '',
-      '스키마(키와 값 형식을 정확히 지킬 것):',
-      '{',
-      '  "targetType": ' + JSON.stringify(TARGETTYPE_LIST_V4) + ' 중 하나 또는 null,',
-      '  "urgency": "today"(즉시) | "week"(이번주 이내) | "month"(이번달 이내) | null,',
-      '  "crisis": 배열(0개 이상, 언급된 것만) — 사용 가능한 값: ' + JSON.stringify(CRISIS_LIST_V4) + ',',
-      '  "region": ' + JSON.stringify(REGION_LIST_V4) + ' 중 하나 또는 null(시·도 단위, 명확히 언급된 경우만),',
-      '  "rural": true | false | null (군·읍·면 농어촌 지역이라고 명시적으로 언급됐을 때만 true/false, 아니면 null),',
-      '  "livingType": ' + JSON.stringify(LIVING_LIST_V4) + ' 중 하나 또는 null,',
-      '  "size": 1~5 사이 정수(가구원수, 5는 5인 이상) 또는 null,',
-      '  "children": 동반 미성년 자녀 수(정수) 또는 null,',
-      '  "ageGroup": ' + JSON.stringify(AGEGROUP_LIST_V4) + ' 중 하나 또는 null,',
-      '  "gender": ' + JSON.stringify(GENDER_LIST_V4) + ' 중 하나 또는 null,',
-      '  "nationality": ' + JSON.stringify(NATIONALITY_LIST_V4) + ' 중 하나 또는 null,',
-      '  "income": 월 소득(원, 정수, 없다고 말했으면 0) 또는 null(언급 자체가 없을 때만),',
-      '  "deposit": 임차보증금(원, 정수, 없다고 말했으면 0) 또는 null(언급 자체가 없을 때만),',
-      '  "fin": 금융재산(원, 정수, "재산 없음" 등도 포함해서 없다고 말했으면 0) 또는 null(언급 자체가 없을 때만),',
-      '  "debt": 부채(원, 정수, 없다고 말했으면 0) 또는 null(언급 자체가 없을 때만),',
-      '  "health": 배열(0개 이상, 언급된 것만) — 사용 가능한 값: ' + JSON.stringify(HEALTH_LIST_V4),
-      '}',
+      '[각 항목 설명]',
+      '- targetType: ' + JSON.stringify(TARGETTYPE_LIST_V4) + ' 중 하나',
+      '- urgency: "today"(즉시) | "week"(이번주 이내) | "month"(이번달 이내)',
+      '- crisis: 사용 가능한 값 ' + JSON.stringify(CRISIS_LIST_V4),
+      '- region: ' + JSON.stringify(REGION_LIST_V4) + ' 중 하나(시·도 단위, 명확히 언급된 경우만)',
+      '- rural: 군·읍·면 농어촌 지역이라고 명시적으로 언급됐을 때만 true/false',
+      '- livingType: ' + JSON.stringify(LIVING_LIST_V4) + ' 중 하나',
+      '- size: 1~5 사이 정수(가구원수, 5는 5인 이상)',
+      '- children: 동반 미성년 자녀 수(정수)',
+      '- ageGroup: ' + JSON.stringify(AGEGROUP_LIST_V4) + ' 중 하나',
+      '- gender: ' + JSON.stringify(GENDER_LIST_V4) + ' 중 하나',
+      '- nationality: ' + JSON.stringify(NATIONALITY_LIST_V4) + ' 중 하나',
+      '- income: 월 소득(원, 정수, 없다고 말했으면 0)',
+      '- deposit: 임차보증금(원, 정수, 없다고 말했으면 0)',
+      '- fin: 금융재산(원, 정수, "재산 없음" 등도 포함해서 없다고 말했으면 0)',
+      '- debt: 부채(원, 정수, 없다고 말했으면 0)',
+      '- health: 사용 가능한 값 ' + JSON.stringify(HEALTH_LIST_V4),
       '',
       '[상담 녹음/입력 원문]',
       text
     ].join('\n');
+  }
+  // Structured Outputs(JSON Schema strict 모드)용 스키마 — OpenAI가 이 스키마를 문법적으로 강제하므로
+  // 모델이 필드를 통째로 빠뜨리거나(예: 이번에 발견된 재산·부채 누락) 정해진 목록 밖의 값을 내놓는 것
+  // 자체가 불가능해진다(단, "말의 의미를 올바르게 이해했는가"까지 보장하진 않음 — 그건 여전히 프롬프트의
+  // 판단 기준과 모델 성능에 달려 있음). nullable 필드는 type 배열과 enum 배열 둘 다에 null을 포함시켜야
+  // strict 모드가 통과한다.
+  function extractionJsonSchemaV4(){
+    function strEnumOrNull(list){ return {type:['string','null'], enum: list.concat([null])}; }
+    function strArrEnum(list){ return {type:'array', items:{type:'string', enum:list}}; }
+    return {
+      type:'object',
+      properties:{
+        targetType: strEnumOrNull(TARGETTYPE_LIST_V4),
+        urgency: strEnumOrNull(URGENCY_LIST_V4),
+        crisis: strArrEnum(CRISIS_LIST_V4),
+        region: strEnumOrNull(REGION_LIST_V4),
+        rural: {type:['boolean','null']},
+        livingType: strEnumOrNull(LIVING_LIST_V4),
+        size: {type:['integer','null']},
+        children: {type:['integer','null']},
+        ageGroup: strEnumOrNull(AGEGROUP_LIST_V4),
+        gender: strEnumOrNull(GENDER_LIST_V4),
+        nationality: strEnumOrNull(NATIONALITY_LIST_V4),
+        income: {type:['integer','null']},
+        deposit: {type:['integer','null']},
+        fin: {type:['integer','null']},
+        debt: {type:['integer','null']},
+        health: strArrEnum(HEALTH_LIST_V4)
+      },
+      required:['targetType','urgency','crisis','region','rural','livingType','size','children','ageGroup','gender','nationality','income','deposit','fin','debt','health'],
+      additionalProperties:false
+    };
   }
   function parseExtractionJson(raw){
     try{
@@ -904,7 +935,7 @@
       var res = await fetch(AI_DRAFT_URL, {
         method:'POST',
         headers:{'Content-Type':'application/json', 'Authorization':'Bearer '+STT_ANON_KEY},
-        body: JSON.stringify({prompt: prompt, json: true})
+        body: JSON.stringify({prompt: prompt, schema: extractionJsonSchemaV4(), schemaName: 'crisis_extraction_v4'})
       });
       var data = await res.json().catch(function(){ return {}; });
       if(res.ok && data.text){ return parseExtractionJson(data.text); }
@@ -1647,6 +1678,7 @@
      VERSION_LOG 배열 맨 앞에 새 항목을 추가할 것. 같은 날 여러 건이면 tag만 올려서(v0.x) 여러 줄 추가.
      "나중에 몰아서 기록"은 누락으로 이어지므로, 수정 직후 그 자리에서 바로 추가할 것. */
   var VERSION_LOG = [
+    {tag:'v4-track a23', date:'2026-09-07', title:'AI 항목 자동추출에 OpenAI Structured Outputs(JSON Schema strict) 적용 — 필드 누락 자체를 시스템 차원에서 차단', desc:'단순 JSON 모드(response_format:json_object)는 "문법적으로 유효한 JSON"만 보장하고 "정해진 필드를 다 채워서 반환했는가"는 보장하지 않아, 재산·부채 등 필드가 통째로 빠지는 사고가 재현될 여지가 남아있었음(구흥모님 지적: "json 방식 말고 다른 방법 있는지 찾아보고 1번 호출로 최대한 활용하도록 연구해봐") — OpenAI 공식 문서 확인 결과 gpt-4o-mini부터 지원되는 "Structured Outputs"(response_format:{type:"json_schema", strict:true})가 정확히 이 문제를 겨냥한 기능: 스키마의 required 필드는 모델이 절대 생략할 수 없고, enum으로 지정한 값 밖의 답도 나올 수 없도록 시스템 차원에서 강제됨. requestExtractionV4가 보낼 12개 항목의 JSON Schema(extractionJsonSchemaV4)를 만들어 요청에 포함시키고, ai-draft Edge Function이 이 schema를 받으면 json_schema strict 모드로 OpenAI를 호출하도록 배포(버전 5). 기존 "json:true"(단순 JSON 모드)·일반 텍스트 모드 호출(AI 초안 다듬기 등)은 그대로 유지되어 영향 없음. 단, 이 방식도 "모델이 말의 의미를 정확히 이해했는가"까지 보장하진 않음 — 그건 여전히 프롬프트의 판단 기준과 모델 성능에 달려 있고, 그래서 기존의 "불확실하면 화면에서 멈추고 사람이 확인" 안전장치는 그대로 유지됨. (Claude / 구흥모 세션 — OpenAI 공식 문서 조사 후 적용)'},
     {tag:'v4-track a22', date:'2026-09-07', title:'너무 짧은 입력은 AI 항목 추출 API를 호출하지 않도록 최소 글자수 기준 추가', desc:'녹음이나 타이핑 입력이 몇 글자 안 되는 짧은 내용일 때도 매번 항목 자동추출(GPT-4o-mini) API를 호출하고 있어 불필요한 사용량이 나가던 부분 — 어차피 그렇게 짧은 입력에는 뽑아낼 정보가 거의 없어 대부분 null만 돌아오므로, 다듬어진 텍스트 길이가 10자 미만이면 API를 아예 호출하지 않고 곧바로 기존 키워드 매칭 방식(위기사유만 자동 체크)으로 넘어가도록 함(MIN_EXTRACT_CHARS_V4, requestExtractionV4 한 곳에서 처리해 녹음·타이핑 두 경로 모두 동일하게 적용됨). (구흥모님 요청)'},
     {tag:'v4-track a21', date:'2026-09-07', title:'AI 자동 채움 추출 요청에 OpenAI JSON 강제 모드 적용 — 재산·부채 등 필드 누락 방지', desc:'"재산은 없고 빚이 1억"이라고 말했는데 재산뿐 아니라 부채(빚)까지도 소득·재산 화면에 전혀 채워지지 않는 재신고(구흥모님) — a19 프롬프트 문구 보강만으로는 설명이 안 되는 증상이라 다시 확인해보니, 방금 ai-draft Edge Function을 Gemini에서 OpenAI(gpt-4o-mini)로 바꾼 것(a17)이 원인이었음: 녹음 내용 전체에서 12개 항목을 JSON으로 뽑아내는 requestExtractionV4의 긴 추출 프롬프트를, Gemini는 "JSON만 출력하라"는 지시를 비교적 잘 지켰지만 gpt-4o-mini는 일반 텍스트 응답 모드에서는 지시를 놓치고 형식을 흐트러뜨리거나 일부 항목을 통째로 빠뜨리는 경우가 있어, 파싱은 되어도 income/deposit/fin/debt 같은 필드가 실제로는 채워지지 않은 채 응답하는 문제로 재현됨. ai-draft Edge Function이 클라이언트가 보내는 선택적 "json:true" 플래그를 받으면 OpenAI Chat Completions의 response_format:{type:"json_object"}를 켜서 모델이 반드시 문법적으로 유효한 JSON만 반환하도록 강제하게 배포(버전 4)하고, requestExtractionV4가 이 플래그를 켜서 요청하도록 수정 — "AI 초안 다듬기"(generateAiDraft) 등 JSON이 필요 없는 기존 호출은 플래그를 안 보내므로 그대로 일반 텍스트 응답을 받아 동작에 변화 없음. (Claude / 구흥모 세션)'},
     {tag:'v4-track a20', date:'2026-09-07', title:'메모(비고)에 자동으로 채워지던 \"[상담원 최초 입력]\" 표시 제거', desc:'④ 건강상태(두 번째 화면)로 넘어갈 때 메모(비고)가 비어 있으면 상담원이 녹음·타이핑한 원문을 "[상담원 최초 입력] ..." 형태로 채워 넣던 표시를 없애고, 그냥 원문 그대로 채우도록 수정(구흥모님 요청) — AI 초안이 자동 실행되면 어차피 정리된 문장으로 다시 덮어써지므로(v4-track a10), 그 전에 잠깐 보이는 원문 상태에서도 불필요한 대괄호 표시 없이 자연스럽게 보이도록 함. (Claude / 구흥모 세션)'},
