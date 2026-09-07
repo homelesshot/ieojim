@@ -271,6 +271,9 @@
   .card .sec:first-child{margin-top:0}
   .card .sub{font-size:1.44rem;font-weight:800;color:var(--mut);letter-spacing:.02em;margin:12px 0 6px}
   .card .field{margin:10px 0}
+  .card .chk2{display:grid;grid-template-columns:1fr 1fr;column-gap:12px;row-gap:3px}
+  .card .chk2 label{display:flex;align-items:center;gap:6px;margin-bottom:0;line-height:1.25}
+  .card .chk2 label input[type=checkbox]{width:16px;height:16px;flex:none;margin:0}
   .card .field>.lab{display:block;font-size:1.07rem;color:var(--ink);margin-bottom:5px;font-weight:700}
   .card .field>.hint{display:block;font-size:1.42rem;color:var(--mut);margin:-2px 0 5px;font-weight:500}
   .card .grid{display:grid;grid-template-columns:1fr 1fr;gap:9px 10px}
@@ -1409,6 +1412,7 @@
      VERSION_LOG 배열 맨 앞에 새 항목을 추가할 것. 같은 날 여러 건이면 tag만 올려서(v0.x) 여러 줄 추가.
      "나중에 몰아서 기록"은 누락으로 이어지므로, 수정 직후 그 자리에서 바로 추가할 것. */
   var VERSION_LOG = [
+    {tag:'v0.53', date:'2026-09-07', title:'모바일 한 화면에 안 들어가던 ②·④ 단계를 각각 두 화면으로 분할(스크롤 제거)', desc:'현장 실사용 피드백 — 단계형(위저드) UI에서 ② 가구·거주·인적사항(8필드, 약 168px 초과)과 ④ 건강·특수상황(체크박스 20개+메모, 약 421px 초과)이 모바일 한 화면(약 692px)에 안 들어가 위아래 스크롤이 필요했음. 각 단계를 두 화면으로 분할: ②→②-a 거주지 정보(거주지역·지역유형·거주형태) + ②-b 가구·인적사항(가구원수·동반아동·연령대·성별·국적), ④→④-a 건강상태(13개) + ④-b 지원이력·특수상황·메모. TPL_HOUSEHOLD→TPL_HOUSEHOLD_A/B, TPL_HEALTH→TPL_HEALTH_A/B로 분할하고 goHousehold2()·goHealth2() 흐름 함수 추가(NEXT_STEP_KEY도 체인 갱신). 건강·지원이력 체크박스는 .chk2(2열)로 압축. 진행바 점은 7개 유지(하위 a/b는 같은 점 공유, 라벨은 이미 숨김). 판정엔진은 필드를 id로 읽으므로 화면만 나뉘고 로직 영향 없음. (Claude Opus 4.8, sunny님 현장 피드백 반영)'},
     {tag:'v0.52', date:'2026-09-07', title:'웹페이지 제목 변경 + 하단 고정 안내문 제거(녹음 시작 팝업으로 이동)', desc:'브라우저 탭 제목을 시안 파일명 느낌이 나던 것에서 실제 화면 상단바와 같은 이름으로 변경. 화면 최하단에 항상 떠 있던 "녹음은 이 기기에서만 처리됩니다 · 실명 대신 가명으로 · UI 시안" 문구는 상시 노출할 필요가 없다는 판단하에 제거하고, 그중 "녹음은 이 기기에서만 처리됩니다" 부분만 녹음 시작 시 뜨는 화면 꺼짐 방지 안내 팝업에 한 줄 추가해서 필요한 순간에만 보이도록 변경(녹음 버튼 자체는 그대로 유지). (Claude / 구흥모 세션 — UI 정리 요청)'},
     {tag:'v0.51', date:'2026-09-04', title:'화면꺼짐방지 안내 팝업이 녹음중지 버튼을 가리는 문제 수정 + STT 한국어 고정 보강(prompt 힌트 추가)', desc:'(1) v0.50에서 추가한 "화면 꺼짐 방지 기능 작동 중" 안내가 화면 하단(입력창 또는 단계형 화면의 하단 내비게이션)에 뜨면서, 하필 그 자리에 있는 녹음 중지·재녹음 버튼을 가려버리는 문제 재신고 — 같은 하단 토스트(showSaveToast)를 재사용한 게 원인. 화면 \'상단\'에 뜨는 전용 토스트(showTopToast)로 분리해서 하단 버튼과 절대 겹치지 않게 수정(몇 초 후 자동으로 사라지는 동작은 그대로 유지). (2) "whisper-1 + language:ko로 바꿨는데도 외국어가 섞여 나온다"는 재신고 — Edge Function(stt-transcribe, 버전 6)에 OpenAI가 권장하는 방식대로 한국어 문맥을 미리 채워주는 prompt 파라미터("이것은 복지 상담원이 위기가구 현장에서 녹음한 한국어 상담 내용입니다")를 추가해서 디코더가 한국어 쪽으로 더 강하게 편향되도록 보강. **참고**: 이번에 확인해보니 화면꺼짐으로 오디오가 무음·깨진 채로 녹음되는 문제(바로 위 v0.50)가 실제로는 STT가 이상한 언어/반복 문장을 뱉는 사고의 주된 원인일 가능성이 높음 — v0.50(Wake Lock)이 실사용에서 확실히 자리 잡으면 이 증상 자체가 크게 줄어들 것으로 예상되니, v0.50 배포 이후에도 재발하는지 한 번 더 확인 필요. (Claude / 관리자 세션 — 현장 실사용 재신고 대응)'},
     {tag:'v0.50', date:'2026-09-04', title:'녹음 중 화면 꺼짐으로 마이크가 끊기는 문제 대응 — Screen Wake Lock + 자동 중단 후 자동 진행', desc:'실사용 중 확인된 사고(화면 자동 꺼짐 시간 1분30초로 설정된 기기에서 2분 넘게 녹음 → 90초 지점부터 내용이 끊기고, 마지막엔 "시청해주셔서 감사합니다"가 5번 반복되는 등 이상한 텍스트가 나오고, 이후 다음버튼도 안 눌리던 문제) 대응 1단계. 원인: 화면이 꺼지면 브라우저가 백그라운드 탭의 마이크 입력을 억제/차단해서 뒷부분이 무음·깨진 오디오로 채워지고, Whisper가 무음 구간에서 같은 문장을 반복 출력하는 것으로 널리 보고된 환각(hallucination) 현상까지 겹친 것으로 추정. (1) 녹음 시작 시 Screen Wake Lock(navigator.wakeLock)으로 화면이 자동으로 안 꺼지게 잡아두고, 시작할 때 "🔒 화면 꺼짐 방지 기능이 작동 중이에요 / 화면을 끄면 녹음이 중단돼요" 안내 팝업 표시. (2) 그래도 화면이 백그라운드로 전환되면(전원버튼으로 직접 끄는 경우 등 Wake Lock으로 못 막는 경우 포함, visibilitychange 감지) 그 즉시 녹음을 중단시켜 더 이상 무음이 쌓이지 않게 하고, 변환된 텍스트가 나오면 사용자가 다음버튼을 누를 필요 없이 자동으로 다음 단계로 진행되도록 함(요청에 따라 별도 안내 메시지 없이 조용히 처리). 다음버튼이 안 눌리던 증상(MediaRecorder.state 값이 백그라운드 처리 중 꼬여서 발생한 것으로 추정)은 이번 조치로 함께 완화될 것으로 예상되나, 근본 수정(다음버튼 판단 기준을 state 값 대신 화면 상태로 바꾸는 것)은 다음 단계로 미룸(요청에 따라 한 번에 다 반영하지 않음). (Claude / 관리자 세션 — 현장 실사용 사고 대응)'},
@@ -1629,7 +1633,8 @@
       <div class="chk" id="crisis"></div>
     </div>
 `;
-  var TPL_HOUSEHOLD = `    <div class="grid">
+  // ②를 두 화면으로 분할(모바일 한 화면에 담기 위함): ②-a 거주지 / ②-b 가구·인적사항
+  var TPL_HOUSEHOLD_A = `    <div class="grid">
       <div class="field"><span class="lab">거주지역(시·도)<span class="infowrap"><button type="button" class="infoQBtn" onclick="toggleInfoPop(this,event)">?</button><div class="infoPop">누를 때마다 브라우저 위치 권한을 새로 물어보며, 시·도 판별에만 1회 사용하고 저장하지 않습니다.</div></span></span>
         <button type="button" class="btn small secondary" onclick="detectRegion()" style="margin-top:0">현재 위치로 자동 선택</button>
         <div class="note" id="regionDetectNote" style="min-height:1.2em"></div>
@@ -1665,6 +1670,8 @@
           <option value="기타·확인필요">기타·확인 필요</option>
         </select>
       </div>
+    </div>`;
+  var TPL_HOUSEHOLD_B = `    <div class="grid">
       <div class="field"><span class="lab">가구원수 (피해자는 가해자 제외)</span>
         <select id="size"><option value="1">1인</option><option value="2">2인</option><option value="3">3인</option><option value="4">4인</option><option value="5">5인 이상</option></select>
       </div>
@@ -1677,8 +1684,7 @@
       <div class="field"><span class="lab">성별<span class="infowrap"><button type="button" class="infoQBtn" onclick="toggleInfoPop(this,event)">?</button><div class="infoPop">대상 유형에 따라 가장 많은 성별이 기본 선택됩니다. 눌러서 자유롭게 바꿀 수 있어요.</div></span></span>
         <select id="gender" onchange="genderTouched=true"></select>
       </div>
-    </div>
-<div class="grid" style="margin-top:2px">      <div class="field" style="grid-column:1/-1"><span class="lab">국적 · 체류자격<span class="infowrap"><button type="button" class="infoQBtn" onclick="toggleInfoPop(this,event)">?</button><div class="infoPop">무주소·주민등록 말소, 외국인 체류자격 관련 사항은 이 항목에서만 선택합니다(특수상황과 중복 표시하지 않음).</div></span></span>
+      <div class="field" style="grid-column:1/-1"><span class="lab">국적 · 체류자격<span class="infowrap"><button type="button" class="infoQBtn" onclick="toggleInfoPop(this,event)">?</button><div class="infoPop">무주소·주민등록 말소, 외국인 체류자격 관련 사항은 이 항목에서만 선택합니다(특수상황과 중복 표시하지 않음).</div></span></span>
         <select id="nationality">
           <option value="내국인(정상)">내국인</option>
           <option value="내국인(말소)">내국인 — 주민등록 말소</option>
@@ -1687,7 +1693,7 @@
           <option value="외국인(난민등)">외국인 — 난민·인도적체류자</option>
         </select>
       </div>
-</div>`;
+    </div>`;
   var TPL_INCOME = `    <div class="grid">
       <div class="field"><span class="lab">월 소득 (원, 대략)</span>
         <input type="text" inputmode="numeric" pattern="[0-9,]*" id="income" class="num" placeholder="예: 330,000" oninput="formatMoney(this)" onkeydown="numKeydown(event)"/>
@@ -1703,8 +1709,9 @@
       </div>
     </div>
 `;
-  var TPL_HEALTH = `      <div class="field" style="grid-column:1/-1"><span class="lab">건강상태 — 해당하는 것 모두 선택</span>
-        <div class="chk" id="health">
+  // ④를 두 화면으로 분할(체크박스가 많아 한 화면 초과): ④-a 건강상태 / ④-b 지원이력·특수상황·메모
+  var TPL_HEALTH_A = `      <div class="field" style="grid-column:1/-1"><span class="lab">건강상태 — 해당하는 것 모두 선택</span>
+        <div class="chk chk2" id="health">
           <label><input type="checkbox" value="해당없음" data-none="1"/>특이사항 없음</label>
           <label><input type="checkbox" value="경증질환"/>경증질환</label>
           <label><input type="checkbox" value="중증질환"/>중증질환(산정특례 대상급)</label>
@@ -1720,8 +1727,9 @@
           <label><input type="checkbox" value="폭행상해"/>폭행으로 인한 상해</label>
         </div>
       </div>
-      <div class="field" style="grid-column:1/-1"><span class="lab">기존 복지 수급 · 지원이력 (중복지원 방지)</span>
-        <div class="chk" id="dup">
+`;
+  var TPL_HEALTH_B = `      <div class="field" style="grid-column:1/-1"><span class="lab">기존 복지 수급 · 지원이력 (중복지원 방지)</span>
+        <div class="chk chk2" id="dup">
           <label><input type="checkbox" value="생계"/>생계급여</label>
           <label><input type="checkbox" value="의료"/>의료급여</label>
           <label><input type="checkbox" value="주거"/>주거급여</label>
@@ -1872,10 +1880,14 @@
 
   function goHousehold(){
     setStep(1);
-    botCard('② 가구·거주·인적사항', TPL_HOUSEHOLD, '다음 ▸', ()=>goIncome(), 'household');
+    botCard('② 거주지 정보', TPL_HOUSEHOLD_A, '다음 ▸', ()=>goHousehold2(), 'household');
     var t = document.getElementById('targetType').value;
     document.getElementById('livingType').value = LIVING_PRESET[t] || '기타·확인필요';
-    renderAgeGender(true);
+  }
+  function goHousehold2(){
+    setStep(1); // 같은 단계(점)의 두 번째 화면
+    botCard('② 가구·인적사항', TPL_HOUSEHOLD_B, '다음 ▸', ()=>goIncome(), 'household2');
+    renderAgeGender(true); // 연령대·성별 select이 이 화면에 있으므로 여기서 채움
   }
 
   function goIncome(){
@@ -1885,7 +1897,11 @@
 
   function goHealth(){
     setStep(3);
-    botCard('④ 건강·특수상황', TPL_HEALTH, '예비판단 실행 ▸', ()=>goResult(), 'health');
+    botCard('④ 건강상태', TPL_HEALTH_A, '다음 ▸', ()=>goHealth2(), 'health');
+  }
+  function goHealth2(){
+    setStep(3); // 같은 단계(점)의 두 번째 화면
+    botCard('④ 지원이력·특수상황', TPL_HEALTH_B, '예비판단 실행 ▸', ()=>goResult(), 'health2');
     if(lastFreeText){
       var memo = document.getElementById('memo');
       if(memo && !memo.value) memo.value = '[상담원 최초 입력] ' + lastFreeText;
@@ -1981,7 +1997,7 @@
   function addMsg(cls, tpl, text){ var w=document.createElement('div'); w.className='msg '+cls; w.innerHTML=(cls==='bot'?'<div class="av">'+LOGO_HTML+'</div>':'')+tpl; w.querySelector('.bubble').textContent=text; chat.appendChild(w); scroll(); }
   function botMsgHTML(html){ var w=document.createElement('div'); w.className='msg bot'; w.innerHTML='<div class="av">'+LOGO_HTML+'</div><div class="bubble">'+html+'</div>'; chat.appendChild(w); scroll(); }
   var STEP = {}; // stepKey -> {wrap, btn}
-  var NEXT_STEP_KEY = {crisis:'household', household:'income', income:'health'};
+  var NEXT_STEP_KEY = {crisis:'household', household:'household2', household2:'income', income:'health', health:'health2'};
   var resultDone = false; // 예비판단 실행이 최소 한 번 완료됐는지
   var resultCards = null; // {r1,r2,r3} — 예비판단 결과 카드 3장(재실행 시 같은 카드를 갱신)
 
