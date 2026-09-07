@@ -538,6 +538,9 @@
         <div class="field" id="authNameField" style="display:none"><span class="lab">이름</span>
           <input type="text" id="authName" placeholder="예: 김상담" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:1.2rem">
         </div>
+        <div class="field" id="authOrgField" style="display:none"><span class="lab">소속</span>
+          <input type="text" id="authOrg" placeholder="예: 사단법인 인천내일을여는집" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:1.2rem">
+        </div>
         <div class="field"><span class="lab">이메일</span>
           <input type="email" id="authEmail" placeholder="you@example.org" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:1.2rem">
         </div>
@@ -578,9 +581,12 @@
       <div class="field"><span class="lab">이름</span>
         <input type="text" id="setName" placeholder="예: 김상담" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:1.2rem">
       </div>
+      <div class="field"><span class="lab">소속</span>
+        <input type="text" id="setOrg" placeholder="예: 사단법인 인천내일을여는집" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:1.2rem">
+      </div>
       <div class="note" id="setNameNote" style="min-height:1.2em"></div>
       <div class="btnrow" style="margin-top:.2rem">
-        <button class="btn small" onclick="saveNameChange()">이름 저장</button>
+        <button class="btn small" onclick="saveNameChange()">이름·소속 저장</button>
       </div>
 
       <div style="border-top:1px solid var(--line);margin:1rem 0 .8rem"></div>
@@ -1061,6 +1067,7 @@
     authMode = (mode === 'signup') ? 'signup' : 'signin';
     var isSignup = authMode === 'signup';
     document.getElementById('authNameField').style.display = isSignup ? '' : 'none';
+    document.getElementById('authOrgField').style.display = isSignup ? '' : 'none';
     document.getElementById('authPwConfirmField').style.display = isSignup ? '' : 'none';
     document.getElementById('authSigninBtn').style.display = isSignup ? 'none' : '';
     document.getElementById('authSignupBtn').style.display = isSignup ? '' : 'none';
@@ -1130,6 +1137,7 @@
     var email = (document.getElementById('authEmail').value||'').trim();
     var pw = document.getElementById('authPw').value||'';
     var name = (document.getElementById('authName').value||'').trim() || email.split('@')[0] || '상담원';
+    var org = (document.getElementById('authOrg').value||'').trim();
     var pwConfirm = document.getElementById('authPwConfirm').value||'';
     if(!email || !pw){ if(note) note.textContent = '이메일과 비밀번호를 입력해 주세요.'; return; }
     if(pw.length < 6){ if(note) note.textContent = '비밀번호는 6자 이상이어야 해요.'; return; }
@@ -1140,7 +1148,7 @@
       if(r.error) throw r.error;
       var uid = r.data && r.data.user && r.data.user.id;
       if(uid){
-        try{ await sb.from('counselor_profiles').upsert({id:uid, display_name:name}); }
+        try{ await sb.from('counselor_profiles').upsert({id:uid, display_name:name, org: org || null}); }
         catch(e2){ console.warn('counselor_profiles upsert 실패:', e2); }
       }
       if(note){
@@ -1168,6 +1176,7 @@
       return;
     }
     var nameInput = document.getElementById('setName'); if(nameInput) nameInput.value = currentCounselor.display_name || '';
+    var orgInput = document.getElementById('setOrg'); if(orgInput) orgInput.value = currentCounselor.org || '';
     var note = document.getElementById('setNameNote'); if(note) note.textContent = '';
     closePwChange();
     document.getElementById('settingsBackdrop').classList.add('on');
@@ -1192,17 +1201,19 @@
     var note = document.getElementById('setNameNote');
     if(!sb || !currentCounselor){ if(note){ note.style.color='var(--bad)'; note.textContent = '로그인 상태를 확인할 수 없어요.'; } return; }
     var name = (document.getElementById('setName').value||'').trim();
+    var org = (document.getElementById('setOrg').value||'').trim();
     if(!name){ if(note){ note.style.color='var(--bad)'; note.textContent = '이름을 입력해 주세요.'; } return; }
     if(note){ note.style.color='var(--mut)'; note.textContent = '저장 중…'; }
     try{
       // update가 아니라 upsert를 써야 함 — 이메일 인증이 필요했던 시절 가입한 계정 등은애초에
       // counselor_profiles 행 자체가 없을 수 있는데, 없는 행을 update하면 조용히 0건 처리되고
       // "저장했어요"만 뜨고 실제로는 반영이 안 됨(새로고침하면 이메일 앞부분으로 되돌아가 보이는 원인).
-      var r = await sb.from('counselor_profiles').upsert({id:currentCounselor.id, display_name:name});
+      var r = await sb.from('counselor_profiles').upsert({id:currentCounselor.id, display_name:name, org: org || null});
       if(r.error) throw r.error;
       currentCounselor.display_name = name;
+      currentCounselor.org = org || null;
       renderAcctUI();
-      if(note){ note.style.color='var(--accent-ink)'; note.textContent = '이름을 저장했어요.'; }
+      if(note){ note.style.color='var(--accent-ink)'; note.textContent = '이름·소속을 저장했어요.'; }
     }catch(e){
       if(note){ note.style.color='var(--bad)'; note.textContent = '저장 실패: ' + (e && e.message ? e.message : e); }
     }
@@ -1252,10 +1263,10 @@
     try{
       var uid = authSession.user.id;
       var res = await sb.from('counselor_profiles').select('id,display_name,org').eq('id', uid).maybeSingle();
-      currentCounselor = {id:uid, email:authSession.user.email, display_name: (res && res.data && res.data.display_name) || null};
+      currentCounselor = {id:uid, email:authSession.user.email, display_name: (res && res.data && res.data.display_name) || null, org: (res && res.data && res.data.org) || null};
     }catch(e){
       console.warn('counselor_profiles 조회 실패:', e);
-      currentCounselor = {id:authSession.user.id, email:authSession.user.email, display_name:null};
+      currentCounselor = {id:authSession.user.id, email:authSession.user.email, display_name:null, org:null};
     }
     renderAcctUI();
     refreshRecentList();
@@ -1678,6 +1689,7 @@
      VERSION_LOG 배열 맨 앞에 새 항목을 추가할 것. 같은 날 여러 건이면 tag만 올려서(v0.x) 여러 줄 추가.
      "나중에 몰아서 기록"은 누락으로 이어지므로, 수정 직후 그 자리에서 바로 추가할 것. */
   var VERSION_LOG = [
+    {tag:'v4-track a24', date:'2026-09-07', title:'회원가입/계정 설정에 "소속" 입력 항목 추가', desc:'지금까지 "소속"은 상담일지 하단에 "사단법인 인천내일을여는집"으로 고정 문구만 있고, 회원가입·계정 정보에는 입력 항목 자체가 없었음(counselor_profiles 테이블에는 org 컬럼이 이미 있었지만 화면에서 쓰인 적이 없었음) — 구흥모님 요청으로 (1) 회원가입 화면에 "이름" 바로 아래 "소속" 입력칸을 추가해서 가입 시 저장하고, (2) 계정 설정(⚙️) 화면에도 "소속" 입력칸을 추가해서 이름과 함께 언제든 수정할 수 있게 함("이름 저장" 버튼을 "이름·소속 저장"으로 확장). 상담일지 문서에 찍히는 기관명 문구는 이번에는 건드리지 않고 그대로 고정 — 개인별 소속 값을 문서에도 반영할지는 별도로 결정 필요. (구흥모님 요청)'},
     {tag:'v4-track a23', date:'2026-09-07', title:'AI 항목 자동추출에 OpenAI Structured Outputs(JSON Schema strict) 적용 — 필드 누락 자체를 시스템 차원에서 차단', desc:'단순 JSON 모드(response_format:json_object)는 "문법적으로 유효한 JSON"만 보장하고 "정해진 필드를 다 채워서 반환했는가"는 보장하지 않아, 재산·부채 등 필드가 통째로 빠지는 사고가 재현될 여지가 남아있었음(구흥모님 지적: "json 방식 말고 다른 방법 있는지 찾아보고 1번 호출로 최대한 활용하도록 연구해봐") — OpenAI 공식 문서 확인 결과 gpt-4o-mini부터 지원되는 "Structured Outputs"(response_format:{type:"json_schema", strict:true})가 정확히 이 문제를 겨냥한 기능: 스키마의 required 필드는 모델이 절대 생략할 수 없고, enum으로 지정한 값 밖의 답도 나올 수 없도록 시스템 차원에서 강제됨. requestExtractionV4가 보낼 12개 항목의 JSON Schema(extractionJsonSchemaV4)를 만들어 요청에 포함시키고, ai-draft Edge Function이 이 schema를 받으면 json_schema strict 모드로 OpenAI를 호출하도록 배포(버전 5). 기존 "json:true"(단순 JSON 모드)·일반 텍스트 모드 호출(AI 초안 다듬기 등)은 그대로 유지되어 영향 없음. 단, 이 방식도 "모델이 말의 의미를 정확히 이해했는가"까지 보장하진 않음 — 그건 여전히 프롬프트의 판단 기준과 모델 성능에 달려 있고, 그래서 기존의 "불확실하면 화면에서 멈추고 사람이 확인" 안전장치는 그대로 유지됨. (Claude / 구흥모 세션 — OpenAI 공식 문서 조사 후 적용)'},
     {tag:'v4-track a22', date:'2026-09-07', title:'너무 짧은 입력은 AI 항목 추출 API를 호출하지 않도록 최소 글자수 기준 추가', desc:'녹음이나 타이핑 입력이 몇 글자 안 되는 짧은 내용일 때도 매번 항목 자동추출(GPT-4o-mini) API를 호출하고 있어 불필요한 사용량이 나가던 부분 — 어차피 그렇게 짧은 입력에는 뽑아낼 정보가 거의 없어 대부분 null만 돌아오므로, 다듬어진 텍스트 길이가 10자 미만이면 API를 아예 호출하지 않고 곧바로 기존 키워드 매칭 방식(위기사유만 자동 체크)으로 넘어가도록 함(MIN_EXTRACT_CHARS_V4, requestExtractionV4 한 곳에서 처리해 녹음·타이핑 두 경로 모두 동일하게 적용됨). (구흥모님 요청)'},
     {tag:'v4-track a21', date:'2026-09-07', title:'AI 자동 채움 추출 요청에 OpenAI JSON 강제 모드 적용 — 재산·부채 등 필드 누락 방지', desc:'"재산은 없고 빚이 1억"이라고 말했는데 재산뿐 아니라 부채(빚)까지도 소득·재산 화면에 전혀 채워지지 않는 재신고(구흥모님) — a19 프롬프트 문구 보강만으로는 설명이 안 되는 증상이라 다시 확인해보니, 방금 ai-draft Edge Function을 Gemini에서 OpenAI(gpt-4o-mini)로 바꾼 것(a17)이 원인이었음: 녹음 내용 전체에서 12개 항목을 JSON으로 뽑아내는 requestExtractionV4의 긴 추출 프롬프트를, Gemini는 "JSON만 출력하라"는 지시를 비교적 잘 지켰지만 gpt-4o-mini는 일반 텍스트 응답 모드에서는 지시를 놓치고 형식을 흐트러뜨리거나 일부 항목을 통째로 빠뜨리는 경우가 있어, 파싱은 되어도 income/deposit/fin/debt 같은 필드가 실제로는 채워지지 않은 채 응답하는 문제로 재현됨. ai-draft Edge Function이 클라이언트가 보내는 선택적 "json:true" 플래그를 받으면 OpenAI Chat Completions의 response_format:{type:"json_object"}를 켜서 모델이 반드시 문법적으로 유효한 JSON만 반환하도록 강제하게 배포(버전 4)하고, requestExtractionV4가 이 플래그를 켜서 요청하도록 수정 — "AI 초안 다듬기"(generateAiDraft) 등 JSON이 필요 없는 기존 호출은 플래그를 안 보내므로 그대로 일반 텍스트 응답을 받아 동작에 변화 없음. (Claude / 구흥모 세션)'},
