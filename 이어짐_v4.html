@@ -805,6 +805,9 @@
       '(설명 문장, 코드블록 표시(```) 등 그 무엇도 앞뒤에 붙이지 마라).',
       '내용에 명확히 언급되지 않았거나 확신할 수 없는 항목은 절대 추측하지 말고 반드시 null로 두어라',
       '(빈 문자열이나 임의의 기본값 금지 — 특히 소득·재산 관련 숫자는 명시적으로 언급된 경우에만 채워라).',
+      '단, "재산 없음", "보증금 없음", "가진 돈 없음", "소득 없음"처럼 값이 없다고 명확히 말한 경우는',
+      '모르는 것이 아니라 "0"이라는 확실한 정보이므로 null이 아니라 반드시 숫자 0으로 채워라',
+      '(예: "재산은 없고 빚만 1억 있다" → deposit:0, fin:0, debt:100000000).',
       '',
       '스키마(키와 값 형식을 정확히 지킬 것):',
       '{',
@@ -819,10 +822,10 @@
       '  "ageGroup": ' + JSON.stringify(AGEGROUP_LIST_V4) + ' 중 하나 또는 null,',
       '  "gender": ' + JSON.stringify(GENDER_LIST_V4) + ' 중 하나 또는 null,',
       '  "nationality": ' + JSON.stringify(NATIONALITY_LIST_V4) + ' 중 하나 또는 null,',
-      '  "income": 월 소득(원, 정수) 또는 null(명시적 언급이 있을 때만),',
-      '  "deposit": 임차보증금(원, 정수) 또는 null,',
-      '  "fin": 금융재산(원, 정수) 또는 null,',
-      '  "debt": 부채(원, 정수) 또는 null,',
+      '  "income": 월 소득(원, 정수, 없다고 말했으면 0) 또는 null(언급 자체가 없을 때만),',
+      '  "deposit": 임차보증금(원, 정수, 없다고 말했으면 0) 또는 null(언급 자체가 없을 때만),',
+      '  "fin": 금융재산(원, 정수, "재산 없음" 등도 포함해서 없다고 말했으면 0) 또는 null(언급 자체가 없을 때만),',
+      '  "debt": 부채(원, 정수, 없다고 말했으면 0) 또는 null(언급 자체가 없을 때만),',
       '  "health": 배열(0개 이상, 언급된 것만) — 사용 가능한 값: ' + JSON.stringify(HEALTH_LIST_V4),
       '}',
       '',
@@ -899,7 +902,7 @@
       var res = await fetch(AI_DRAFT_URL, {
         method:'POST',
         headers:{'Content-Type':'application/json', 'Authorization':'Bearer '+STT_ANON_KEY},
-        body: JSON.stringify({prompt: prompt})
+        body: JSON.stringify({prompt: prompt, json: true})
       });
       var data = await res.json().catch(function(){ return {}; });
       if(res.ok && data.text){ return parseExtractionJson(data.text); }
@@ -1642,6 +1645,9 @@
      VERSION_LOG 배열 맨 앞에 새 항목을 추가할 것. 같은 날 여러 건이면 tag만 올려서(v0.x) 여러 줄 추가.
      "나중에 몰아서 기록"은 누락으로 이어지므로, 수정 직후 그 자리에서 바로 추가할 것. */
   var VERSION_LOG = [
+    {tag:'v4-track a21', date:'2026-09-07', title:'AI 자동 채움 추출 요청에 OpenAI JSON 강제 모드 적용 — 재산·부채 등 필드 누락 방지', desc:'"재산은 없고 빚이 1억"이라고 말했는데 재산뿐 아니라 부채(빚)까지도 소득·재산 화면에 전혀 채워지지 않는 재신고(구흥모님) — a19 프롬프트 문구 보강만으로는 설명이 안 되는 증상이라 다시 확인해보니, 방금 ai-draft Edge Function을 Gemini에서 OpenAI(gpt-4o-mini)로 바꾼 것(a17)이 원인이었음: 녹음 내용 전체에서 12개 항목을 JSON으로 뽑아내는 requestExtractionV4의 긴 추출 프롬프트를, Gemini는 "JSON만 출력하라"는 지시를 비교적 잘 지켰지만 gpt-4o-mini는 일반 텍스트 응답 모드에서는 지시를 놓치고 형식을 흐트러뜨리거나 일부 항목을 통째로 빠뜨리는 경우가 있어, 파싱은 되어도 income/deposit/fin/debt 같은 필드가 실제로는 채워지지 않은 채 응답하는 문제로 재현됨. ai-draft Edge Function이 클라이언트가 보내는 선택적 "json:true" 플래그를 받으면 OpenAI Chat Completions의 response_format:{type:"json_object"}를 켜서 모델이 반드시 문법적으로 유효한 JSON만 반환하도록 강제하게 배포(버전 4)하고, requestExtractionV4가 이 플래그를 켜서 요청하도록 수정 — "AI 초안 다듬기"(generateAiDraft) 등 JSON이 필요 없는 기존 호출은 플래그를 안 보내므로 그대로 일반 텍스트 응답을 받아 동작에 변화 없음. (Claude / 구흥모 세션)'},
+    {tag:'v4-track a20', date:'2026-09-07', title:'메모(비고)에 자동으로 채워지던 \"[상담원 최초 입력]\" 표시 제거', desc:'④ 건강상태(두 번째 화면)로 넘어갈 때 메모(비고)가 비어 있으면 상담원이 녹음·타이핑한 원문을 "[상담원 최초 입력] ..." 형태로 채워 넣던 표시를 없애고, 그냥 원문 그대로 채우도록 수정(구흥모님 요청) — AI 초안이 자동 실행되면 어차피 정리된 문장으로 다시 덮어써지므로(v4-track a10), 그 전에 잠깐 보이는 원문 상태에서도 불필요한 대괄호 표시 없이 자연스럽게 보이도록 함. (Claude / 구흥모 세션)'},
+    {tag:'v4-track a19', date:'2026-09-07', title:'"재산 없음" 등 값이 없다는 명확한 진술을 null이 아니라 0으로 인식하도록 AI 추출 프롬프트 보강', desc:'"재산이 없고 빚이 1억 정도"처럼 재산이 "없다"고 명확히 말했는데도 임차보증금·금융재산 입력칸이 채워지지 않던 문제(관리자님 신고) — 원인: AI 추출 프롬프트가 "명시적인 숫자가 있을 때만 채우고, 그 외에는 추측하지 말고 null로 두라"고만 지시해서, "없음"이라는 명확한 진술도 AI가 "숫자가 안 나왔으니 null"로 처리해버렸음(부채는 "1억"이라는 숫자가 있어 정상 추출됐지만, 재산 쪽은 null이 되어 자동 채움이 멈추고 사람이 다시 입력해야 하는 상태가 됨). "재산 없음"/"보증금 없음"/"소득 없음"처럼 값이 없다고 말한 경우는 모르는 게 아니라 확실한 "0"이라는 정보이므로 null이 아니라 0으로 채우도록 소득·임차보증금·금융재산·부채 스키마 설명과 지시문을 보강. (구흥모님 신고)'},
     {tag:'v4-track a18', date:'2026-09-07', title:'기록 내 "관리자" 표현을 "구흥모"로 통일 + 긴급성 날짜 지정 UI 다듬기', desc:'이전 기록·주석에서 "관리자님"/"관리자 세션"이라고 쓰던 표현을 전부 "구흥모님"/"구흥모 세션"으로 통일 — 구흥모님(admin 계정 사용자)과 "관리자"가 서로 다른 두 사람인 것처럼 보이던 문제를 바로잡음 (v3, 아이디어_메모.md도 동일하게 정리). 아울러 긴급성 "날짜 지정" 선택 시 나타나는 달력 입력칸이 기본 브라우저 스타일 그대로라 다른 입력칸보다 커 보이던 것을 select와 비슷한 크기로 맞추고, 처음 펼쳐질 때 빈칸이 아니라 오늘 날짜가 기본으로 채워지도록 수정(사용자가 다른 날짜를 고르면 그 값을 그대로 유지). (Claude / 구흥모 세션)'},
     {tag:'v4-track a17', date:'2026-09-07', title:'AI 초안 작성용 API를 Gemini에서 OpenAI(gpt-4o-mini)로 전환', desc:'AI 초안(비고 자동작성) 기능이 지금까지 Google Gemini(gemini-3.6-flash)를 서버(ai-draft Edge Function)에서 호출하고 있었는데, 프라이버시·키 관리 단순화를 위해 이미 STT(whisper-1)에 쓰고 있는 OpenAI 계정으로 통합 — ai-draft Edge Function 내부만 OpenAI Chat Completions(gpt-4o-mini) 호출로 교체(v3). 클라이언트(브라우저) 쪽 요청/응답 형식({prompt}→{text})은 그대로라 이 파일은 코드 변경 없음. platform.openai.com Allowed models는 whisper-1·gpt-4o-mini 두 개만 허용(구흥모님 확인). (Claude / 구흥모 세션)'},
     {tag:'v4-track a13', date:'2026-09-07', title:'화면·다운로드 파일 전반의 "사유서" 표현을 "상담일지"로 전면 변경', desc:'이 문서가 실제 정부 서식(긴급지원신청서)이 아니라 상담원이 참고용으로 미리 정리해두는 초안이라는 점을 더 잘 드러내는 표현이 좋겠다는 구흥모님 의견 — 화면 문구·버튼·다운로드 파일명·메시지 전체에서 "사유서"를 "상담일지"로 일괄 변경("⑦ 사유서 초안"→"⑦ 상담일지 초안", "긴급복지_사유서초안.hwpx"→"긴급복지_상담일지초안.hwpx" 등). 필드 값·판정 로직은 변경 없음. (Claude / 구흥모 세션)'},
@@ -2168,7 +2174,7 @@
     botCard('④ 지원이력·특수상황', TPL_HEALTH_B, '예비판단 실행 ▸', ()=>goResult(), 'health2');
     if(lastFreeText){
       var memo = document.getElementById('memo');
-      if(memo && !memo.value) memo.value = '[상담원 최초 입력] ' + lastFreeText;
+      if(memo && !memo.value) memo.value = lastFreeText;
     }
   }
 
