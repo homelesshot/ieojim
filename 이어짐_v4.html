@@ -1689,6 +1689,7 @@
      VERSION_LOG 배열 맨 앞에 새 항목을 추가할 것. 같은 날 여러 건이면 tag만 올려서(v0.x) 여러 줄 추가.
      "나중에 몰아서 기록"은 누락으로 이어지므로, 수정 직후 그 자리에서 바로 추가할 것. */
   var VERSION_LOG = [
+    {tag:'v4-track a26', date:'2026-09-07', title:'노숙인 전용 날씨 기반 지원물품 기능 제거', desc:'구흥모님 요청으로 "노숙인 대상 전용 — 실시간 날씨 기반 추가 지원물품" 기능 전체 제거 — 대상유형을 "노숙인"으로 고르면 나오던 "현재 위치·날씨로 지원물품 확인" 버튼과 결과(기온·추천 지원물품·위치 텍스트), 그리고 그 결과에서만 켤 수 있던 "상담일지 초안에 이 위치 정보 포함" 체크박스까지 통째로 삭제(renderHomelessSection/weatherCategory/fetchWeatherSupport 함수와 두 곳의 호출 지점 제거). 위치 정보를 상담일지에 넣던 LOC 토큰은 hwpx/텍스트 문서 양쪽에 이미 있어 남겨두되, 값을 채워주던 경로가 없어졌으므로 이제 항상 "해당 없음"으로 고정(문서 형식 자체는 안 건드림). 날씨 위젯이 쓰던 .weatherbox CSS 클래스는 "긴급성 기반 후속조치 요약" 박스에서도 그대로 쓰고 있어 남겨둠. (구흥모님 요청)'},
     {tag:'v4-track a25', date:'2026-09-07', title:'상담일지 hwpx 양식에 색상 강조 적용(섹션 제목 배지·긴급성 하이라이트) + 제목 문구를 "상담일지 초안"으로 변경', desc:'구흥모님이 보내주신 시안 이미지(번호 배지·색깔 강조가 들어간 레이아웃)를 반영 — hwpx 다운로드 템플릿(HWPX_TEMPLATE_B64)에 다음을 적용: (1) 문서 제목을 "긴급복지 지원 요청 사유서"에서 "긴급복지 상담일지 초안"으로 변경(용어 통일 결정에 맞춰 hwpx 내부 텍스트까지 반영 — base64로 인코딩된 바이너리라 이전의 전역 "사유서→상담일지" 텍스트 치환(a13)이 닿지 못했던 부분이었음). (2) ①~⑤ 섹션 제목 칸에 파란 배경(#2E74B5) + 흰색 글자 배지 스타일 적용. (3) 기본정보 표의 "긴급성" 값 칸에 노란 배경(#FFF4D6) + 진한 amber 글자로 강조 표시 적용. hwpx는 사람이 직접 눈으로 렌더링을 확인할 수 없는 XML 포맷이라(v0.33에서도 같은 이유로 보류했던 부분), 이번엔 이미 검증된 안전한 방법(charPr의 textColor/borderFill의 fillBrush — 문서 제목·표 배경에 이미 쓰이고 있던 것과 동일한 메커니즘)만 사용해 리스크를 최소화함. 단, ITEMS_LINE 안의 "[공적]" 같은 태그를 색깔 배지로 만드는 것과 소득·재산 요건 충족/미충족에 따라 RESULT_LINE 색을 다르게 표시하는 것은, 하나의 텍스트 토큰 치환을 여러 서식의 런(run)으로 쪼개야 하는 더 위험한 작업이라 이번엔 적용하지 않음 — 필요하면 별도로 신중하게 진행 권장. 표 셀 너비 합계(행마다 42520 HWPUNIT 유지)·XML well-formed 여부·치환 후 잔여 {{...}} 없음을 코드로 검증함. 화면 UI 자체(TPL_DOC 미리보기)는 이번 변경 대상이 아니라 그대로 유지. (구흥모님 요청)'},
     {tag:'v4-track a24', date:'2026-09-07', title:'회원가입/계정 설정에 "소속" 입력 항목 추가', desc:'지금까지 "소속"은 상담일지 하단에 "사단법인 인천내일을여는집"으로 고정 문구만 있고, 회원가입·계정 정보에는 입력 항목 자체가 없었음(counselor_profiles 테이블에는 org 컬럼이 이미 있었지만 화면에서 쓰인 적이 없었음) — 구흥모님 요청으로 (1) 회원가입 화면에 "이름" 바로 아래 "소속" 입력칸을 추가해서 가입 시 저장하고, (2) 계정 설정(⚙️) 화면에도 "소속" 입력칸을 추가해서 이름과 함께 언제든 수정할 수 있게 함("이름 저장" 버튼을 "이름·소속 저장"으로 확장). 상담일지 문서에 찍히는 기관명 문구는 이번에는 건드리지 않고 그대로 고정 — 개인별 소속 값을 문서에도 반영할지는 별도로 결정 필요. (구흥모님 요청)'},
     {tag:'v4-track a23', date:'2026-09-07', title:'AI 항목 자동추출에 OpenAI Structured Outputs(JSON Schema strict) 적용 — 필드 누락 자체를 시스템 차원에서 차단', desc:'단순 JSON 모드(response_format:json_object)는 "문법적으로 유효한 JSON"만 보장하고 "정해진 필드를 다 채워서 반환했는가"는 보장하지 않아, 재산·부채 등 필드가 통째로 빠지는 사고가 재현될 여지가 남아있었음(구흥모님 지적: "json 방식 말고 다른 방법 있는지 찾아보고 1번 호출로 최대한 활용하도록 연구해봐") — OpenAI 공식 문서 확인 결과 gpt-4o-mini부터 지원되는 "Structured Outputs"(response_format:{type:"json_schema", strict:true})가 정확히 이 문제를 겨냥한 기능: 스키마의 required 필드는 모델이 절대 생략할 수 없고, enum으로 지정한 값 밖의 답도 나올 수 없도록 시스템 차원에서 강제됨. requestExtractionV4가 보낼 12개 항목의 JSON Schema(extractionJsonSchemaV4)를 만들어 요청에 포함시키고, ai-draft Edge Function이 이 schema를 받으면 json_schema strict 모드로 OpenAI를 호출하도록 배포(버전 5). 기존 "json:true"(단순 JSON 모드)·일반 텍스트 모드 호출(AI 초안 다듬기 등)은 그대로 유지되어 영향 없음. 단, 이 방식도 "모델이 말의 의미를 정확히 이해했는가"까지 보장하진 않음 — 그건 여전히 프롬프트의 판단 기준과 모델 성능에 달려 있고, 그래서 기존의 "불확실하면 화면에서 멈추고 사람이 확인" 안전장치는 그대로 유지됨. (Claude / 구흥모 세션 — OpenAI 공식 문서 조사 후 적용)'},
@@ -2068,7 +2069,6 @@
 `;
   var TPL_RESULT2 = `    <div class="sec">② 지금 줄 수 있는 긴급 자체지원</div>
     <div class="giftbox" id="giftbox"></div>
-    <div id="homelessSupport"></div>
     <div class="sec">③ 다음 단계 연계 안내</div>
     <div class="nextbox" id="nextbox"></div>
     <div class="sub">긴급성 기반 후속조치 등록용 요약<span class="infowrap"><button type="button" class="infoQBtn" onclick="toggleInfoPop(this,event)">?</button><div class="infoPop">실제 일정관리 프로그램(사용할 스케줄러는 아직 미정) 자동 연동은 다음 단계 작업이며, 지금은 등록에 바로 붙여넣을 수 있는 텍스트만 만들어 줍니다.</div></span></div>
@@ -2908,7 +2908,6 @@
     document.getElementById('livingType').value = LIVING_PRESET[t] || '기타·확인필요';
     renderCrisis();
     renderAgeGender(false);
-    renderHomelessSection();
   }
 
   // ---------- 금액 입력 도우미 (모바일 숫자패드 + 자동 콤마) ----------
@@ -3053,65 +3052,6 @@
     try{ document.execCommand('copy'); done(); }catch(e){} document.body.removeChild(ta);
   }
 
-  // ---------- 노숙인 대상 전용: 실시간 날씨·위치 기반 추가 지원물품 ----------
-  let lastLocationText = null; // 세션 중에만 메모리 보관, 저장/전송하지 않음
-  function renderHomelessSection(){
-    const t = document.getElementById('targetType').value;
-    const box = document.getElementById('homelessSupport');
-    if(t !== '노숙인'){ box.innerHTML=''; lastLocationText=null; return; }
-    box.innerHTML = ''
-      + '<div class="weatherbox" id="weatherBox">'
-      + '  <b>노숙인 대상 전용 — 실시간 날씨 기반 추가 지원물품<span class="infowrap"><button type="button" class="infoQBtn" onclick="toggleInfoPop(this,event)">?</button><div class="infoPop">현재 위치·날씨를 불러와 계절·기온에 맞는 지원물품을 추천합니다. 여기서 위치는 <b>상담원 기기의 위치이며 대상자 정보가 아닙니다.</b> 매번 브라우저 권한 동의를 받아, 공개 기상·지역 API(open-meteo·bigdatacloud)에 <b>좌표만 1회 전송</b>해 날씨를 조회합니다. 대상자 개인정보(실명·주민번호·주소)는 저장·전송하지 않습니다.</div></span></b>'
-      + '  <button class="btn small" onclick="fetchWeatherSupport()">현재 위치·날씨로 지원물품 확인</button>'
-      + '  <div id="weatherResult"></div>'
-      + '</div>';
-  }
-  function weatherCategory(temp, code){
-    const rain = [51,53,55,56,57,61,63,65,66,67,80,81,82].includes(code);
-    const snow = [71,73,75,77,85,86].includes(code);
-    let items = [];
-    if(temp<=0) items.push('핫팩','담요·침낭','방한복','방한장갑','따뜻한 국물류 식품');
-    else if(temp<=10) items.push('핫팩','방한자켓','따뜻한 음료');
-    else if(temp<20) items.push('겉옷','생수');
-    else if(temp<28) items.push('생수','간편식');
-    else items.push('생수','그늘막 안내','무더위쉼터 안내','냉감용품');
-    if(snow) items.push('방한화·미끄럼방지용품');
-    else if(rain) items.push('우산·우비');
-    return items;
-  }
-  async function fetchWeatherSupport(){
-    const res = document.getElementById('weatherResult');
-    if(!navigator.geolocation){ res.innerHTML='<div class="note">이 브라우저는 위치 정보를 지원하지 않습니다.</div>'; return; }
-    res.innerHTML = '<div class="note">위치 확인 중… (브라우저 권한 요청이 뜨면 허용해 주세요)</div>';
-    navigator.geolocation.getCurrentPosition(async pos=>{
-      const {latitude, longitude} = pos.coords;
-      try{
-        const wres = await fetch('https://api.open-meteo.com/v1/forecast?latitude='+latitude+'&longitude='+longitude+'&current=temperature_2m,weather_code&timezone=auto');
-        const wdata = await wres.json();
-        const temp = wdata.current.temperature_2m;
-        const code = wdata.current.weather_code;
-        const items = weatherCategory(temp, code);
-
-        let placeText = '위치 확인됨(상세 주소 미표시)';
-        try{
-          const gres = await fetch('https://api.bigdatacloud.net/data/reverse-geocode-client?latitude='+latitude+'&longitude='+longitude+'&localityLanguage=ko');
-          const gdata = await gres.json();
-          placeText = [gdata.city, gdata.locality].filter(Boolean).join(' ') || placeText;
-        }catch(e){ /* 지오코딩 실패 시 좌표 없이 진행 — 위치 미표시 */ }
-        lastLocationText = placeText;
-
-        res.innerHTML = '<div style="margin-top:.6rem">'
-          + '<span class="chip">현재 기온 '+temp+'℃</span><span class="chip">'+placeText+' 인근</span>'
-          + '<div class="note" style="margin-top:.5rem"><b>추천 지원물품</b>: '+items.join(', ')+'</div>'
-          + '<label class="check-inline"><input type="checkbox" id="includeLocInDoc" onchange="rebuildDocIfVisible()"/><span>상담일지 초안에 이 위치 정보(동 단위) 포함</span></label>'
-          + '</div>';
-      }catch(e){
-        res.innerHTML = '<div class="note">날씨 정보를 불러오지 못했습니다(네트워크 문제일 수 있음). 잠시 후 다시 시도해 주세요.</div>';
-      }
-    }, err=>{
-      res.innerHTML = '<div class="note">위치 권한이 거부되었거나 가져올 수 없습니다. 권한을 허용하면 다시 시도할 수 있습니다.</div>';
-    });
-  }
   function rebuildDocIfVisible(){
     if(lastRunData) buildDoc();
   }
@@ -3121,13 +3061,12 @@
   function buildDoc(){
     if(!lastRunData) return;
     const d = lastRunData;
-    const includeLoc = d.targetType==='노숙인' && document.getElementById('includeLocInDoc') && document.getElementById('includeLocInDoc').checked && lastLocationText;
     const doc = `[긴급복지 지원 요청 상담일지 — 초안]
 사단법인 인천내일을여는집 · 초안(담당자 확인 후 확정)
 
 성명: [___]        연락처: [___]        성별: ${d.gender}        연령대: ${d.ageGroupLabel}
 가구원수: ${d.size}인${d.children>0 ? ' (동반아동 '+d.children+'명)' : ''}        국적/체류: ${d.nationalityLabel}        대상유형: ${d.targetType}
-거주지역: ${d.regionName}(${d.regionTier})        현재 거주형태: ${d.livingType}${includeLoc ? '\n현재 위치(참고): '+lastLocationText+' 인근 — 노숙인 대상자에 한해 표시' : ''}
+거주지역: ${d.regionName}(${d.regionTier})        현재 거주형태: ${d.livingType}
 
 1. 위기상황
    ${d.crisisMet ? d.crisis.map(c=>'- '+c).join('\n   ') : '- (위기사유 확인 필요)'}
@@ -3279,7 +3218,6 @@ ${d.memo ? '\n메모: '+d.memo : ''}
   function buildHwpxTokens(){
     if(!lastRunData) return null;
     const d = lastRunData;
-    const includeLoc = d.targetType==='노숙인' && document.getElementById('includeLocInDoc') && document.getElementById('includeLocInDoc').checked && lastLocationText;
     return {
       GENDER: d.gender,
       AGE: d.ageGroupLabel,
@@ -3290,7 +3228,7 @@ ${d.memo ? '\n메모: '+d.memo : ''}
       LIVING: d.livingType,
       URGENCY: d.urgencyLabel,
       URGENCY2: d.urgencyLabel,
-      LOC: includeLoc ? (lastLocationText+' 인근 — 노숙인 대상자에 한해 표시') : '해당 없음',
+      LOC: '해당 없음',
       CRISIS_LINES: d.crisisMet ? d.crisis.join('; ') : '(위기사유 확인 필요)',
       INCOME_LINE: '월 소득 약 '+won(d.income)+'으로 '+d.size+'인 가구 긴급복지 소득기준('+won(d.std)+') '+(d.incomeOk?'이하이며':'수준이며')+', 재산 산정액 약 '+won(d.assetCalc)+'(자산상한 '+won(d.assetLimit)+') 기준 '+(d.assetOk?'충족':'초과')+'.',
       RESULT_LINE: (d.incomeOk && d.assetOk) ? '→ 소득·재산 요건 충족' : '→ 소득·재산 요건 미충족(검토 필요)',
@@ -3547,7 +3485,6 @@ ${d.memo ? '\n메모: '+d.memo : ''}
     }
     renderCrisis(); // 통계 반영 후 순서 갱신(자동정렬 전환 시 즉시 표시)
     renderUsageSummary();
-    renderHomelessSection();
 
     scroll();
   }
