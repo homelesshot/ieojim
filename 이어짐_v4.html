@@ -208,8 +208,6 @@
   .privBubble.show{opacity:1;transform:translateX(-50%) translateY(0)}
   .composer.locked textarea:disabled,.composer.locked .cbtn:disabled{opacity:.4;cursor:not-allowed}
   .composer.locked textarea:disabled{background:transparent}
-  .composer .lockhint{display:none;font-size:1.44rem;color:var(--mut);text-align:center;margin-top:6px}
-  .composer.locked .lockhint{display:block}
   .composer.locked .foothint{display:none}
   @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(192,57,43,.5)}50%{box-shadow:0 0 0 7px rgba(192,57,43,0)}}
   .recLiveBox{display:flex;align-items:center;gap:9px;font-size:1.3rem;font-weight:800;color:#fff;background:var(--bad, #c0392b);padding:12px 14px;border-radius:14px}
@@ -460,7 +458,6 @@
           <button class="cbtn send" onclick="send()" title="보내기">↑</button>
         </div>
       </div>
-      <div class="lockhint">🔒 상담 진행 중에는 새 입력이 잠겨요. 위에서 항목을 수정하려면 해당 카드에서 바로 수정하세요 · 다른 사례를 시작하려면 사이드바의 "새 상담 시작"을 눌러주세요</div>
     </div>
   </main>
 
@@ -1642,6 +1639,8 @@
      VERSION_LOG 배열 맨 앞에 새 항목을 추가할 것. 같은 날 여러 건이면 tag만 올려서(v0.x) 여러 줄 추가.
      "나중에 몰아서 기록"은 누락으로 이어지므로, 수정 직후 그 자리에서 바로 추가할 것. */
   var VERSION_LOG = [
+    {tag:'v4-track a11', date:'2026-09-07', title:'화면 전환 때 잠깐 깜빡이던 \"상담 진행 중 잠김\" 안내 문구 제거', desc:'①위기사유 화면에서 ②가구·거주 화면으로(또는 첫 카드가 생기는 모든 전환에서) 넘어가는 찰나에 "상담 진행 중에는 새 입력이 잠겨요..." 안내 문구가 잠깐 보였다가 사라지는 현상(관리자님 신고) — lockMainInput()이 먼저 .locked를 적용해 이 문구를 잠깐 보이게 했다가, 그 직후(botTyping 지연 후) 첫 카드가 만들어지며 body.wz-flow가 켜져 입력창 전체(이 문구 포함)가 항상 숨겨지는 구조라, 이 문구는 그 찰나의 깜빡임 말고는 애초에 사용자에게 정상적으로 보일 일이 없었음 — 문구와 관련 CSS를 아예 제거. (Claude / 구흥모 세션)'},
+    {tag:'v4-track a12', date:'2026-09-07', title:'사유서 다운로드 파일명을 상담 내용(대상유형·위기사유·날짜)에 맞게 자동 생성', desc:'한글·텍스트 사유서 다운로드 파일명이 항상 "긴급복지_사유서초안"으로 고정돼 있어서, 여러 건을 다운로드하면 서로 구분이 안 되던 문제(관리자님 요청) — 대상유형·첫 번째 위기사유·날짜를 붙여서 (예: 긴급복지_사유서초안_노숙인_노숙등주거상실_2026-09-07.hwpx) 사례별로 구분되게 함. 실명 등 개인식별정보는 애초에 [___]로만 처리하고 파일명에 넣지 않으므로 개인정보 노출 위험은 없음. (Claude / 구흥모 세션)'},
     {tag:'v4-track a5', date:'2026-09-07', title:'녹음 무음 구간에서 나오던 Whisper 환각 문구(가짜 뉴스·스포츠 멘트 등) 필터링', desc:'Whisper(whisper-1)가 무음·깨진 오디오를 유튜브·뉴스 자막 데이터로 학습된 "환각" 문구로 채우는 문제가 현장에서 재발("지금까지 뉴스 스포츠였습니다" 등) — stt-transcribe Edge Function(버전 7)에서 verbose_json이 내려주는 segment별 no_speech_prob(무음일 확률)·avg_logprob(신뢰도)를 검사해 무음 구간으로 추정되는 segment를 최종 텍스트에서 제외하고, 알려진 환각 문구(시청해주셔서 감사합니다/구독과 좋아요/다음 뉴스/스포츠였습니다 등) 패턴도 한 번 더 걸러내도록 서버 로직 보강. (Claude / 구흥모 세션)'},
     {tag:'v4-track a6', date:'2026-09-07', title:'위치·날씨 위젯의 체크박스 문구가 세로로 깨져 나오던 iOS 레이아웃 버그 수정(v3도 동일 적용)', desc:'iOS Safari에서 flex 컨테이너(.check-inline) 안에 체크박스 뒤 안내 문구가 <span> 없이 "벌거벗은 텍스트 노드"로 들어가 있으면 익명 flex item 처리가 꼬여 한글이 한 글자씩 세로로 쭉 쌓여 화면 오른쪽 끝까지 밀려나는 문제(현장 스크린샷으로 확인 — "현재 위치·날씨로 지원물품 확인" 결과의 "사유서 초안에 이 위치 정보 포함" 체크박스에서 재현) — 문구를 <span>으로 감싸 정상적인 flex item으로 만들고 word-break:keep-all을 추가해 해결. 같은 패턴을 쓰는 "가명화 도우미"의 6자리 숫자 가리기 체크박스도 함께 방어적으로 수정. (v3에도 동일 적용) (Claude / 구흥모 세션)'},
     {tag:'v4-track a7', date:'2026-09-07', title:'녹음 버튼을 입력창 옆에서 첫 화면 중앙의 큰 원형 버튼으로 이동', desc:'첫 화면 안내 문구를 "상황을 입력하거나, 오른쪽 버튼으로 녹음하세요"에서 "상황을 입력하세요"로 단순화하고, 입력창 옆에 작게 붙어있던 녹음 버튼을 없앤 뒤 "상황 입력 없이 바로 진행" 버튼 아래, 화면 중앙에 손가락으로 누르기 좋은 크기(68px)의 둥근 녹음 버튼으로 옮김(resetChat()의 웰컴 화면 재생성 코드에도 동일 반영). (관리자님 요청 — UI 재배치)'},
@@ -3321,16 +3320,28 @@ ${d.memo ? '\n메모: '+d.memo : ''}
       const orderedNames = ['mimetype', ...names.filter(n=>n!=='mimetype')];
       const outBytes = buildStoredZip(orderedNames, entries);
       const blob = new Blob([outBytes], {type:'application/hwp+zip'});
-      await saveBlob(blob, '긴급복지_사유서초안.hwpx');
+      await saveBlob(blob, buildDocFilename('hwpx'));
     }catch(e){
       note.innerHTML = '⚠ .hwpx 파일 생성 중 오류가 발생했습니다(' + e.message + '). 대신 .txt 다운로드를 이용해 주세요.';
     }
   }
 
+  // 상담 내용에 맞는 파일명 생성 — 관리자님 요청(모든 사례가 "긴급복지_사유서초안"으로만 저장되면
+  // 여러 건을 다운로드했을 때 서로 구분이 안 됨). 대상유형·첫 번째 위기사유·날짜를 붙여서 구분되게
+  // 하되, 실명 등 개인식별정보는 애초에 안 다루므로(항상 [___]) 여기에도 들어갈 일이 없다.
+  function buildDocFilename(ext){
+    const d = lastRunData;
+    if(!d) return '긴급복지_사유서초안.' + ext;
+    const safe = function(s){ return String(s||'').replace(/[\/:*?"<>|·]/g, '').replace(/\s+/g, ''); };
+    const target = safe(d.targetType);
+    const reason = (Array.isArray(d.crisis) && d.crisis.length) ? safe(d.crisis[0]) : '';
+    const parts = ['긴급복지_사유서초안', target, reason, d.today].filter(Boolean);
+    return parts.join('_') + '.' + ext;
+  }
   function downloadDoc(type){
     const text = document.getElementById('doc').textContent;
     const blob = new Blob([text], {type:'text/plain;charset=utf-8'});
-    saveBlob(blob, '긴급복지_사유서초안.txt');
+    saveBlob(blob, buildDocFilename('txt'));
   }
 
   // ---------- 메인 판단 로직 ----------
