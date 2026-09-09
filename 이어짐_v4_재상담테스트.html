@@ -994,32 +994,15 @@
     }
     STEP['household2'].btn.click();
 
-    // ③ 소득·재산 — AI가 값을 다 채웠어도(missing3가 비어 있어도) 더 이상 자동으로 다음 단계로
-    // 넘기지 않고 항상 이 화면에서 멈춘다. 소득·재산은 긴급복지 예비판단의 법적 핵심 근거라, 음성으로
-    // 잘못 전달된 값이나 녹음 중 섞여든 문구를 AI가 실제 데이터로 오인해 채운 경우까지 사람이 반드시
-    // 눈으로 확인한 뒤 직접 "다음"을 누르게 강제한다(v4-track a32, 적대적 리뷰 반영). 사람이 "다음"을
-    // 누르면 그 뒤(건강상태 이후)는 기존처럼 자동 진행을 이어간다 — continueAutoFillAfterIncomeV4 참고.
+    // ③ 소득·재산 — 잘못 0으로 넘어가면 예비판단 결과가 왜곡될 수 있어 특히 보수적으로 확인
     fillIncomeFieldsV4(ex);
     var missing3 = missingLabelsV4(ex, ['income','deposit','fin','debt'], {income:'월 소득', deposit:'임차보증금', fin:'금융재산', debt:'부채'});
     if(missing3.length){
       markUnsureNoteV4('income', '소득·재산은 특히 정확해야 해서, AI가 못 채운 항목은 반드시 직접 입력해주세요: ' + missing3.join(', '));
-    } else {
-      markUnsureNoteV4('income', 'AI가 자동으로 채운 값이에요 — 소득·재산은 특히 중요하니 숫자를 꼭 확인한 뒤 아래 "다음"을 눌러주세요.');
-      var incomeBtn = STEP['income'] && STEP['income'].btn;
-      if(incomeBtn){
-        var origIncomeClick = incomeBtn.onclick;
-        incomeBtn.onclick = function(){
-          origIncomeClick.call(this);
-          continueAutoFillAfterIncomeV4(ex);
-        };
-      }
+      return;
     }
-  }
+    STEP['income'].btn.click();
 
-  // 소득·재산 화면에서 사람이 직접 "다음"을 확인한 뒤 이어지는 나머지 자동 진행(④ 건강상태부터).
-  // runAutoFillStepsV4에서 분리해서, 소득·재산만 항상 사람 확인을 거치도록 강제하면서도 그 이후
-  // 단계의 기존 자동 진행 동작은 그대로 유지한다.
-  function continueAutoFillAfterIncomeV4(ex){
     // ④-a 건강상태
     fillHealthFieldsV4(ex);
     var missing4 = missingLabelsV4({health:Array.isArray(ex.health)?ex.health.filter(function(v){return HEALTH_LIST_V4.indexOf(v)!==-1;}):[]}, ['health'], {health:'건강상태'});
@@ -1712,7 +1695,6 @@
      VERSION_LOG 배열 맨 앞에 새 항목을 추가할 것. 같은 날 여러 건이면 tag만 올려서(v0.x) 여러 줄 추가.
      "나중에 몰아서 기록"은 누락으로 이어지므로, 수정 직후 그 자리에서 바로 추가할 것. */
   var VERSION_LOG = [
-    {tag:'v4-track a32', date:'2026-09-09', title:'적대적 리뷰 반영 1차 — 결과화면 예비판단 문구, hwpx 토큰/따옴표 이스케이프 강화, 소득·재산 AI자동채움 확인 강제, 5인 이상 가구 배지 다운그레이드', desc:'9/9 적대적 리뷰(보안/기술·현장사용자 관점 교차검증) 결과 중, v4.html 코드만으로 안전하게 바로 고칠 수 있는 4가지를 반영. (1) 예비판단 결과 화면(TPL_RESULT1) 맨 위에 "이 판단은 AI가 보조하는 예비판단이며 최종 지원 여부는 담당 기관의 공식 심사를 따른다"는 문구를 항상 보이는 박스로 추가 — 판정 배지가 신호등처럼 눈에 띄는 것과 별개로, 확정된 결과가 아니라는 점을 명시. (2) xmlEscape()에 두 가지 보강: 상담원 메모/AI초안 텍스트 등 자유입력값 안에 우연히 "{{다른토큰}}" 형태 문자열이 들어 있어도 나중에 처리되는 다른 토큰에 의해 재치환되지 않도록, 값 치환 전에 연속된 중괄호 두 개 사이에 폭 없는 문자(zero-width space)를 끼워 패턴 자체를 깨뜨림(화면에는 보이지 않음). 기존에 &/</>만 이스케이프하던 것에 큰따옴표(")·작은따옴표(\\x27)도 추가해서 토큰이 속성값 자리에 들어가는 경우까지 대비. fillHwpxTemplate/fillHwpxTemplateWithMulti/buildAiHwpxParagraphs 전부 이 공용 함수를 쓰므로 한 곳 수정으로 전체 반영됨. (3) 녹음·타이핑 즉시 AI가 항목을 자동 채우는 위저드(runAutoFillStepsV4)에서, 이전에는 소득·재산 4개 필드(월소득/임차보증금/금융재산/부채)가 AI로 전부 채워지면 사람 확인 없이 바로 다음 단계로 자동 진행됐음 — 이제는 항목이 다 채워졌어도 항상 이 화면에서 멈추고 "AI가 자동으로 채운 값이니 꼭 확인 후 다음을 눌러주세요" 안내를 띄운 뒤, 상담원이 직접 "다음"을 눌러야만 진행되도록 변경. 그 이후 단계(④건강상태~예비판단 실행)의 기존 자동 진행 로직은 그대로 유지하기 위해 해당 부분을 continueAutoFillAfterIncomeV4() 함수로 분리하고, 소득 화면의 다음 버튼 클릭 핸들러에 한 번 더 연결(원래 핸들러 실행 후 이어서 호출)하는 방식으로 구현 — 값이 못 채워진 경우(missing3.length>0)의 기존 동작(직접 입력 요구)은 변경 없음. (4) 판정 로직(run())에서 가구원수가 5인 이상이면서 소득·재산 요건을 충족하는 것으로 계산된 경우, 기존처럼 확정적인 초록색 "대상 가능" 배지 대신 "추가 확인 필요 — 5인 이상 가구 소득기준은 추정치" 배지(주황)로 표시하도록 변경 — INCOME_STD의 5인 값이 실제 고시금액이 아니라 4인 대비 증가폭을 그대로 적용한 추정치라서, 실제로는 적격인 대가구가 화면상 확정 배지 때문에 재확인 없이 넘어가는 걸 방지. 4가지 모두 v4.html 내부 로직만으로 완결되는 수정이라 Supabase/서버 변경 없이 적용 가능. 나머지 리뷰 항목(인증 토큰 구조, 가명화 경로 통일 등)은 서버/정책 결정이 필요해 별도 논의 후 진행 예정(claude 프로젝트 문서 adversarial-review-2026-09-09.md 참고). (구흥모님 요청 — 적대적 리뷰 대응)'},
     {tag:'v4-track a31(test)', date:'2026-09-08', title:'[테스트 전용 파일] 재상담 모드 — 거주·가구·건강 정보를 이 기기의 마지막 값으로 미리 채우기', desc:'9/8 현장 실사용 피드백(초기상담 대비 재상담엔 불필요한 질문이 많음) 대응 1차 시험 버전. 웰컴 화면에 "🔁 재상담" 체크박스를 추가 — 체크하고 진행하면 ②거주지 정보/②가구·인적사항/④건강상태/④지원이력·특수상황 네 화면에서, 이 브라우저(localStorage, 키 ieojim_last_profile_v1)에 마지막으로 예비판단을 실행했을 때 저장해둔 값(거주지역·거주형태·가구원수·연령대·성별·국적·건강상태·지원이력·특수상황)을 자동으로 채워주고 "🔁 지난 상담 값을 불러왔어요 — 다르면 직접 수정해주세요" 안내를 보여줌 — 값이 달라졌으면 그 자리에서 바로 고치면 됨. 위기사유·긴급성과 소득·재산은 매 상담마다 실제 상황이 달라질 수 있어 이번엔 자동 채움 대상에서 제외(그대로 매번 새로 입력). **이름으로 특정 인물을 찾아 이전 기록을 불러오는 기능이 아님** — 그건 이름을 개인정보로 저장할지 말지 기관 내부 정책 결정이 먼저 필요해서 별도로 보류 중(claude 프로젝트 문서 field-feedback-2026-09-08.md 참고). 이 파일은 정식 반영 전 사용해보고 판단하기 위한 테스트용 복사본(이어짐_v4.html 원본은 그대로 유지, 이 기능이 실제로 도움이 되면 그때 v4 본선에 반영 예정). (구흥모님 요청 — 실사용 피드백 대응, 테스트 버전)'},
     {tag:'v4-track a30', date:'2026-09-07', title:'sunny님 hwpx 양식에 "참고(상담 메모)" 섹션 복원 — a27에서 통째로 빠졌던 메모 표시 되살림', desc:'a28에서 발견만 해두고 넘어갔던 문제(메모가 hwpx 다운로드에 안 보임)를 구흥모님이 재확인 — "메모 내용은 AI로 정리된 내용이 맞는지" 질문에: 맞음(generateAiDraft가 AI 초안을 만들면 그 결과를 메모칸(memo)에 그대로 채워넣고 상담일지를 다시 만들기 때문에, 메모를 직접 입력하지 않고 AI 초안만 실행해도 그 내용이 MEMO_LINE에 들어감). 다른 빠진 항목 있는지 전체 재점검: a25 템플릿의 토큰 목록(AGE/CRISIS_LINES/DATE_LINE/GENDER/HEALTH_LINE/INCOME_LINE/ITEMS_LINE/LIVING/LOC/MEMO_LINE/NAT/REGION/RESULT_LINE/SELF_LINE/SIGN_LINE/SIZE/TARGET/URGENCY)과 현재 a27+a28 템플릿의 토큰 목록을 대조 — LOC(위치, a26에서 기능 자체 제거로 불필요)·DATE_LINE(DATE_VALUE로 대체, 정상)·SIGN_LINE(SIGN_NAME으로 대체, 정상)은 의도된 변경이고, MEMO_LINE만 진짜로 빠진 게 확인되어 이번에 hwpx XML에 "●  참고(상담 메모)" 섹션(다른 섹션과 동일한 원문자·글머리표 스타일)을 새로 추가해서 {{MEMO_LINE}} 토큰을 되살림(작성일·서명 표 바로 앞에 배치, 다른 섹션 문단 구조를 그대로 복제해서 위험 최소화). 겸사겸사 확인: 이 토큰이 없어서 부수적으로 downloadAiDraftHwpx()(AI 초안 전용 hwpx 다운로드 — AI가 쓴 초안 전체를 여러 문단으로 쪼개 넣는 별도 기능)도 대상 문단을 못 찾아 조용히 아무것도 안 넣고 있었는데, 토큰을 되살리면서 이 기능도 같이 정상화됨. 실제 앱 로직 그대로(fillHwpxTemplate 단순 치환·fillHwpxTemplateWithMulti 다중 문단 치환 둘 다) 파이썬으로 재현해서 검증: 잔여 {{토큰}} 0, XML well-formed, 메모 텍스트·AI초안 텍스트 모두 정상 삽입 확인. (구흥모님 요청)'},
     {tag:'v4-track a29', date:'2026-09-07', title:'Gemini 미사용 재확인 + 화면에 남아있던 낡은 "Google Gemini" 안내 문구·죽은 코드 정리', desc:'구흥모님이 "제미나이는 사용 안 하는 거 확실히 해달라"고 요청 — 실제 서버(Supabase ai-draft/stt-transcribe Edge Function, 배포된 코드를 직접 조회해서 확인)는 둘 다 api.openai.com만 호출하고 있어 Gemini 호출은 없음을 확인. 다만 화면 쪽에 a17(Gemini→OpenAI 전환) 이전부터 남아있던 낡은 문구·죽은 코드를 발견해서 같이 정리: (1) "AI로 초안 다듬기" 섹션에 아직도 "Google Gemini가 상담일지 초안을 작성합니다" / "무료 API라 구글이 응답 개선에 활용할 수 있어요(Gemini)"라고 뜨던 안내문 — 실제로는 a17부터 OpenAI를 쓰고 있는데 화면 문구만 안 바뀌어서 실제 동작과 다른 설명이 되고 있었음. "AI(OpenAI)가 작성합니다" / "OpenAI API 정책상 별도 동의 없이는 학습에 사용되지 않지만 민감정보는 넣지 않는 게 안전해요"로 실제 사실에 맞게 수정. (2) v0.8에서 이미 화면 입력칸 자체는 지웠지만 남아있던 죽은 함수 GEMINI_KEY_STORAGE/initGeminiKeyNote/saveGeminiKey 삭제(연결된 HTML 요소가 없어 동작에는 영향 없던 코드였지만, "혹시 Gemini 키를 쓰는 경로가 남아있나" 하는 걱정의 소지 자체를 없앰). (3) 관련 없는 코드 주석 2곳("녹음 텍스트를 Gemini에게 보내...")도 실제 사용 중인 OpenAI로 문구만 수정(동작 변경 없음). (구흥모님 요청)'},
@@ -2087,7 +2069,6 @@
       </div>
 `;
   var TPL_RESULT1 = `    <div class="sec">① 긴급복지 예비판단</div>
-    <div style="background:#fff4d6;color:#7a5b00;border:1px solid #e6c260;border-radius:10px;padding:9px 12px;margin-bottom:10px;font-size:.96rem;font-weight:600">⚠ 이 판단은 AI가 보조하는 <b>예비판단</b>입니다 — 최종 지원 여부는 담당 기관의 공식 심사를 따릅니다.</div>
     <div id="verdict" class="verdict"></div>
     <div class="sub">판단 근거</div>
     <ul class="basis" id="basis"></ul>
@@ -3318,16 +3299,7 @@ ${d.memo ? '\n메모: '+d.memo : ''}
     out.set(eocd,pos);
     return out;
   }
-  // 입력값에 우연히(또는 의도적으로) "{{다른토큰}}" 형태의 문자열이 들어 있으면, 아직 치환되지 않은
-  // 다른 키가 나중에 이 값 안의 문자열까지 다시 치환해버리는 이중치환 문제가 있었음 — 중괄호 두 개
-  // 연속을 보이지 않는 폭 없는 문자(zero-width space)로 끊어서 패턴 매칭 자체가 안 되게 방지.
-  // 큰따옴표·작은따옴표도 함께 이스케이프해서, 토큰이 속성값 자리에 들어가는 경우까지 대비.
-  function xmlEscape(s){
-    return String(s)
-      .split('{{').join('{​{').split('}}').join('}​}')
-      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-      .replace(/"/g,'&quot;').replace(/'/g,'&apos;');
-  }
+  function xmlEscape(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   // 템플릿(제목+표+본문 구조가 이미 갖춰진 hwpx)의 {{TOKEN}} 자리표시자를 실제 값으로 그대로 치환합니다.
   // 표의 셀 서식(음영·테두리·열너비)은 템플릿에 이미 만들어져 있으므로, 텍스트만 바꿔도 표 모양이 그대로 유지됩니다.
   function fillHwpxTemplate(origXml, tokens){
@@ -3553,7 +3525,6 @@ ${d.memo ? '\n메모: '+d.memo : ''}
     else if(special.length){ cls='v-warn'; verdict='추가 확인 필요 — 특수상황(담당자·전문기관 경로)'; tag='확인'; }
     else if(nationality==='외국인(미확정)'){ cls='v-warn'; verdict='추가 확인 필요 — 체류자격 확인 후 지원범위 결정'; tag='확인'; }
     else if(!financialsConfirmed){ cls='v-warn'; verdict='추가 확인 필요 — 소득·재산 정보 미확인(상담원 미입력, 직접 확인 필요)'; tag='확인'; }
-    else if(size>=5 && incomeOk && assetOk){ cls='v-warn'; verdict='추가 확인 필요 — 5인 이상 가구 소득기준은 추정치(보건복지부 최신 고시 금액으로 재확인 필요)'; tag='확인'; }
     else if(incomeOk && assetOk){ cls='v-ok'; verdict='긴급복지 예비 대상 가능'; tag='대상 가능'; }
     else { cls='v-warn'; verdict='추가 확인 필요 — 소득/재산 기준 초과(긴급성 시 자체지원 우선 검토)'; tag='확인'; }
 
