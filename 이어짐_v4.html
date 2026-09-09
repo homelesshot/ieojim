@@ -244,6 +244,20 @@
   .vmodal-head{display:flex;align-items:center;justify-content:space-between;padding:10px 18px 12px;border-bottom:1px solid var(--line)}
   .vmodal-head h2{font-size:1rem;margin:0;font-weight:800}
   .vmodal-body{overflow-y:auto;padding:10px 18px 22px;scrollbar-width:thin;scrollbar-color:var(--scroll-thumb) var(--scroll-track)}
+  /* 설정 화면 — ChatGPT 스타일 좌측 메뉴 + 우측 패널(v4-track a37) */
+  .setWrap{display:flex;min-height:340px;max-height:70vh}
+  .setNav{flex:0 0 132px;border-right:1px solid var(--line);padding:10px 6px;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
+  .setNavBtn{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;border-radius:10px;padding:9px 4px;font-size:1.1rem;line-height:1.3;color:var(--mut);cursor:pointer;text-align:center;font-family:inherit}
+  .setNavBtn span{font-size:1.05rem;font-weight:600}
+  .setNavBtn.active{background:var(--accent-soft);color:var(--accent-ink)}
+  .setPanes{flex:1;min-width:0;overflow-y:auto;padding:14px 16px}
+  .setPane[hidden]{display:none}
+  @media (max-width:520px){
+    .setWrap{flex-direction:column;max-height:none}
+    .setNav{flex-direction:row;flex:0 0 auto;border-right:none;border-bottom:1px solid var(--line);overflow-x:auto;overflow-y:visible;padding:8px 6px}
+    .setNavBtn{flex:0 0 auto;flex-direction:row;padding:7px 10px}
+    .setPanes{padding:12px 14px}
+  }
   .vmodal-body::-webkit-scrollbar{width:7px}
   .vmodal-body::-webkit-scrollbar-track{background:var(--scroll-track)}
   .vmodal-body::-webkit-scrollbar-thumb{background:var(--scroll-thumb);border-radius:10px}
@@ -607,15 +621,23 @@
     </div>
   </div>
 
-  <!-- 상담원 설정(이름/비밀번호 변경) 바텀시트 -->
+  <!-- 상담원 설정 바텀시트 (ChatGPT 스타일 좌측 메뉴 + 우측 패널) -->
   <div class="vmodal-backdrop" id="settingsBackdrop" onclick="closeSettings()"></div>
   <div class="vmodal" id="settingsModal">
     <div class="vmodal-grab"></div>
     <div class="vmodal-head">
-      <h2>계정 설정</h2>
+      <h2>설정</h2>
       <button class="iconbtn" onclick="closeSettings()">✕</button>
     </div>
-    <div class="vmodal-body">
+    <div class="vmodal-body" style="padding:0">
+      <div class="setWrap">
+        <div class="setNav">
+          <button class="setNavBtn active" data-pane="acct" onclick="switchSettingsPane('acct')">👤<span>계정</span></button>
+          <button class="setNavBtn" data-pane="ai" onclick="switchSettingsPane('ai')">🤖<span>AI·개인정보 안내</span></button>
+          <button class="setNavBtn" data-pane="key" onclick="switchSettingsPane('key')">🔐<span>보안(암호화 키)</span></button>
+        </div>
+        <div class="setPanes">
+          <div class="setPane" id="setPaneAcct">
       <div class="field"><span class="lab">이름</span>
         <input type="text" id="setName" placeholder="예: 김상담" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:1.2rem">
       </div>
@@ -648,9 +670,21 @@
           <button class="btn small secondary" onclick="closePwChange()">취소</button>
         </div>
       </div>
+          </div>
+          <div class="setPane" id="setPaneAi" hidden>
+      <div style="font-weight:800;margin-bottom:.4rem;font-size:1.4rem">🤖 AI를 쓴다는 게, 정보가 새어나간다는 뜻은 아니에요</div>
+      <div class="note" style="margin-bottom:.8rem;line-height:1.65">이어짐은 상담 내용을 글로 옮기고 항목을 정리하는 데 AI(인공지능)를 사용해요. 옆에서 타이핑을 도와주는 <b>보조 도구</b>를 쓰는 것과 비슷하다고 생각하시면 돼요.</div>
 
-      <div style="border-top:1px solid var(--line);margin:1rem 0 .8rem"></div>
+      <div class="note" style="background:var(--surface-2);border-radius:10px;padding:10px 12px;margin-bottom:.6rem;line-height:1.6"><b>✅ AI가 이 대화를 "기억"하거나 다른 사람에게 보여주지 않아요.</b><br>그 순간 내용을 정리하는 데만 잠깐 쓰이고, AI 학습에는 전혀 사용되지 않아요.</div>
+      <div class="note" style="background:var(--surface-2);border-radius:10px;padding:10px 12px;margin-bottom:.6rem;line-height:1.6"><b>✅ 계속 저장되는 게 아니에요.</b><br>정리에 쓰인 뒤 악용 방지 목적으로 잠깐 보관되고, 최대 30일 안에 자동으로 삭제돼요.</div>
+      <div class="note" style="background:var(--surface-2);border-radius:10px;padding:10px 12px;margin-bottom:1rem;line-height:1.6"><b>✅ 아무나 볼 수 있는 게 아니에요.</b><br>상담 기록은 암호화되어 저장되고, 담당 상담원만 열어볼 수 있어요.</div>
 
+      <div style="font-weight:700;margin-bottom:.3rem">💬 대상자에게는 이렇게 설명해보세요</div>
+      <div class="note" style="background:var(--accent-soft);color:var(--accent-ink);border-radius:10px;padding:10px 12px;font-weight:600;line-height:1.6;margin-bottom:.8rem">"요즘 병원에서 진료 내용을 녹음해서 자동으로 기록 정리하는 것처럼, 저희도 AI로 대화 내용을 빠르게 정리하는 데 쓰고 있어요. 다른 데 쓰이거나 계속 저장되는 게 아니라, 정리가 끝나면 금방 지워지니까 편하게 말씀하셔도 돼요."</div>
+
+      <div class="note" style="text-align:center;margin-top:.4rem"><a href="javascript:void(0)" onclick="openPolicy()" style="color:var(--accent);font-weight:700;text-decoration:underline">전체 개인정보 처리방침 자세히 보기</a></div>
+          </div>
+          <div class="setPane" id="setPaneKey" hidden>
       <div style="font-weight:800;margin-bottom:.4rem">🔐 개인정보 비밀키</div>
       <div class="note" style="margin-bottom:.6rem">상담 내용은 <b>본인만 아는 비밀키</b>로 이 브라우저에서 직접 암호화돼요. 서버·관리자도 비밀키 없이는 원문을 볼 수 없습니다. 비밀키를 잃어버리면 복구 코드로만 되살릴 수 있어요.</div>
       <div class="note" id="keyStatusNote">확인 중…</div>
@@ -708,6 +742,9 @@
         <div class="btnrow" style="margin-top:.2rem">
           <button class="btn small" onclick="recoverCounselorKey()">복구하고 새 비밀키 설정</button>
           <button class="btn small secondary" onclick="toggleKeyRecoverMode()">취소</button>
+        </div>
+      </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1256,6 +1293,7 @@
     var orgInput = document.getElementById('setOrg'); if(orgInput) orgInput.value = currentCounselor.org || '';
     var note = document.getElementById('setNameNote'); if(note) note.textContent = '';
     closePwChange();
+    switchSettingsPane('acct');
     document.getElementById('settingsBackdrop').classList.add('on');
     document.getElementById('settingsModal').classList.add('open');
     refreshKeyStatus();
@@ -1263,6 +1301,18 @@
   function closeSettings(){
     document.getElementById('settingsBackdrop').classList.remove('on');
     document.getElementById('settingsModal').classList.remove('open');
+  }
+  /* 설정 화면 좌측 메뉴 전환 (v4-track a37) */
+  var SETTINGS_PANES = ['acct','ai','key'];
+  function switchSettingsPane(name){
+    if(SETTINGS_PANES.indexOf(name) === -1) name = 'acct';
+    for(var i=0;i<SETTINGS_PANES.length;i++){
+      var p = SETTINGS_PANES[i];
+      var paneEl = document.getElementById('setPane' + p.charAt(0).toUpperCase() + p.slice(1));
+      if(paneEl) paneEl.hidden = (p !== name);
+      var btnEl = document.querySelector('.setNavBtn[data-pane="' + p + '"]');
+      if(btnEl) btnEl.classList.toggle('active', p === name);
+    }
   }
   function openPwChange(){
     document.getElementById('pwChangeToggleRow').style.display = 'none';
@@ -1766,6 +1816,7 @@
      VERSION_LOG 배열 맨 앞에 새 항목을 추가할 것. 같은 날 여러 건이면 tag만 올려서(v0.x) 여러 줄 추가.
      "나중에 몰아서 기록"은 누락으로 이어지므로, 수정 직후 그 자리에서 바로 추가할 것. */
   var VERSION_LOG = [
+    {tag:'v4-track a37', date:'2026-09-09', title:'설정 화면을 ChatGPT 스타일 좌측메뉴+우측패널로 개편 + "AI·개인정보 안내"(쉬운 설명) 탭 신설', desc:'[1] 설정(⚙️) 바텀시트를 단일 스크롤 목록에서 좌측 아이콘 메뉴(계정/AI·개인정보 안내/보안) + 우측 콘텐츠 패널 구조(.setWrap/.setNav/.setPanes, switchSettingsPane())로 개편. 기존 이름·소속·비밀번호 변경(계정)과 비밀키 관리(보안) 로직·마크업은 그대로 각 패널로 옮기기만 했고 기능 변경 없음. 좁은 화면(480px 이하 유사 기준 520px)에서는 좌측 메뉴가 상단 가로 탭으로 바뀌도록 반응형 처리. [2] 새 "AI·개인정보 안내" 패널 신설 — a36의 처리방침(법률 문서 톤)과 별개로, 상담원이 대상자에게 "AI를 쓴다고 정보가 새어나가는 게 아니다"를 쉬운 말로 설명할 수 있도록 쉬운 설명 3가지(기억 안 함/계속 저장 안 됨·30일 삭제/아무나 못 봄) + 그대로 읽어줄 수 있는 구어체 설명 문구("병원에서 녹음해서 자동으로 진료기록 정리하는 것처럼…") + 전체 처리방침 링크(openPolicy() 재사용)로 구성. 게이트(a36)의 격식있는 안내문과 역할 분담: 게이트=최초 1회 공식 고지, 이 탭=상담 중 언제든 참고할 수 있는 쉬운 설명. 모두 v4.html 내부만으로 완결(서버/DB 변경 없음).'},
     {tag:'v4-track a36', date:'2026-09-09', title:'개인정보 처리방침 문서 신설 + 화면 하단 링크 + 최초 1회 안내 게이트(상담원 구두 안내 문구 포함)', desc:'적대적 리뷰 보완 항목 ②("민감정보 국외이전 + 대상자 동의 절차 부재")에 대한 1차 대응. 기관 판단으로 별도 동의 체크박스 대신 "사전 공개 + 상담원 구두 안내"(개인정보보호법 28조의8 3호 — 계약 이행을 위한 처리위탁 근거) 방식으로 가기로 결정. [1] POLICY_TEXT_V1에 전체 처리방침 텍스트 신설(처리목적·처리정보·국외이전 상세[OpenAI/미국, 목적/방법/보유기간 30일/학습미사용/거부시 효과]·국내저장[Supabase 서울 리전]·안전조치·문의처). [2] 화면 하단 입력창(composer) 바로 위에 작은 "🔒 개인정보 처리방침" 링크 버튼 추가 → openPolicy()로 바텀시트(policyModal) 오픈, 언제든 재확인 가능. [3] 최초 1회 안내 게이트(gateOverlay) 추가 — localStorage(ieojim_policy_ack_v1) 플래그로 기기당 최초 1회만 표시되고, 국외이전/30일삭제/학습미사용 핵심 요약과 함께 "상담 시작 전 대상자에게 이렇게 안내해주세요" 문구를 눈에 띄게(강조 박스) 표시해 상담원이 구두 안내 방법을 명확히 알 수 있게 함. 매 녹음마다 막지 않고 최초 1회만 표시하도록 설계(실사용 피드백에서 확인된 "대화 흐름 방해 최소화" 원칙 유지). 모두 v4.html 내부만으로 완결(서버/DB 변경 없음). 최종 문구는 기관 개인정보 담당자 검토 권장.'},
     {tag:'v4-track a35', date:'2026-09-09', title:'적대적 리뷰 후속 — XSS 심층방어 하드닝(escHtml 5종 이스케이프 통일 + 사용자데이터 innerHTML 싱크 통일 + 죽은 코드 제거)', desc:'적대적 리뷰의 "XSS 미감사" 항목을 실제로 감사한 결과 악용 가능한 XSS는 없었으나(타이핑 입력은 textContent, STT 텍스트 등은 <를 이스케이프 중 = 내용 위치 XSS 차단 확인), 심층 방어를 위해 4가지 하드닝을 반영. (1) escHtml()을 기존 &·<·>만 이스케이프하던 것에서 큰따옴표(")·작은따옴표(\\x27)까지 5종 전부 이스케이프하도록 강화하고, null/undefined가 들어와도 던지지 않게 String()으로 감쌈 — 값이 내용 위치뿐 아니라 나중에 속성값 자리로 옮겨져도 안전. (2) 녹음 결과 카드(recCardBody)의 STT 인식 텍스트·화자분리 노트·오류 메시지와 사이드바 최근 상담 목록의 사례 라벨(caseLabel)이 기존에 .replace(/</g,"&lt;")로 < 하나만 막던 것을, 공용 escHtml()로 통일(4곳). (3) AI 요청 실패·hwpx 생성 실패 등 오류 안내를 innerHTML로 넣을 때 e.message를 그대로 붙이던 3곳을 escHtml(e.message)로 감쌈 — 브라우저/서버가 준 메시지에 특수문자가 섞여도 안전. (4) 호출처가 하나도 없으면서 raw innerHTML을 쓰던 죽은 함수 userMsgHTML()을 삭제(지금은 무해하지만 나중에 누가 연결하면 구멍이 될 소지 제거 — 실제 타이핑 입력은 textContent를 쓰는 userMsg()/addMsg()가 담당). 모두 v4.html 내부만으로 완결, 동작(정상 입력 표시)은 변화 없음(이스케이프는 화면상 동일하게 보임). 감사 상세는 보류항목_착수_체크리스트.md ⑤ 항목 참고. (sunny님 요청 — XSS 감사·하드닝, Claude 세션)'},
     {tag:'v4-track a34', date:'2026-09-09', title:'적대적 리뷰 보완 — 녹음 화면에 "실명·주민번호는 말로 하지 마세요" 안내(음성 원본이 가명화를 우회하는 사각지대 완화)', desc:'적대적 리뷰 후속 검토에서 새로 확인한 사각지대 대응. [발견] 리뷰의 "치명 2(가명화 경로)"와 a33(전송 전 PII 스크럽)은 모두 텍스트 경로만 다뤘는데, STT는 텍스트가 아니라 녹음 원본(audio blob)을 그대로 stt-transcribe→OpenAI Whisper로 전송한다(transcribeAudio). 즉 대상자가 말로 뱉은 실명·주민번호는 텍스트 가명화가 개입하기 전에 이미 음성 상태로 국외 서버에 넘어가며, a33의 스크럽으로는 막을 수 없다. [반영] 근본 차단은 온디바이스/국내 STT·운영수칙 결정이 필요하므로(문서화·별도 논의 대상), 지금 클라이언트만으로 가능한 즉시 완화로서 웰컴 녹음 버튼 아래에 "녹음 중 대상자의 실명·주민번호·주소·연락처는 말로 하지 마세요 — 음성은 가명화 전에 서버로 전송됩니다. 이름이 필요하면 어르신·A씨처럼 불러주세요" 안내를 눈에 띄는(경고 색) 박스로 추가. 기존 privBubble(서버 전송·30일 삭제 안내)과 별개로, "무엇을 말하면 안 되는지"를 행동 지침으로 제시. 코드 변경은 이 안내 문구뿐(로직/전송 경로 변경 없음). [남은 근본 대응] 음성 자체의 국외이전·민감정보 동의 절차 부재 등은 정책/법적 결정이 필요해 보류항목_착수_체크리스트.md "추가 발견 항목(참고)"에 정리. (sunny님 지적 반영 — 리뷰 사각지대 후속, Claude 세션)'},
