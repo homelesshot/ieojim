@@ -206,6 +206,15 @@
   .privBubble{position:absolute;bottom:82px;left:50%;width:210px;background:var(--ink);color:var(--surface);font-size:1.4rem;line-height:1.5;padding:8px 10px;border-radius:10px;box-shadow:var(--shadow-md);opacity:0;transform:translateX(-50%) translateY(4px);pointer-events:none;transition:opacity .18s,transform .18s;z-index:15}
   .privBubble::after{content:'';position:absolute;bottom:-5px;left:50%;width:10px;height:10px;background:var(--ink);transform:translateX(-50%) rotate(45deg)}
   .privBubble.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .policyLink{display:block;text-align:center;font-size:1.28rem;color:var(--mut);padding:3px 0 2px;text-decoration:underline;cursor:pointer;background:none;border:none;width:100%}
+  .policyLink:hover{color:var(--accent)}
+  .gateOverlay{position:fixed;inset:0;background:rgba(10,20,24,.55);z-index:9999;display:none;align-items:center;justify-content:center;padding:16px}
+  .gateOverlay.on{display:flex}
+  .gateBox{background:var(--surface);border-radius:16px;box-shadow:var(--shadow-lg);max-width:420px;width:100%;max-height:86vh;overflow:auto;padding:20px 18px}
+  .gateBox h2{margin:0 0 10px;font-size:1.7rem;color:var(--ink)}
+  .gateBox .say{background:var(--accent-soft);color:var(--accent-ink);border-radius:10px;padding:10px 12px;margin:10px 0;font-size:1.4rem;line-height:1.55;font-weight:600}
+  .gateBox .small{font-size:1.28rem;color:var(--mut);line-height:1.6;margin:8px 0}
+  .gateBox button.gateOk{margin-top:14px;width:100%;padding:11px;border:none;border-radius:10px;background:var(--accent);color:#fff;font-size:1.5rem;font-weight:700;cursor:pointer}
   .composer.locked textarea:disabled,.composer.locked .cbtn:disabled{opacity:.4;cursor:not-allowed}
   .composer.locked textarea:disabled{background:transparent}
   .composer.locked .foothint{display:none}
@@ -434,6 +443,7 @@
     </div>
 
     <!-- 입력 바 -->
+    <div style="text-align:center"><button class="policyLink" onclick="openPolicy()">🔒 개인정보 처리방침(AI 처리·저장 안내)</button></div>
     <div class="composer">
       <div class="composer-inner">
         <div class="typerow">
@@ -476,6 +486,29 @@
       <button class="iconbtn" onclick="closeVersion()">✕</button>
     </div>
     <div class="vmodal-body" id="vBody"></div>
+  </div>
+
+  <!-- 개인정보 처리방침 바텀시트 -->
+  <div class="vmodal-backdrop" id="policyBackdrop" onclick="closePolicy()"></div>
+  <div class="vmodal" id="policyModal">
+    <div class="vmodal-grab"></div>
+    <div class="vmodal-head">
+      <h2>개인정보 처리방침</h2>
+      <button class="iconbtn" onclick="closePolicy()">✕</button>
+    </div>
+    <div class="vmodal-body" id="policyBody" style="white-space:pre-wrap;line-height:1.7;font-size:1.32rem"></div>
+  </div>
+
+  <!-- 최초 1회 안내 게이트 -->
+  <div class="gateOverlay" id="gateOverlay">
+    <div class="gateBox">
+      <h2>🔒 시작 전 확인해주세요</h2>
+      <div class="small">이 안내는 상담원이 이 기기에서 이어짐을 처음 사용할 때 한 번만 표시됩니다.</div>
+      <div class="small">상담 중 녹음·입력한 내용은 AI(OpenAI)로 전송되어 항목 정리·초안 작성에 사용되고, <b>AI 학습에는 사용되지 않으며</b> 처리 후 <b>최대 30일 이내 삭제</b>됩니다. 상담 기록 자체는 국내(서울) 서버에 암호화되어 저장됩니다.</div>
+      <div class="say">💬 상담 시작 전 대상자에게 이렇게 안내해주세요:<br>"지금 나누는 이야기는 AI가 정리하는 데 활용되고, AI 학습에는 사용되지 않으며, 처리 후 30일 이내에 삭제됩니다."</div>
+      <div class="small">자세한 내용은 화면 하단의 <b>개인정보 처리방침</b>에서 언제든 다시 볼 수 있어요.</div>
+      <button class="gateOk" onclick="ackGate()">확인했습니다</button>
+    </div>
   </div>
 
   <!-- 가명화 도우미 바텀시트 -->
@@ -1733,6 +1766,7 @@
      VERSION_LOG 배열 맨 앞에 새 항목을 추가할 것. 같은 날 여러 건이면 tag만 올려서(v0.x) 여러 줄 추가.
      "나중에 몰아서 기록"은 누락으로 이어지므로, 수정 직후 그 자리에서 바로 추가할 것. */
   var VERSION_LOG = [
+    {tag:'v4-track a36', date:'2026-09-09', title:'개인정보 처리방침 문서 신설 + 화면 하단 링크 + 최초 1회 안내 게이트(상담원 구두 안내 문구 포함)', desc:'적대적 리뷰 보완 항목 ②("민감정보 국외이전 + 대상자 동의 절차 부재")에 대한 1차 대응. 기관 판단으로 별도 동의 체크박스 대신 "사전 공개 + 상담원 구두 안내"(개인정보보호법 28조의8 3호 — 계약 이행을 위한 처리위탁 근거) 방식으로 가기로 결정. [1] POLICY_TEXT_V1에 전체 처리방침 텍스트 신설(처리목적·처리정보·국외이전 상세[OpenAI/미국, 목적/방법/보유기간 30일/학습미사용/거부시 효과]·국내저장[Supabase 서울 리전]·안전조치·문의처). [2] 화면 하단 입력창(composer) 바로 위에 작은 "🔒 개인정보 처리방침" 링크 버튼 추가 → openPolicy()로 바텀시트(policyModal) 오픈, 언제든 재확인 가능. [3] 최초 1회 안내 게이트(gateOverlay) 추가 — localStorage(ieojim_policy_ack_v1) 플래그로 기기당 최초 1회만 표시되고, 국외이전/30일삭제/학습미사용 핵심 요약과 함께 "상담 시작 전 대상자에게 이렇게 안내해주세요" 문구를 눈에 띄게(강조 박스) 표시해 상담원이 구두 안내 방법을 명확히 알 수 있게 함. 매 녹음마다 막지 않고 최초 1회만 표시하도록 설계(실사용 피드백에서 확인된 "대화 흐름 방해 최소화" 원칙 유지). 모두 v4.html 내부만으로 완결(서버/DB 변경 없음). 최종 문구는 기관 개인정보 담당자 검토 권장.'},
     {tag:'v4-track a35', date:'2026-09-09', title:'적대적 리뷰 후속 — XSS 심층방어 하드닝(escHtml 5종 이스케이프 통일 + 사용자데이터 innerHTML 싱크 통일 + 죽은 코드 제거)', desc:'적대적 리뷰의 "XSS 미감사" 항목을 실제로 감사한 결과 악용 가능한 XSS는 없었으나(타이핑 입력은 textContent, STT 텍스트 등은 <를 이스케이프 중 = 내용 위치 XSS 차단 확인), 심층 방어를 위해 4가지 하드닝을 반영. (1) escHtml()을 기존 &·<·>만 이스케이프하던 것에서 큰따옴표(")·작은따옴표(\\x27)까지 5종 전부 이스케이프하도록 강화하고, null/undefined가 들어와도 던지지 않게 String()으로 감쌈 — 값이 내용 위치뿐 아니라 나중에 속성값 자리로 옮겨져도 안전. (2) 녹음 결과 카드(recCardBody)의 STT 인식 텍스트·화자분리 노트·오류 메시지와 사이드바 최근 상담 목록의 사례 라벨(caseLabel)이 기존에 .replace(/</g,"&lt;")로 < 하나만 막던 것을, 공용 escHtml()로 통일(4곳). (3) AI 요청 실패·hwpx 생성 실패 등 오류 안내를 innerHTML로 넣을 때 e.message를 그대로 붙이던 3곳을 escHtml(e.message)로 감쌈 — 브라우저/서버가 준 메시지에 특수문자가 섞여도 안전. (4) 호출처가 하나도 없으면서 raw innerHTML을 쓰던 죽은 함수 userMsgHTML()을 삭제(지금은 무해하지만 나중에 누가 연결하면 구멍이 될 소지 제거 — 실제 타이핑 입력은 textContent를 쓰는 userMsg()/addMsg()가 담당). 모두 v4.html 내부만으로 완결, 동작(정상 입력 표시)은 변화 없음(이스케이프는 화면상 동일하게 보임). 감사 상세는 보류항목_착수_체크리스트.md ⑤ 항목 참고. (sunny님 요청 — XSS 감사·하드닝, Claude 세션)'},
     {tag:'v4-track a34', date:'2026-09-09', title:'적대적 리뷰 보완 — 녹음 화면에 "실명·주민번호는 말로 하지 마세요" 안내(음성 원본이 가명화를 우회하는 사각지대 완화)', desc:'적대적 리뷰 후속 검토에서 새로 확인한 사각지대 대응. [발견] 리뷰의 "치명 2(가명화 경로)"와 a33(전송 전 PII 스크럽)은 모두 텍스트 경로만 다뤘는데, STT는 텍스트가 아니라 녹음 원본(audio blob)을 그대로 stt-transcribe→OpenAI Whisper로 전송한다(transcribeAudio). 즉 대상자가 말로 뱉은 실명·주민번호는 텍스트 가명화가 개입하기 전에 이미 음성 상태로 국외 서버에 넘어가며, a33의 스크럽으로는 막을 수 없다. [반영] 근본 차단은 온디바이스/국내 STT·운영수칙 결정이 필요하므로(문서화·별도 논의 대상), 지금 클라이언트만으로 가능한 즉시 완화로서 웰컴 녹음 버튼 아래에 "녹음 중 대상자의 실명·주민번호·주소·연락처는 말로 하지 마세요 — 음성은 가명화 전에 서버로 전송됩니다. 이름이 필요하면 어르신·A씨처럼 불러주세요" 안내를 눈에 띄는(경고 색) 박스로 추가. 기존 privBubble(서버 전송·30일 삭제 안내)과 별개로, "무엇을 말하면 안 되는지"를 행동 지침으로 제시. 코드 변경은 이 안내 문구뿐(로직/전송 경로 변경 없음). [남은 근본 대응] 음성 자체의 국외이전·민감정보 동의 절차 부재 등은 정책/법적 결정이 필요해 보류항목_착수_체크리스트.md "추가 발견 항목(참고)"에 정리. (sunny님 지적 반영 — 리뷰 사각지대 후속, Claude 세션)'},
     {tag:'v4-track a33', date:'2026-09-09', title:'적대적 리뷰 반영 2차 — (A)AI 항목추출 서버 전송 전 개인식별정보 사전 스크럽(가명화 경로 부분 통일) + (B)건강상태 화면에 트라우마 배려 안내 문구', desc:'[B — 질문 순서(트라우마 배려) 항목, 리뷰 🟡] 건강상태 화면(TPL_HEALTH_A) 맨 위에 "이 항목들(정신질환·폭행 상해 등)은 상담이 충분히 진행되어 신뢰가 쌓인 뒤 필요한 만큼만 편하게 여쭤보세요. 화면 순서는 기록용 참고일 뿐 질문 순서가 아닙니다" 안내 문구를 추가 — 위저드(단계별 강제 진행) 구조를 신입 상담원이 실제 질문 순서로 그대로 따라 하다 예민한 질문을 이르게 던지는 위험을 완화(리뷰가 권고한 즉시 완화책 그대로, 화면 순서 재설계는 제출 이후 과제로 남김). [A — 아래는 가명화 경로 통일] 9/9 적대적 리뷰의 "가명화 경로 통일"(치명 2) 항목을, 오탐 위험 없이 v4.html 코드만으로 안전하게 좁혀서 반영. [문제] AI 초안 다듬기(generateAiDraft)는 이미 가명화 도우미의 결과(lastAnonText, currentAnonSourceText)를 서버로 보내는데, 정작 녹음/타이핑 직후 자동으로 도는 AI 항목추출(requestExtractionV4 → ai-draft Edge Function)은 원문 텍스트를 그대로 서버에 보내고 있었음 — 같은 외부 AI 경로인데 한쪽만 가명화를 거치는 불일치. [수정] requestExtractionV4가 프롬프트를 만들기 전에 scrubForServerV4(text)를 한 번 통과시켜, 이 기기 안에서 형식이 확실한 식별정보만 먼저 지운 뒤 전송하도록 변경. 스크럽 규칙(SERVER_SCRUB_RULES_V4)은 가명화 도우미(runAnon) 자동 규칙 중 구조가 뚜렷해 소득·재산 금액과 절대 겹치지 않는 4종만 재사용 — 이메일, 주민번호(6자리+성별자리[1-4]+6자리=13자리), 카드번호(4-4-4-4), 전화번호(010 계열·지역번호 계열). [의도적으로 제외] runAnon의 맨숫자 규칙(\\d{6}, \\d{10,}, \\d{4,})은 월소득 150000·재산 1500000 같은 실제 금액을 통째로 가려 예비판단 근거(소득·재산)를 왜곡할 수 있으므로 서버 전송 전 스크럽에는 넣지 않음(추출 정확도 보존). [남은 부분] 실명·지명 자동 가명화는 상담원이 가명화 도우미에 이름 목록을 직접 넣어야 동작하는데 녹음 직후엔 그 목록이 비어 있어 자동 치환이 불가능 — 이건 "이름을 어느 시점에·어떻게 자동 식별할지"라는 기관 정책 결정이 먼저 필요해 여전히 별도 논의 대상으로 남김. 마찬가지로 또 다른 리뷰 항목인 "인증 토큰 구조"(STT·ai-draft Edge Function이 공개용 publishable 키를 정적 Bearer로 그대로 사용 — 키 자체는 노출돼도 안전하지만, 페이지 소스만 보면 누구나 함수를 호출할 수 있어 남용 방지를 위한 per-요청 토큰/레이트리밋/캡차 등)는 Edge Function·정책 변경이라 클라이언트만으로는 못 고치므로 이번에도 서버 논의 대상으로 보류. 이번 수정은 v4.html 내부 로직만으로 완결(Supabase/서버 변경 없음). (구흥모님 요청 — 적대적 리뷰 대응 2차, Claude 세션)'},
@@ -3825,6 +3859,43 @@ ${d.memo ? '\n메모: '+d.memo : ''}
     var s=document.getElementById('side'); if(s && s.classList.contains('open')) toggleSide();
     refreshRecentList();
   }
+  /* ===== 개인정보 처리방침 + 최초 1회 안내 게이트 (v4-track a36, 2026-09-09) =====
+     별도 동의 없이(개인정보보호법 28조의8 3호 — 계약 이행을 위한 처리위탁) 진행하기로 한 방향에 맞춰,
+     동의 체크박스 대신 "사전 공개(처리방침 상시 접근 가능)" + "상담원에게 구두 안내 방법을 명확히
+     전달"하는 방식으로 구현. 게이트는 상담을 막는 용도가 아니라 상담원이 이 앱의 데이터 처리 방식을
+     최초 1회 확실히 인지하도록 하는 용도라서, localStorage 플래그로 기기당 1회만 표시. */
+  var POLICY_TEXT_V1 = "이어짐 개인정보 처리방침 (요약 안내)\n\n"
+    + "1. 처리 목적\n   음성 상담 내용을 텍스트로 변환(음성인식)하고, 긴급복지 예비판단·사유서 초안 작성을 위해 항목을 자동 추출·정리합니다.\n\n"
+    + "2. 처리하는 정보\n   음성 녹음(임시), 상담 중 입력한 텍스트, 위기사유·거주·가구·건강·소득재산 등 상담 항목.\n   (현재 버전 기준) 상담 대상자의 실명은 별도로 저장하지 않는 것을 원칙으로 합니다.\n\n"
+    + "3. 국외 이전 안내 (음성인식·AI 정리)\n   - 이전받는 자: OpenAI, L.L.C. (미국)\n   - 이전 목적: 음성→텍스트 변환, 상담 항목 자동 추출·초안 작성\n   - 이전 방법: 상담원이 녹음·입력 시 API 호출을 통해 실시간 전송\n   - 보유·이용 기간: 악용 방지 모니터링 목적으로 최대 30일간 보관 후 삭제. AI 모델 학습에는 사용되지 않습니다.\n   - 이전 거부 시: 음성인식·AI 자동정리는 이 서비스의 핵심 기능이라, 거부하면 해당 기능 대신 직접 입력 방식으로만 이용 가능합니다.\n\n"
+    + "4. 상담 기록 저장 (국내)\n   - 저장 위치: Supabase(대한민국 서울 리전) — 암호화하여 저장합니다.\n   - 보유 기간: 기관 내부 방침에 따르며, 삭제 요청은 아래 문의처로 하실 수 있습니다.\n\n"
+    + "5. 안전조치\n   상담 기록은 암호화되어 저장되며, 담당 상담원만 조회할 수 있도록 접근을 제한합니다.\n\n"
+    + "6. 문의처\n   사단법인 인천내일을여는집(홈리스핫) — admin@homelesshot.or.kr\n\n"
+    + "※ 이 안내는 서비스 운영 중 지속적으로 보완됩니다. 최신 버전은 이 화면에서 항상 확인할 수 있습니다.";
+
+  function openPolicy(){
+    var body = document.getElementById('policyBody');
+    if(body) body.textContent = POLICY_TEXT_V1;
+    var bd = document.getElementById('policyBackdrop'); if(bd) bd.classList.add('on');
+    var md = document.getElementById('policyModal'); if(md) md.classList.add('open');
+  }
+  function closePolicy(){
+    var bd = document.getElementById('policyBackdrop'); if(bd) bd.classList.remove('on');
+    var md = document.getElementById('policyModal'); if(md) md.classList.remove('open');
+  }
+
+  var GATE_ACK_KEY = 'ieojim_policy_ack_v1';
+  function showGateIfNeeded(){
+    try{ if(localStorage.getItem(GATE_ACK_KEY)) return; }catch(e){}
+    var g = document.getElementById('gateOverlay');
+    if(g) g.classList.add('on');
+  }
+  function ackGate(){
+    try{ localStorage.setItem(GATE_ACK_KEY, String(Date.now())); }catch(e){}
+    var g = document.getElementById('gateOverlay');
+    if(g) g.classList.remove('on');
+  }
+  showGateIfNeeded();
 
 </script>
 </body>
