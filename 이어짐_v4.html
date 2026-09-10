@@ -811,12 +811,21 @@
   var authSession = null;          // 현재 로그인 세션(없으면 null = 비로그인 상태로 정상 동작)
   var currentCounselor = null;     // {id, display_name, email}
   var currentCaseId = null;        // 현재 진행 중인 사례의 DB row id (아직 저장 전이면 null)
+  // v4-track a54: 적대적 리뷰(치명1) 대응 — 로그인 상태면 공개 anon 키 대신 로그인 세션의
+  // access_token을 인증값으로 보냄(서버가 role을 구분해 검증할 근거를 제공). 로그인 없이도
+  // 100% 동작해야 한다는 기존 원칙은 유지하기 위해 비로그인 상태에서는 그대로 anon 키를 씀 —
+  // 서버(Edge Function) 쪽에서 anon 요청에 별도의 더 엄격한 시간당 횟수 제한을 두는 것과 짝을
+  // 이루는 클라이언트 측 절반. 서버 쪽 반영은 Supabase 인프라 변경이 필요해 별도 적용 대상
+  // (claude 프로젝트 문서 adversarial-review-2026-09-09.md 참고).
+  function sttAuthHeader(){
+    return 'Bearer ' + ((authSession && authSession.access_token) ? authSession.access_token : STT_ANON_KEY);
+  }
   async function transcribeAudio(blob, filename){
     var fd = new FormData();
     fd.append('file', blob, filename || 'audio.webm');
     var res = await fetch(STT_URL, {
       method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + STT_ANON_KEY },
+      headers: { 'Authorization': sttAuthHeader() },
       body: fd
     });
     if(!res.ok){
@@ -1092,7 +1101,7 @@
       var prompt = buildExtractionPrompt(scrubForServerV4(text));
       var res = await fetch(AI_DRAFT_URL, {
         method:'POST',
-        headers:{'Content-Type':'application/json', 'Authorization':'Bearer '+STT_ANON_KEY},
+        headers:{'Content-Type':'application/json', 'Authorization':sttAuthHeader()},
         body: JSON.stringify({prompt: prompt, schema: extractionJsonSchemaV4(), schemaName: 'crisis_extraction_v4'})
       });
       var data = await res.json().catch(function(){ return {}; });
@@ -1943,6 +1952,7 @@
      VERSION_LOG 배열 맨 앞에 새 항목을 추가할 것. 같은 날 여러 건이면 tag만 올려서(v0.x) 여러 줄 추가.
      "나중에 몰아서 기록"은 누락으로 이어지므로, 수정 직후 그 자리에서 바로 추가할 것. */
   var VERSION_LOG = [
+    {tag:'v4-track a54', date:'2026-09-10', title:'적대적 리뷰(9/9) 3차 대응 — v4.html 코드만으로 가능한 항목 반영(STT/AI 인증 헤더를 로그인 세션 토큰 우선으로, 국적·거주형태 선택지 확충)', desc:'9/9 적대적 리뷰의 남은 미착수 항목 중, 서버·DB 변경 없이 클라이언트 코드만으로 안전하게 반영 가능한 두 가지를 적용. (1) [치명1 — 절반] STT(transcribeAudio)·AI초안/자동추출(requestExtractionV4, generateAiDraft) 호출의 Authorization 헤더를, 로그인 상태면 공개 anon 키 대신 로그인 세션의 access_token을 보내도록 변경(sttAuthHeader() 헬퍼 추가). 로그인 없이도 100% 동작해야 한다는 기존 원칙은 유지하기 위해 비로그인 상태에서는 그대로 anon 키를 사용 — 이건 "서버가 role을 구분해서 검증"하는 나머지 절반(Edge Function 코드 수정 + 시간당 호출 횟수 제한 테이블 추가)과 짝을 이루는 클라이언트 측 준비 작업이며, 서버 쪽 절반은 Supabase 인프라 변경이 필요해 별도 적용 대상으로 남음(구체적인 SQL/Edge Function 코드는 claude 프로젝트 문서 adversarial-review-2026-09-09.md에 정리, 구흥모님 확인 후 Supabase 콘솔에서 직접 적용 필요). (2) [🟡 국적·거주형태 선택지 부족] livingType에 "여인숙 장기투숙"·"지인 집 얹혀살기"·"차량 내 거주(차박)" 3개, nationality에 "체류자격 변동 중(예: 결혼이주 이혼절차)"·"무국적 아동 동반" 2개 옵션을 추가 — 리뷰가 예로 든 실제 애매 사례를 이제 "기타"로 뭉뚱그리지 않고 선택 가능. 판정 로직(run())에는 영향 없도록 livingType은 그대로 표시용으로만 쓰이고, nationality의 새 옵션 2개는 기존 "외국인(미확정)"과 동일하게 "체류자격 확인 후 지원범위 결정" 확인-필요 분기로 매핑해서 안전하게 처리(nationalityLabelMap에도 라벨 추가 + 누락 대비 폴백(||nationality) 처리). 나머지 미착수 항목(치명1 서버측 절반, 관리자 조직접근 RLS, decrypt_case_field 소유권 검증, 회원가입 도메인 제한, Whisper 환각 필터 OR조건 강화, Supabase 보안 어드바이저 경고 2건)은 DB 스키마·RLS 정책·Edge Function 배포·Auth 설정 등 Supabase 인프라 변경이 필요해 이번 세션의 자동 실행 권한 범위 밖으로 판단되어 직접 적용하지 못함 — 정확한 해결 방법(실행 가능한 SQL/코드 포함)은 adversarial-review-2026-09-09.md에 항목별로 정리해뒀으니, 구흥모님이 Supabase 대시보드에서 직접 실행하거나 다음 세션에서 명시적으로 승인해주시면 그때 적용 가능. (Claude 세션 — 구흥모님 요청: "적대적 리뷰 미착수 항목을 코치 확인 없이 직접 해결")'},
     {tag:'v4-track a53', date:'2026-09-10', title:'화면 하단(사이드바~중앙 전체) "검정 그라데이션" 버그 수정 — 숨겨진 모달(.vmodal) 7개의 위쪽 방향 그림자가 화면 아래로 새어나오던 문제', desc:'설정·버전기록·정책·앱정보·가명화 도우미·사용현황·로그인 등 화면 하단에서 올라오는 모든 패널(.vmodal, 총 7개 인스턴스)이 평소엔 transform:translateY(100%)로 화면 아래로 완전히 숨어있는데, 여기 걸려있던 그림자(box-shadow:var(--shadow-lg) = 0 -8px 30px rgba(16,32,38,.16))가 아래가 아니라 "위쪽" 방향이었음 — 모달 박스 자체는 화면 밖으로 내려가 있어도, 위로 향하는 그림자만 화면 안쪽(맨 아래)으로 계속 새어나와 사이드바~중앙 화면 전체에 걸쳐 옅은 어두운 띠로 보이고 있었음(모달이 7개나 있어 항상 하나 이상 화면에 영향을 주고 있었음). .vmodal의 그림자를 기본 상태에서 완전히 빼고 .vmodal.open일 때만(실제로 열려서 화면 위로 올라왔을 때만) 적용하도록 수정 — 모달이 열렸을 때의 시각 효과는 그대로 유지되면서, 닫혀있을 때 새어나오던 음영은 사라짐. 모두 v4.html 내부만으로 완결(서버/DB 변경 없음).'},
     {tag:'v4-track a49', date:'2026-09-10', title:'긴급복지 예비판단·상담일지 초안·후속조치 요약이 한꺼번에 먹통이던 치명적 회귀 수정(a47의 itemTxt 오류), 건강상태 안내문구를 다른 안내와 같은 방식으로 숨김, AI가 소득·재산을 근거 없이 "0"으로 지어내는 문제에 안전장치 추가', desc:'[치명적 버그, 최우선 수정] "긴급복지 예비판단이 정상작동 안 함", "6 지원연계 후속조치 요약이 비어 있음", "7 상담일지 초안에 상담내용이 완전히 없음" — 세 신고가 사실은 하나의 원인이었음. a47에서 buildScheduleSummary() 호출부(run() 함수)를 고치면서 아직 선언되지 않은 지역변수 itemTxt를 그보다 앞줄에서 먼저 참조하게 만들어(자바스크립트 const는 "선언 전 접근 금지" 규칙이 있어 이 경우 즉시 ReferenceError 발생) run() 함수가 그 줄에서 곧바로 멈춰버리고 있었음 — 판정 배지(verdict) 자체는 그 줄보다 앞이라 멀쩡해 보였지만, 그 뒤에 있던 후속조치 요약 채우기·lastRunData 저장·상담일지 초안 생성(buildDoc)·통계 기록이 전부 실행되지 못한 채 조용히 죽어 있었음(콘솔 외엔 아무 에러 표시도 없어 눈치채기 어려웠음). itemTxt 선언을 실제 필요한 시점보다 앞으로 옮겨서 수정 — a47 이후 판정을 한 번이라도 실행한 모든 상담이 같은 증상을 겪었을 것이므로, 실사용 중이었다면 최우선으로 재배포 확인 필요. [2] 건강상태(③) 화면 맨 위에 항상 떠 있던 "이 항목들은 신뢰가 쌓인 뒤에…" 안내문구를 다른 화면들과 똑같이 라벨 옆 물음표(ⓘ) 버튼 뒤로 숨김 — 눌러야만 팝오버로 뜨고, 평소엔 화면을 차지하지 않음(사용자 요청: "다른 안내멘트처럼 숨겨줘"). [3] "재산은 없고 빚만 있다"처럼 명시적으로 말하지 않았는데도 AI 인식 결과 화면에 월소득·임차보증금·금융재산·부채가 전부 "0원"으로 뜨는 사고 재신고 — OpenAI Structured Outputs strict 모드에서 nullable 정수 필드에 모델이 null 대신 0을 반환해버리는 사례로 추정(프롬프트 문구만으로는 100% 통제가 안 됨). 클라이언트에서 마지막 안전장치로, 4개 항목이 전부 0인데 원문에 "없다/없음/없어/없고" 같은 명시적 표현이 전혀 없으면 모델이 지어낸 값으로 보고 4개 다 null(미확인)로 되돌리는 sanitizeZeroFinancialsV4()를 requestExtractionV4()에 추가 — 실제로 "다 없다"고 말한 경우는 그대로 0으로 유지되므로 기존 정상 동작은 그대로 보존됨. 모두 v4.html 내부만으로 완결(서버/DB 변경 없음).'},
     {tag:'v4-track a48', date:'2026-09-10', title:'Whisper 환각 문구 추가(서버), "설정" 버튼의 로그아웃 상태 위저드 오작동 수정, 대상유형 수동선택이 AI 추론에 덮어써지지 않도록 수정', desc:'[1] "무엇이든 물어보셔도 돼요" 같은 AI 어시스턴트 말투의 환각이 새로 신고됨 — Whisper가 뉴스·유튜브 자막뿐 아니라 챗봇 대화 데이터로도 학습돼 있어 무음/저신뢰 구간에서 이런 안내 멘트도 만들어낼 수 있음. stt-transcribe 엣지함수(Supabase, v9)에 흔한 어시스턴트 마무리 문구 패턴 5개를 추가 배포(v4.html과 무관하게 즉시 적용). [2] 로그인 안 된 상태에서 "설정"(사이드바 팝업 메뉴의 "계정 설정" 또는 PC 축소 레일의 ⚙️)을 누르면 로그인 모달을 열기 전에 botCard()로 안내 카드를 하나 띄웠는데, 이게 a45에서 고친 goToDoc()과 같은 부작용(전역적으로 위저드 모드를 켜서 뜬금없이 하단에 이전/다음 내비게이션이 나타남)을 일으키고 있었음(사용자가 사이드바 접힌 상태에서 재현 — 실제로는 로그인 여부와 무관하게 로그아웃 상태이기만 하면 항상 발생하던 문제) — 안내 카드를 없애고 로그인 모달만 바로 연다. [3] "대상자 유형을 고르고, 상황을 말하거나 입력하면…"이라는 첫 화면 문구와 달리, 채팅창 팝업에서 유형을 직접 골라도 녹음 내용에서 AI가 다른(또는 불명확한) 유형을 추론하면 그 값으로 조용히 덮어써지고 있었음(사용자 질문으로 확인) — 이제 상담사가 유형을 직접 고르면(targetTypeManuallySet) 그 뒤로는 AI가 녹음에서 무엇을 추론하든 덮어쓰지 않고 사람의 선택을 그대로 유지, 새 상담을 시작하면 이 플래그도 초기화됨. 모두 v4.html과 stt-transcribe 엣지함수로 완결(DB 스키마 변경 없음).'},
@@ -2286,6 +2296,9 @@
         <select id="livingType">
           <option value="거리 노숙">거리 노숙(쪽방·시설 미이용)</option>
           <option value="쪽방·고시원">쪽방·고시원</option>
+          <option value="여인숙 장기투숙">여인숙 장기투숙</option>
+          <option value="지인집 얹혀살기">지인 집 얹혀살기(더부살이)</option>
+          <option value="차량거주">차량 내 거주(차박)</option>
           <option value="임시주거(쉼터 등)">임시주거(쉼터 등)</option>
           <option value="자가·전월세">자가·전월세</option>
           <option value="기타·확인필요">기타·확인 필요</option>
@@ -2311,6 +2324,8 @@
           <option value="내국인(말소)">내국인 — 주민등록 말소</option>
           <option value="외국인(등록)">외국인 — 체류자격 있음(등록외국인)</option>
           <option value="외국인(미확정)">외국인 — 체류자격 미확정</option>
+          <option value="외국인(변동중)">외국인 — 체류자격 변동 중(예: 결혼이주 이혼절차)</option>
+          <option value="무국적아동동반">무국적 아동 동반</option>
           <option value="외국인(난민등)">외국인 — 난민·인도적체류자</option>
         </select>
       </div>
@@ -3020,7 +3035,7 @@
     try{
       const res = await fetch(AI_DRAFT_URL, {
         method:'POST',
-        headers:{'Content-Type':'application/json', 'Authorization':'Bearer '+STT_ANON_KEY},
+        headers:{'Content-Type':'application/json', 'Authorization':sttAuthHeader()},
         body: JSON.stringify({prompt: prompt})
       });
       const data = await res.json().catch(function(){ return {}; });
@@ -3777,7 +3792,9 @@ ${d.memo ? '\n메모: '+d.memo : ''}
 
     const nationalityLabelMap = {
       '내국인(정상)':'내국인', '내국인(말소)':'내국인(주민등록 말소)',
-      '외국인(등록)':'외국인(체류자격 있음)', '외국인(미확정)':'외국인(체류자격 미확정)', '외국인(난민등)':'외국인(난민·인도적체류자)'
+      '외국인(등록)':'외국인(체류자격 있음)', '외국인(미확정)':'외국인(체류자격 미확정)',
+      '외국인(변동중)':'외국인(체류자격 변동 중)', '무국적아동동반':'무국적 아동 동반',
+      '외국인(난민등)':'외국인(난민·인도적체류자)'
     };
 
     const std = INCOME_STD[size];
@@ -3797,7 +3814,7 @@ ${d.memo ? '\n메모: '+d.memo : ''}
     if(!crisisMet){ cls='v-bad'; verdict='위기사유 미해당 — 담당자 확인 필요'; tag='미해당'; }
     else if(reapplyFlag){ cls='v-warn'; verdict='추가 확인 필요 — 재지원 제한 규정 검토 필요(최근 2년 내 동일사유 이력)'; tag='확인'; }
     else if(special.length){ cls='v-warn'; verdict='추가 확인 필요 — 특수상황(담당자·전문기관 경로)'; tag='확인'; }
-    else if(nationality==='외국인(미확정)'){ cls='v-warn'; verdict='추가 확인 필요 — 체류자격 확인 후 지원범위 결정'; tag='확인'; }
+    else if(nationality==='외국인(미확정)' || nationality==='외국인(변동중)' || nationality==='무국적아동동반'){ cls='v-warn'; verdict='추가 확인 필요 — 체류자격 확인 후 지원범위 결정'; tag='확인'; }
     else if(!financialsConfirmed){ cls='v-warn'; verdict='추가 확인 필요 — 소득·재산 정보 미확인(상담원 미입력, 직접 확인 필요)'; tag='확인'; }
     else if(size>=5 && incomeOk && assetOk){ cls='v-warn'; verdict='추가 확인 필요 — 5인 이상 가구 소득기준은 추정치(보건복지부 최신 고시 금액으로 재확인 필요)'; tag='확인'; }
     else if(incomeOk && assetOk){ cls='v-ok'; verdict='긴급복지 예비 대상 가능'; tag='대상 가능'; }
@@ -3818,7 +3835,7 @@ ${d.memo ? '\n메모: '+d.memo : ''}
     add(assetInfoEntered
       ? ('재산 산정액 <span class="num">'+won(assetCalc)+'</span>(보증금−공제+금융−부채) vs '+regionName+'('+regionTier+' 기준) 상한 <span class="num">'+won(assetLimit)+'</span> → '+(assetOk?'충족':'초과'))
       : '재산: <span style="color:var(--warn)">확인 안 됨(상담원 미입력)</span>');
-    add('거주지역: '+regionName+' / 거주형태: '+livingType+' · 국적/체류: '+nationalityLabelMap[nationality]);
+    add('거주지역: '+regionName+' / 거주형태: '+livingType+' · 국적/체류: '+(nationalityLabelMap[nationality]||nationality));
     if(reapplyFlag) add('<b style="color:var(--warn)">주의</b>: 최근 2년 내 동일사유 긴급지원 이력 — 긴급복지지원법상 재지원 제한 규정 검토 필요');
 
     let items = mapItems(crisis, health);
@@ -3858,7 +3875,7 @@ ${d.memo ? '\n메모: '+d.memo : ''}
     lastRunData = {
       targetType, urgency, urgencyLabel:(urgency==='date' ? ('지정일: '+(document.getElementById('urgencyDate').value || '미지정')) : URGENCY_LABEL[urgency]), crisis, crisisMet, regionName, regionTier, livingType, size, children,
       income, std, incomeOk, assetCalc, assetLimit, assetOk, incomeEntered, assetInfoEntered,
-      ageGroupLabel:AGE_LABEL[ageGroup], gender, nationalityLabel:nationalityLabelMap[nationality],
+      ageGroupLabel:AGE_LABEL[ageGroup], gender, nationalityLabel:(nationalityLabelMap[nationality]||nationality),
       health: health.length? health.filter(h=>h!=='해당없음') : [], itemTxt, excluded, selfItems: ss.items, memo, today, firstInputHHMM,
       verdict // 저장/이어하기(saveCaseProgress)에서 그대로 재사용 — 재도출하지 않음
     };
