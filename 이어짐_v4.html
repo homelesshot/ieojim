@@ -439,10 +439,6 @@
             <div class="c" onclick="quickPick('취약노인')">취약노인</div>
             <div class="c" onclick="quickPick('외국인노동자')">외국인노동자</div>
           </div>
-          <label style="display:inline-flex;align-items:center;gap:6px;margin-top:14px;font-size:.98rem;color:var(--mut);cursor:pointer">
-            <input type="checkbox" id="repeatVisitChk" onchange="isRepeatVisit=this.checked" style="width:16px;height:16px">
-            🔁 재상담(이전에 만난 적 있는 분) — 거주·가구·건강 정보를 이 기기의 마지막 값으로 미리 채워줘요
-          </label>
           <button onclick="skipToFlow()" style="margin-top:16px;background:var(--accent-soft);color:var(--accent-ink);border:1.5px solid var(--accent);border-radius:22px;padding:10px 20px;font-size:1.17rem;font-weight:700;cursor:pointer;font-family:inherit">상황 입력 없이 바로 진행 ▸</button>
           <div style="margin-top:24px;display:flex;flex-direction:column;align-items:center;gap:8px">
             <span class="micwrap">
@@ -452,7 +448,7 @@
               </button>
             </span>
             <span style="font-size:.98rem;color:var(--mut)">눌러서 상황을 말로 녹음하기</span>
-            <div style="max-width:340px;margin-top:10px;font-size:.92rem;line-height:1.5;color:var(--bad);background:var(--bad-bg);border-radius:10px;padding:8px 12px">⚠️ 녹음 중 대상자의 <b>실명·주민번호·주소·연락처는 말로 하지 마세요.</b> 음성은 가명화 전에 서버로 전송됩니다 — 이름이 필요하면 <b>‘어르신’·‘A씨’</b>처럼 불러주세요.</div>
+            <div style="max-width:340px;margin-top:10px;font-size:.92rem;line-height:1.5;color:var(--bad);background:var(--bad-bg);border-radius:10px;padding:8px 12px">⚠️ <b>주민번호는 절대 말하지 마세요 — 개인정보보호법 위반입니다.</b> 실명·주소·연락처도 피하고(‘어르신’·‘A씨’로), <b>녹음 전 AI로 정리된다는 걸 대상자에게 먼저 알려주세요.</b></div>
           </div>
         </div>
       </div>
@@ -779,8 +775,6 @@
   var authSession = null;          // 현재 로그인 세션(없으면 null = 비로그인 상태로 정상 동작)
   var currentCounselor = null;     // {id, display_name, email}
   var currentCaseId = null;        // 현재 진행 중인 사례의 DB row id (아직 저장 전이면 null)
-  var isRepeatVisit = false;       // [테스트] 재상담 모드 — 켜져 있으면 이 기기에 마지막으로 저장된
-                                    // 거주·가구·건강 정보를 불러와 미리 채워줌(이름 기반 조회 아님, 개인정보 아님)
   async function transcribeAudio(blob, filename){
     var fd = new FormData();
     fd.append('file', blob, filename || 'audio.webm');
@@ -1818,6 +1812,7 @@
      VERSION_LOG 배열 맨 앞에 새 항목을 추가할 것. 같은 날 여러 건이면 tag만 올려서(v0.x) 여러 줄 추가.
      "나중에 몰아서 기록"은 누락으로 이어지므로, 수정 직후 그 자리에서 바로 추가할 것. */
   var VERSION_LOG = [
+    {tag:'v4-track a40', date:'2026-09-10', title:'프로덕션 화면에서 재상담 모드 전체 제거(별도 트랙으로 보류 확정) + 녹음 경고문구 간결화(주민번호 절대금지·법위반 명시, 사전고지 추가) + 처리방침 문의처에서 "(홈리스핫)" 삭제', desc:'[1] 재상담 모드(a31 테스트 트랙)가 언젠가 이어짐_v4.html 본체에 합쳐져 있던 것을 발견 — "재상담 기능은 나중에 별도로 결정하기로 했다"는 방침에 따라 웰컴 화면 체크박스(정적 HTML + resetChat 재구성용 JS 문자열 2곳), isRepeatVisit 변수, saveLastProfileV4/getLastProfileV4/markRepeatBannerV4/setCheckedValuesV4 함수, goHousehold/goHousehold2/goHealth/goHealth2의 프리필 분기, goResult의 저장 호출을 모두 제거. localStorage(ieojim_last_profile_v1)에 거주·가구·건강 정보를 평문 저장하던 것도 이걸로 같이 없어짐(sunny님 체크리스트 참고항목 ③ 해결). 재상담 자체를 다시 다룰 땐 여전히 별도 트랙(재상담테스트 파일)에서 시작. [2] 녹음 화면 경고문구(a34)를 "주민번호는 절대 말하지 마세요 — 개인정보보호법 위반입니다"로 강하게 명시하고, "녹음 전 AI로 정리된다는 걸 대상자에게 먼저 알려주세요"라는 사전고지 문구를 추가하면서 전체 길이는 오히려 줄임. [3] 개인정보 처리방침(a36) 문의처에서 괄호 병기 "(홈리스핫)"을 삭제 — "사단법인 인천내일을여는집"만 표기. 모두 v4.html 내부만으로 완결(서버/DB 변경 없음).'},
     {tag:'v4-track a39', date:'2026-09-10', title:'설정 화면에서 "전체 처리방침 자세히 보기" 클릭 시 처리방침 창이 설정 창 뒤에 숨던 버그 수정', desc:'a36의 policyModal/policyBackdrop과 a37의 settingsModal이 같은 .vmodal 계열 z-index(56/55)를 공유해서, DOM 순서상 나중에 나오는 settingsModal이 항상 위에 그려짐 — 그 결과 설정(AI·개인정보 안내 탭) 안에서 처리방침 링크를 눌러도 처리방침 바텀시트가 설정 창 뒤에 가려 안 보이는 버그(사용자 스크린샷으로 재현 확인). #policyBackdrop/#policyModal에 다른 vmodal보다 높은 z-index(57/58)를 전용으로 부여해 항상 최상단에 뜨도록 수정. 다른 로직 변경 없음.'},
     {tag:'v4-track a38', date:'2026-09-10', title:'개인정보 처리방침 문의처 이메일 정정', desc:'a36에서 처리방침 문의처에 잘못 넣은 admin@homelesshot.or.kr(관리자 로그인 계정 이메일)을 실제 문의 받을 이메일 homenaeil@naver.com으로 정정. 다른 로직 변경 없음.'},
     {tag:'v4-track a37', date:'2026-09-09', title:'설정 화면을 ChatGPT 스타일 좌측메뉴+우측패널로 개편 + "AI·개인정보 안내"(쉬운 설명) 탭 신설', desc:'[1] 설정(⚙️) 바텀시트를 단일 스크롤 목록에서 좌측 아이콘 메뉴(계정/AI·개인정보 안내/보안) + 우측 콘텐츠 패널 구조(.setWrap/.setNav/.setPanes, switchSettingsPane())로 개편. 기존 이름·소속·비밀번호 변경(계정)과 비밀키 관리(보안) 로직·마크업은 그대로 각 패널로 옮기기만 했고 기능 변경 없음. 좁은 화면(480px 이하 유사 기준 520px)에서는 좌측 메뉴가 상단 가로 탭으로 바뀌도록 반응형 처리. [2] 새 "AI·개인정보 안내" 패널 신설 — a36의 처리방침(법률 문서 톤)과 별개로, 상담원이 대상자에게 "AI를 쓴다고 정보가 새어나가는 게 아니다"를 쉬운 말로 설명할 수 있도록 쉬운 설명 3가지(기억 안 함/계속 저장 안 됨·30일 삭제/아무나 못 봄) + 그대로 읽어줄 수 있는 구어체 설명 문구("병원에서 녹음해서 자동으로 진료기록 정리하는 것처럼…") + 전체 처리방침 링크(openPolicy() 재사용)로 구성. 게이트(a36)의 격식있는 안내문과 역할 분담: 게이트=최초 1회 공식 고지, 이 탭=상담 중 언제든 참고할 수 있는 쉬운 설명. 모두 v4.html 내부만으로 완결(서버/DB 변경 없음).'},
@@ -2340,73 +2335,16 @@
     });
   }
 
-  /* [테스트/a31] 재상담 모드 — 거주·가구·건강 정보를 매번 새로 묻는 대신, 이 "기기"에
-     마지막으로 저장된 값을 불러와 미리 채워주는 기능. 이름으로 특정 인물의 기록을 찾는 게
-     아니라(개인정보 문제와 무관), 그냥 이 브라우저/기기에서 가장 최근에 실행한 예비판단의
-     값을 다시 제안하는 것 — 다르면 상담원이 직접 고치면 됨. 소득·재산·위기사유는 매번 실제
-     상황이 달라질 수 있어 재상담이어도 그대로 다시 입력받는다(자동 채움 대상 아님). */
-  function saveLastProfileV4(){
-    try{
-      var val = function(id){ var el=document.getElementById(id); return el? el.value : ''; };
-      var checkedVals = function(containerId){
-        return Array.prototype.map.call(document.querySelectorAll('#'+containerId+' input[type=checkbox]:checked'), function(c){ return c.value; });
-      };
-      var prof = {
-        region: val('region'), rural: !!(document.getElementById('rural')||{}).checked,
-        livingType: val('livingType'), size: val('size'), children: val('children'),
-        ageGroup: val('ageGroup'), gender: val('gender'), nationality: val('nationality'),
-        health: checkedVals('health'), dup: checkedVals('dup'), special: checkedVals('special')
-      };
-      localStorage.setItem('ieojim_last_profile_v1', JSON.stringify(prof));
-    }catch(e){ console.warn('재상담용 마지막 값 저장 실패:', e); }
-  }
-  function getLastProfileV4(){
-    try{ var raw = localStorage.getItem('ieojim_last_profile_v1'); return raw ? JSON.parse(raw) : null; }catch(e){ return null; }
-  }
-  function markRepeatBannerV4(wrap){
-    if(!wrap) return;
-    var lab = wrap.querySelector('.lab');
-    if(lab && !wrap.querySelector('.repeatBanner')){
-      lab.insertAdjacentHTML('afterend', '<div class="repeatBanner" style="background:#EEF6FF;border:1px solid #BBD9FF;color:#1a5fb4;border-radius:8px;padding:8px 10px;margin:4px 0 10px;font-size:.92rem">🔁 지난 상담 값을 불러왔어요 — 다르면 직접 수정해주세요.</div>');
-    }
-  }
-  function setCheckedValuesV4(containerId, values){
-    if(!values || !values.length) return;
-    Array.prototype.forEach.call(document.querySelectorAll('#'+containerId+' input[type=checkbox]'), function(cb){
-      cb.checked = values.indexOf(cb.value) !== -1;
-    });
-  }
-
   function goHousehold(){
     setStep(1);
     var wrap = botCard('② 거주지 정보', TPL_HOUSEHOLD_A, '다음 ▸', ()=>goHousehold2(), 'household');
     var t = document.getElementById('targetType').value;
     document.getElementById('livingType').value = LIVING_PRESET[t] || '기타·확인필요';
-    if(isRepeatVisit){
-      var p = getLastProfileV4();
-      if(p){
-        if(p.region) document.getElementById('region').value = p.region;
-        document.getElementById('rural').checked = !!p.rural;
-        if(p.livingType) document.getElementById('livingType').value = p.livingType;
-        markRepeatBannerV4(wrap);
-      }
-    }
   }
   function goHousehold2(){
     setStep(1); // 같은 단계(점)의 두 번째 화면
     var wrap = botCard('② 가구·인적사항', TPL_HOUSEHOLD_B, '다음 ▸', ()=>goIncome(), 'household2');
     renderAgeGender(true); // 연령대·성별 select이 이 화면에 있으므로 여기서 채움
-    if(isRepeatVisit){
-      var p = getLastProfileV4();
-      if(p){
-        if(p.size) document.getElementById('size').value = p.size;
-        if(p.children) document.getElementById('children').value = p.children;
-        if(p.ageGroup) document.getElementById('ageGroup').value = p.ageGroup;
-        if(p.gender) document.getElementById('gender').value = p.gender;
-        if(p.nationality) document.getElementById('nationality').value = p.nationality;
-        markRepeatBannerV4(wrap);
-      }
-    }
   }
 
   function goIncome(){
@@ -2417,10 +2355,6 @@
   function goHealth(){
     setStep(3);
     var wrap = botCard('④ 건강상태', TPL_HEALTH_A, '다음 ▸', ()=>goHealth2(), 'health');
-    if(isRepeatVisit){
-      var p = getLastProfileV4();
-      if(p && p.health){ setCheckedValuesV4('health', p.health); markRepeatBannerV4(wrap); }
-    }
   }
   function goHealth2(){
     setStep(3); // 같은 단계(점)의 두 번째 화면
@@ -2429,18 +2363,9 @@
       var memo = document.getElementById('memo');
       if(memo && !memo.value) memo.value = lastFreeText;
     }
-    if(isRepeatVisit){
-      var p = getLastProfileV4();
-      if(p){
-        if(p.dup) setCheckedValuesV4('dup', p.dup);
-        if(p.special) setCheckedValuesV4('special', p.special);
-        markRepeatBannerV4(wrap);
-      }
-    }
   }
 
   function goResult(){
-    saveLastProfileV4(); // 다음 재상담을 위해 이번 거주·가구·건강 값을 이 기기에 저장
     botTyping(function(){
       var w1 = botCard('⑤ 예비판단 결과', TPL_RESULT1, null);
       var w2 = botCard('⑥ 지원·연계', TPL_RESULT2, null);
@@ -2631,7 +2556,6 @@
     // currentCaseId를 비워서 다음 saveCaseProgress()가 새 row를 만들게 함.
     currentCaseId = null;
     resultDone = false; resultCards = null; lastFreeText = ''; STEP = {}; caseFirstInputAt = null;
-    isRepeatVisit = false; // 새 상담마다 재상담 여부를 다시 체크하도록 초기화
     _activeRecCard = null; // 새 상담이므로 이전 녹음결과 카드 참조를 끊어서 다음 녹음이 새 카드로 시작되게 함
     step=0; setStep(0);
     chat.innerHTML=''; var w=document.createElement('div'); w.className='welcome';
@@ -2643,7 +2567,6 @@
       +'<div class="c" onclick="quickPick(\'취약노인\')">취약노인</div>'
       +'<div class="c" onclick="quickPick(\'외국인노동자\')">외국인노동자</div>'
       +'</div>'
-      +'<label style="display:inline-flex;align-items:center;gap:6px;margin-top:14px;font-size:.98rem;color:var(--mut);cursor:pointer"><input type="checkbox" id="repeatVisitChk" onchange="isRepeatVisit=this.checked" style="width:16px;height:16px">🔁 재상담(이전에 만난 적 있는 분) — 거주·가구·건강 정보를 이 기기의 마지막 값으로 미리 채워줘요</label>'
       +'<button onclick="skipToFlow()" style="margin-top:16px;background:var(--accent-soft);color:var(--accent-ink);border:1.5px solid var(--accent);border-radius:22px;padding:10px 20px;font-size:1.17rem;font-weight:700;cursor:pointer;font-family:inherit">상황 입력 없이 바로 진행 ▸</button>'
       +'<div style="margin-top:24px;display:flex;flex-direction:column;align-items:center;gap:8px">'
       +'<span class="micwrap"><div class="privBubble" id="micPrivBubble">🔒 서버로 전송되지만 학습에는 쓰이지 않고, 악용 방지 목적으로 최대 30일 후 삭제돼요(OpenAI)</div>'
@@ -3925,7 +3848,7 @@ ${d.memo ? '\n메모: '+d.memo : ''}
     + "3. 국외 이전 안내 (음성인식·AI 정리)\n   - 이전받는 자: OpenAI, L.L.C. (미국)\n   - 이전 목적: 음성→텍스트 변환, 상담 항목 자동 추출·초안 작성\n   - 이전 방법: 상담원이 녹음·입력 시 API 호출을 통해 실시간 전송\n   - 보유·이용 기간: 악용 방지 모니터링 목적으로 최대 30일간 보관 후 삭제. AI 모델 학습에는 사용되지 않습니다.\n   - 이전 거부 시: 음성인식·AI 자동정리는 이 서비스의 핵심 기능이라, 거부하면 해당 기능 대신 직접 입력 방식으로만 이용 가능합니다.\n\n"
     + "4. 상담 기록 저장 (국내)\n   - 저장 위치: Supabase(대한민국 서울 리전) — 암호화하여 저장합니다.\n   - 보유 기간: 기관 내부 방침에 따르며, 삭제 요청은 아래 문의처로 하실 수 있습니다.\n\n"
     + "5. 안전조치\n   상담 기록은 암호화되어 저장되며, 담당 상담원만 조회할 수 있도록 접근을 제한합니다.\n\n"
-    + "6. 문의처\n   사단법인 인천내일을여는집(홈리스핫) — homenaeil@naver.com\n\n"
+    + "6. 문의처\n   사단법인 인천내일을여는집 — homenaeil@naver.com\n\n"
     + "※ 이 안내는 서비스 운영 중 지속적으로 보완됩니다. 최신 버전은 이 화면에서 항상 확인할 수 있습니다.";
 
   function openPolicy(){
