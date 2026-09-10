@@ -870,6 +870,8 @@
       html += '<div style="font-size:1.17rem;line-height:1.55">🎧 인식된 내용</div>'
         + '<div style="margin-top:6px;padding:11px 13px;border-radius:12px;background:rgba(127,127,127,.08);font-weight:700;font-size:1.17rem;line-height:1.5">"'+escHtml(st.text)+'"</div>'
         + speakerNote
+        + '<div class="btnrow" style="margin-top:8px"><button class="btn small secondary" onclick="openAnon()">🔒 가명화하기(수동)</button></div>'
+        + '<div style="font-size:1.04rem;color:var(--mut);margin-top:4px">실명·지명이 있으면 눌러서 직접 가려주세요 — 형식이 뚜렷한 정보(전화번호 등)는 이미 자동으로 가려져 있어요.</div>'
         + '<div style="margin-top:10px;font-size:1.04rem">'+freeTextHintText(st.hintMatched)+'</div>'
         + '<div style="font-size:1.04rem;color:var(--mut);margin-top:8px">내용이 실제와 다르면 재녹음하시거나 직접 입력해주세요.</div>';
     }
@@ -946,7 +948,7 @@
       '- region: ' + JSON.stringify(REGION_LIST_V4) + ' 중 하나(시·도 단위, 명확히 언급된 경우만)',
       '- rural: 군·읍·면 농어촌 지역이라고 명시적으로 언급됐을 때만 true/false',
       '- livingType: ' + JSON.stringify(LIVING_LIST_V4) + ' 중 하나',
-      '- size: 1~5 사이 정수(가구원수, 5는 5인 이상)',
+      '- size: 1~8 사이 정수(가구원수, 8은 8인 이상)',
       '- children: 동반 미성년 자녀 수(정수)',
       '- ageGroup: ' + JSON.stringify(AGEGROUP_LIST_V4) + ' 중 하나',
       '- gender: ' + JSON.stringify(GENDER_LIST_V4) + ' 중 하나',
@@ -1021,7 +1023,7 @@
     setSelectIfValid('livingType', ex.livingType, LIVING_LIST_V4);
   }
   function fillHouseholdFieldsBV4(ex){
-    if(ex.size!=null){ var sizeVal = String(Math.min(5, Math.max(1, Math.round(Number(ex.size))||1))); setSelectIfValid('size', sizeVal, ['1','2','3','4','5']); }
+    if(ex.size!=null){ var sizeVal = String(Math.min(8, Math.max(1, Math.round(Number(ex.size))||1))); setSelectIfValid('size', sizeVal, ['1','2','3','4','5','6','7','8']); }
     if(ex.children!=null){ var ch=document.getElementById('children'); if(ch) ch.value = Math.max(0, Math.round(Number(ex.children))||0); }
     setSelectIfValid('ageGroup', ex.ageGroup, AGEGROUP_LIST_V4);
     setSelectIfValid('gender', ex.gender, GENDER_LIST_V4);
@@ -1952,6 +1954,7 @@
      VERSION_LOG 배열 맨 앞에 새 항목을 추가할 것. 같은 날 여러 건이면 tag만 올려서(v0.x) 여러 줄 추가.
      "나중에 몰아서 기록"은 누락으로 이어지므로, 수정 직후 그 자리에서 바로 추가할 것. */
   var VERSION_LOG = [
+    {tag:'v4-track a55', date:'2026-09-10', title:'가구원수 소득기준을 5~7인까지 실제 보건복지부 고시 금액으로 교체(8인 이상만 추정) + 녹음결과 화면에 "가명화하기(수동)" 버튼 추가', desc:'[1] 5인 이상 가구 소득기준 — 이전엔 "4인 기준에 3→4인 증가폭을 그대로 더한 추정치"를 5인부터 썼는데, 확인해보니 2026년 보건복지부 기준중위소득 고시 자체가 1인부터 7인까지 실제 금액을 공표하고 있고(1인 2,564,238원~7인 9,554,289원) 8인 이상만 증가폭을 적용해 추정하는 게 정부의 공식 산정 방식이었음 — 즉 "4인이 최대치라 5인 이상은 다 추정"이라는 기존 전제 자체가 틀렸던 것. INCOME_STD를 1~7인은 실제 고시금액의 75%(긴급복지지원 소득기준)로 교체하고, 8인 이상만 6→7인 증가폭(998,337원, 75% 환산 748,753원)을 적용한 추정치로 남김 — "추가 확인 필요" 경고 배지·안내문구도 5인 이상 기준에서 8인 이상 기준으로 상향 조정. 가구원수 선택지도 기존 "5인 이상" 하나로 뭉쳐있던 것을 5인/6인/7인/8인 이상으로 세분화(select#size), AI 자동추출의 size 필드 설명·클램프 범위도 1~8로 함께 확장. 참고: 이 수치는 제3자 정리 자료를 근거로 계산한 값이라, 실제 배포 전 보건복지부 공식 고시 원문으로 한 번 더 대조 확인을 권장함. [2] 녹음 결과 화면(recCardBody)에 인식된 내용을 확인한 직후 바로 누를 수 있는 "🔒 가명화하기(수동)" 버튼 추가 — 녹음 직후 텍스트는 이미 자동으로 가명화 도우미에 채워져 1차 처리(형식이 뚜렷한 개인정보 자동 마스킹)까지 끝난 상태인데, 그 사실을 상담원이 알기 어려워 실명 등 자유 형식 정보를 직접 가리는 기능(가명화 도우미의 실명·지명 목록 입력)까지 이어지지 않을 수 있었음 — 버튼을 누르면 이미 처리된 결과가 있는 가명화 도우미 화면이 바로 열려서, 실명이 있으면 그 자리에서 목록에 추가해 가릴 수 있음(구흥모님 요청).'},
     {tag:'v4-track a54', date:'2026-09-10', title:'적대적 리뷰(9/9) 3차 대응 — v4.html 코드만으로 가능한 항목 반영(STT/AI 인증 헤더를 로그인 세션 토큰 우선으로, 국적·거주형태 선택지 확충)', desc:'9/9 적대적 리뷰의 남은 미착수 항목 중, 서버·DB 변경 없이 클라이언트 코드만으로 안전하게 반영 가능한 두 가지를 적용. (1) [치명1 — 절반] STT(transcribeAudio)·AI초안/자동추출(requestExtractionV4, generateAiDraft) 호출의 Authorization 헤더를, 로그인 상태면 공개 anon 키 대신 로그인 세션의 access_token을 보내도록 변경(sttAuthHeader() 헬퍼 추가). 로그인 없이도 100% 동작해야 한다는 기존 원칙은 유지하기 위해 비로그인 상태에서는 그대로 anon 키를 사용 — 이건 "서버가 role을 구분해서 검증"하는 나머지 절반(Edge Function 코드 수정 + 시간당 호출 횟수 제한 테이블 추가)과 짝을 이루는 클라이언트 측 준비 작업이며, 서버 쪽 절반은 Supabase 인프라 변경이 필요해 별도 적용 대상으로 남음(구체적인 SQL/Edge Function 코드는 claude 프로젝트 문서 adversarial-review-2026-09-09.md에 정리, 구흥모님 확인 후 Supabase 콘솔에서 직접 적용 필요). (2) [🟡 국적·거주형태 선택지 부족] livingType에 "여인숙 장기투숙"·"지인 집 얹혀살기"·"차량 내 거주(차박)" 3개, nationality에 "체류자격 변동 중(예: 결혼이주 이혼절차)"·"무국적 아동 동반" 2개 옵션을 추가 — 리뷰가 예로 든 실제 애매 사례를 이제 "기타"로 뭉뚱그리지 않고 선택 가능. 판정 로직(run())에는 영향 없도록 livingType은 그대로 표시용으로만 쓰이고, nationality의 새 옵션 2개는 기존 "외국인(미확정)"과 동일하게 "체류자격 확인 후 지원범위 결정" 확인-필요 분기로 매핑해서 안전하게 처리(nationalityLabelMap에도 라벨 추가 + 누락 대비 폴백(||nationality) 처리). 나머지 미착수 항목(치명1 서버측 절반, 관리자 조직접근 RLS, decrypt_case_field 소유권 검증, 회원가입 도메인 제한, Whisper 환각 필터 OR조건 강화, Supabase 보안 어드바이저 경고 2건)은 DB 스키마·RLS 정책·Edge Function 배포·Auth 설정 등 Supabase 인프라 변경이 필요해 이번 세션의 자동 실행 권한 범위 밖으로 판단되어 직접 적용하지 못함 — 정확한 해결 방법(실행 가능한 SQL/코드 포함)은 adversarial-review-2026-09-09.md에 항목별로 정리해뒀으니, 구흥모님이 Supabase 대시보드에서 직접 실행하거나 다음 세션에서 명시적으로 승인해주시면 그때 적용 가능. (Claude 세션 — 구흥모님 요청: "적대적 리뷰 미착수 항목을 코치 확인 없이 직접 해결")'},
     {tag:'v4-track a53', date:'2026-09-10', title:'화면 하단(사이드바~중앙 전체) "검정 그라데이션" 버그 수정 — 숨겨진 모달(.vmodal) 7개의 위쪽 방향 그림자가 화면 아래로 새어나오던 문제', desc:'설정·버전기록·정책·앱정보·가명화 도우미·사용현황·로그인 등 화면 하단에서 올라오는 모든 패널(.vmodal, 총 7개 인스턴스)이 평소엔 transform:translateY(100%)로 화면 아래로 완전히 숨어있는데, 여기 걸려있던 그림자(box-shadow:var(--shadow-lg) = 0 -8px 30px rgba(16,32,38,.16))가 아래가 아니라 "위쪽" 방향이었음 — 모달 박스 자체는 화면 밖으로 내려가 있어도, 위로 향하는 그림자만 화면 안쪽(맨 아래)으로 계속 새어나와 사이드바~중앙 화면 전체에 걸쳐 옅은 어두운 띠로 보이고 있었음(모달이 7개나 있어 항상 하나 이상 화면에 영향을 주고 있었음). .vmodal의 그림자를 기본 상태에서 완전히 빼고 .vmodal.open일 때만(실제로 열려서 화면 위로 올라왔을 때만) 적용하도록 수정 — 모달이 열렸을 때의 시각 효과는 그대로 유지되면서, 닫혀있을 때 새어나오던 음영은 사라짐. 모두 v4.html 내부만으로 완결(서버/DB 변경 없음).'},
     {tag:'v4-track a49', date:'2026-09-10', title:'긴급복지 예비판단·상담일지 초안·후속조치 요약이 한꺼번에 먹통이던 치명적 회귀 수정(a47의 itemTxt 오류), 건강상태 안내문구를 다른 안내와 같은 방식으로 숨김, AI가 소득·재산을 근거 없이 "0"으로 지어내는 문제에 안전장치 추가', desc:'[치명적 버그, 최우선 수정] "긴급복지 예비판단이 정상작동 안 함", "6 지원연계 후속조치 요약이 비어 있음", "7 상담일지 초안에 상담내용이 완전히 없음" — 세 신고가 사실은 하나의 원인이었음. a47에서 buildScheduleSummary() 호출부(run() 함수)를 고치면서 아직 선언되지 않은 지역변수 itemTxt를 그보다 앞줄에서 먼저 참조하게 만들어(자바스크립트 const는 "선언 전 접근 금지" 규칙이 있어 이 경우 즉시 ReferenceError 발생) run() 함수가 그 줄에서 곧바로 멈춰버리고 있었음 — 판정 배지(verdict) 자체는 그 줄보다 앞이라 멀쩡해 보였지만, 그 뒤에 있던 후속조치 요약 채우기·lastRunData 저장·상담일지 초안 생성(buildDoc)·통계 기록이 전부 실행되지 못한 채 조용히 죽어 있었음(콘솔 외엔 아무 에러 표시도 없어 눈치채기 어려웠음). itemTxt 선언을 실제 필요한 시점보다 앞으로 옮겨서 수정 — a47 이후 판정을 한 번이라도 실행한 모든 상담이 같은 증상을 겪었을 것이므로, 실사용 중이었다면 최우선으로 재배포 확인 필요. [2] 건강상태(③) 화면 맨 위에 항상 떠 있던 "이 항목들은 신뢰가 쌓인 뒤에…" 안내문구를 다른 화면들과 똑같이 라벨 옆 물음표(ⓘ) 버튼 뒤로 숨김 — 눌러야만 팝오버로 뜨고, 평소엔 화면을 차지하지 않음(사용자 요청: "다른 안내멘트처럼 숨겨줘"). [3] "재산은 없고 빚만 있다"처럼 명시적으로 말하지 않았는데도 AI 인식 결과 화면에 월소득·임차보증금·금융재산·부채가 전부 "0원"으로 뜨는 사고 재신고 — OpenAI Structured Outputs strict 모드에서 nullable 정수 필드에 모델이 null 대신 0을 반환해버리는 사례로 추정(프롬프트 문구만으로는 100% 통제가 안 됨). 클라이언트에서 마지막 안전장치로, 4개 항목이 전부 0인데 원문에 "없다/없음/없어/없고" 같은 명시적 표현이 전혀 없으면 모델이 지어낸 값으로 보고 4개 다 null(미확인)로 되돌리는 sanitizeZeroFinancialsV4()를 requestExtractionV4()에 추가 — 실제로 "다 없다"고 말한 경우는 그대로 0으로 유지되므로 기존 정상 동작은 그대로 보존됨. 모두 v4.html 내부만으로 완결(서버/DB 변경 없음).'},
@@ -2307,7 +2310,7 @@
     </div>`;
   var TPL_HOUSEHOLD_B = `    <div class="grid">
       <div class="field"><span class="lab">가구원수 (피해자는 가해자 제외)</span>
-        <select id="size"><option value="1">1인</option><option value="2">2인</option><option value="3">3인</option><option value="4">4인</option><option value="5">5인 이상</option></select>
+        <select id="size"><option value="1">1인</option><option value="2">2인</option><option value="3">3인</option><option value="4">4인</option><option value="5">5인</option><option value="6">6인</option><option value="7">7인</option><option value="8">8인 이상</option></select>
       </div>
       <div class="field"><span class="lab">동반 미성년 자녀 수</span>
         <input type="number" id="children" class="num" placeholder="0" min="0"/>
@@ -2800,7 +2803,11 @@
      (판정엔진 · 가명화 · AI초안 · hwpx생성 · 날씨연동 · 사용통계)
      ================================================================ */
   // 2026 긴급복지 소득기준(기준중위소득 75%) — 팀 최종확정 대상
-  const INCOME_STD = {1:1923179, 2:3149469, 3:4019277, 4:4871054, 5:5722831}; // 5인은 3→4인 증가폭(851,777원)을 그대로 적용한 추정치 — 공식 고시 금액으로 재확인 필요
+  // v4-track a55: 1~7인은 2026년 보건복지부 기준중위소득 고시(1인 2,564,238원~7인 9,554,289원)의
+  // 75%(긴급복지지원 소득기준)로 실제 고시 금액을 반영 — 이전엔 5인부터 추정치였으나, 공식 고시가
+  // 실제로는 7인까지 있다는 걸 확인해서 5·6·7인도 정확한 금액으로 교체함. 8인 이상만 6→7인 증가폭
+  // (998,337원, 75% 환산 748,753원)을 그대로 적용한 추정치로 남음.
+  const INCOME_STD = {1:1923179, 2:3149469, 3:4019277, 4:4871054, 5:5667539, 6:6416964, 7:7165717, 8:7914470}; // 8인 이상만 추정치 — 9인 이상은 1인당 748,753원씩 계속 더하면 됨
   const ASSET_LIMIT = {대도시:241000000, 중소도시:152000000, 농어촌:130000000};
   const HOUSE_DEDUCT = {대도시:69000000, 중소도시:42000000, 농어촌:35000000};
   const FIN_LIMIT = 5000000;
@@ -3816,7 +3823,7 @@ ${d.memo ? '\n메모: '+d.memo : ''}
     else if(special.length){ cls='v-warn'; verdict='추가 확인 필요 — 특수상황(담당자·전문기관 경로)'; tag='확인'; }
     else if(nationality==='외국인(미확정)' || nationality==='외국인(변동중)' || nationality==='무국적아동동반'){ cls='v-warn'; verdict='추가 확인 필요 — 체류자격 확인 후 지원범위 결정'; tag='확인'; }
     else if(!financialsConfirmed){ cls='v-warn'; verdict='추가 확인 필요 — 소득·재산 정보 미확인(상담원 미입력, 직접 확인 필요)'; tag='확인'; }
-    else if(size>=5 && incomeOk && assetOk){ cls='v-warn'; verdict='추가 확인 필요 — 5인 이상 가구 소득기준은 추정치(보건복지부 최신 고시 금액으로 재확인 필요)'; tag='확인'; }
+    else if(size>=8 && incomeOk && assetOk){ cls='v-warn'; verdict='추가 확인 필요 — 8인 이상 가구 소득기준은 추정치(보건복지부 최신 고시 금액으로 재확인 필요)'; tag='확인'; }
     else if(incomeOk && assetOk){ cls='v-ok'; verdict='긴급복지 예비 대상 가능'; tag='대상 가능'; }
     else { cls='v-warn'; verdict='추가 확인 필요 — 소득/재산 기준 초과(긴급성 시 자체지원 우선 검토)'; tag='확인'; }
 
@@ -3830,7 +3837,7 @@ ${d.memo ? '\n메모: '+d.memo : ''}
     add('위기사유: ' + (crisisMet ? '해당 — '+crisis.join(', ') : '선택된 위기사유 없음'));
     if(health.length) add('건강상태: '+health.join(', '));
     add(incomeEntered
-      ? ('소득: 월 <span class="num">'+won(income)+'</span> '+(incomeOk?'≤':'＞')+' '+size+'인 기준 <span class="num">'+won(std)+'</span> → '+(incomeOk?'충족':'초과')+(size>=5?' <span style="color:var(--warn)">(5인 이상 기준은 추정치 — 보건복지부 최신 고시 금액으로 재확인 필요)</span>':''))
+      ? ('소득: 월 <span class="num">'+won(income)+'</span> '+(incomeOk?'≤':'＞')+' '+size+'인 기준 <span class="num">'+won(std)+'</span> → '+(incomeOk?'충족':'초과')+(size>=8?' <span style="color:var(--warn)">(8인 이상 기준은 추정치 — 보건복지부 최신 고시 금액으로 재확인 필요)</span>':''))
       : '소득: <span style="color:var(--warn)">확인 안 됨(상담원 미입력)</span>');
     add(assetInfoEntered
       ? ('재산 산정액 <span class="num">'+won(assetCalc)+'</span>(보증금−공제+금융−부채) vs '+regionName+'('+regionTier+' 기준) 상한 <span class="num">'+won(assetLimit)+'</span> → '+(assetOk?'충족':'초과'))
