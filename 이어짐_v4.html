@@ -1067,6 +1067,24 @@
     SERVER_SCRUB_RULES_V4.forEach(function(r){ out = out.replace(r[0], r[1]); });
     return out;
   }
+  // v4-track a49: "재산 없음" 같은 말을 전혀 안 했는데도 소득·재산 4개 항목이 전부 0으로
+  // 인식되는 사고 재신고(구흥모님) — Structured Outputs strict 모드가 nullable 정수 필드에서
+  // 모델이 null 대신 0을 더 "안전한 기본값"처럼 반환해버리는 사례가 실사용에서 확인됨(프롬프트에
+  // "명시적으로 없다고 말한 경우만 0"이라고 못박아도 100% 지켜지진 않음). 서버/프롬프트만으로는
+  // 완전히 막을 수 없으니, 클라이언트에서 원문에 "없다/없음/없어/없고" 같은 표현이 실제로 있는지를
+  // 마지막 안전장치로 한 번 더 검사 — 4개(소득·보증금·금융재산·부채)가 전부 0인데 원문에 그런 표현이
+  // 전혀 없으면 "모델이 지어낸 0"으로 보고 4개 다 null(미확인)로 되돌린다. 하나라도 0이 아니거나
+  // 원문에 "없다"류 표현이 있으면 그대로 둔다(진짜로 "다 없다"고 말한 경우까지 지우면 안 되므로).
+  var ZERO_STATEMENT_RE_V4 = /없(다|어|음|고|네요|습니다)|전혀\s*없|하나도\s*없/;
+  function sanitizeZeroFinancialsV4(ex, sourceText){
+    if(!ex) return ex;
+    var keys = ['income','deposit','fin','debt'];
+    var allZero = keys.every(function(k){ return ex[k]===0; });
+    if(allZero && !ZERO_STATEMENT_RE_V4.test(String(sourceText||''))){
+      keys.forEach(function(k){ ex[k] = null; });
+    }
+    return ex;
+  }
   async function requestExtractionV4(text){
     if(String(text||'').trim().length < MIN_EXTRACT_CHARS_V4) return null;
     try{
@@ -1077,7 +1095,7 @@
         body: JSON.stringify({prompt: prompt, schema: extractionJsonSchemaV4(), schemaName: 'crisis_extraction_v4'})
       });
       var data = await res.json().catch(function(){ return {}; });
-      if(res.ok && data.text){ return parseExtractionJson(data.text); }
+      if(res.ok && data.text){ return sanitizeZeroFinancialsV4(parseExtractionJson(data.text), text); }
     }catch(e){ console.warn('v4 자동 채움 추출 실패:', e); }
     return null;
   }
@@ -1133,7 +1151,8 @@
   // 위저드를 자동 진행시킨다(단계별로 그 화면 항목이 전부 확실하면 다음으로, 하나라도 불확실하면
   // 그 화면에서 멈춤). autoRunFromRecording()·autoRunFromText() 둘 다 이 함수를 공유한다.
   function runAutoFillStepsV4(ex){
-    if(ex.targetType && TARGETTYPE_LIST_V4.indexOf(ex.targetType)!==-1){
+    // v4-track a48: 상담사가 이미 직접 유형을 고른 경우, 녹음에서 AI가 추론한 값으로 덮어쓰지 않는다.
+    if(!targetTypeManuallySet && ex.targetType && TARGETTYPE_LIST_V4.indexOf(ex.targetType)!==-1){
       var tt = document.getElementById('targetType'); if(tt){ tt.value = ex.targetType; syncType(); }
     }
 
@@ -1390,7 +1409,9 @@
   /* ================= 계정 설정: 이름/비밀번호 변경 ================= */
   function openSettings(){
     if(!(authSession && currentCounselor)){
-      botCard('설정', '이름·비밀번호 변경은 로그인 후에 가능해요. 먼저 로그인해 주세요.', null);
+      // v4-track a48: 여기서 botCard()를 쓰면(예전 코드) 로그인 안 된 상태로 "설정"을 누를 때마다
+      // 화면이 뜬금없이 위저드 모드로 바뀌면서 하단에 이전/다음 내비게이션까지 나타났음(a45의
+      // goToDoc()과 같은 부작용). 로그인 모달을 여는 것만으로 충분하므로 채팅 카드는 만들지 않는다.
       openAuth();
       return;
     }
@@ -1921,6 +1942,8 @@
      VERSION_LOG 배열 맨 앞에 새 항목을 추가할 것. 같은 날 여러 건이면 tag만 올려서(v0.x) 여러 줄 추가.
      "나중에 몰아서 기록"은 누락으로 이어지므로, 수정 직후 그 자리에서 바로 추가할 것. */
   var VERSION_LOG = [
+    {tag:'v4-track a49', date:'2026-09-10', title:'긴급복지 예비판단·상담일지 초안·후속조치 요약이 한꺼번에 먹통이던 치명적 회귀 수정(a47의 itemTxt 오류), 건강상태 안내문구를 다른 안내와 같은 방식으로 숨김, AI가 소득·재산을 근거 없이 "0"으로 지어내는 문제에 안전장치 추가', desc:'[치명적 버그, 최우선 수정] "긴급복지 예비판단이 정상작동 안 함", "6 지원연계 후속조치 요약이 비어 있음", "7 상담일지 초안에 상담내용이 완전히 없음" — 세 신고가 사실은 하나의 원인이었음. a47에서 buildScheduleSummary() 호출부(run() 함수)를 고치면서 아직 선언되지 않은 지역변수 itemTxt를 그보다 앞줄에서 먼저 참조하게 만들어(자바스크립트 const는 "선언 전 접근 금지" 규칙이 있어 이 경우 즉시 ReferenceError 발생) run() 함수가 그 줄에서 곧바로 멈춰버리고 있었음 — 판정 배지(verdict) 자체는 그 줄보다 앞이라 멀쩡해 보였지만, 그 뒤에 있던 후속조치 요약 채우기·lastRunData 저장·상담일지 초안 생성(buildDoc)·통계 기록이 전부 실행되지 못한 채 조용히 죽어 있었음(콘솔 외엔 아무 에러 표시도 없어 눈치채기 어려웠음). itemTxt 선언을 실제 필요한 시점보다 앞으로 옮겨서 수정 — a47 이후 판정을 한 번이라도 실행한 모든 상담이 같은 증상을 겪었을 것이므로, 실사용 중이었다면 최우선으로 재배포 확인 필요. [2] 건강상태(③) 화면 맨 위에 항상 떠 있던 "이 항목들은 신뢰가 쌓인 뒤에…" 안내문구를 다른 화면들과 똑같이 라벨 옆 물음표(ⓘ) 버튼 뒤로 숨김 — 눌러야만 팝오버로 뜨고, 평소엔 화면을 차지하지 않음(사용자 요청: "다른 안내멘트처럼 숨겨줘"). [3] "재산은 없고 빚만 있다"처럼 명시적으로 말하지 않았는데도 AI 인식 결과 화면에 월소득·임차보증금·금융재산·부채가 전부 "0원"으로 뜨는 사고 재신고 — OpenAI Structured Outputs strict 모드에서 nullable 정수 필드에 모델이 null 대신 0을 반환해버리는 사례로 추정(프롬프트 문구만으로는 100% 통제가 안 됨). 클라이언트에서 마지막 안전장치로, 4개 항목이 전부 0인데 원문에 "없다/없음/없어/없고" 같은 명시적 표현이 전혀 없으면 모델이 지어낸 값으로 보고 4개 다 null(미확인)로 되돌리는 sanitizeZeroFinancialsV4()를 requestExtractionV4()에 추가 — 실제로 "다 없다"고 말한 경우는 그대로 0으로 유지되므로 기존 정상 동작은 그대로 보존됨. 모두 v4.html 내부만으로 완결(서버/DB 변경 없음).'},
+    {tag:'v4-track a48', date:'2026-09-10', title:'Whisper 환각 문구 추가(서버), "설정" 버튼의 로그아웃 상태 위저드 오작동 수정, 대상유형 수동선택이 AI 추론에 덮어써지지 않도록 수정', desc:'[1] "무엇이든 물어보셔도 돼요" 같은 AI 어시스턴트 말투의 환각이 새로 신고됨 — Whisper가 뉴스·유튜브 자막뿐 아니라 챗봇 대화 데이터로도 학습돼 있어 무음/저신뢰 구간에서 이런 안내 멘트도 만들어낼 수 있음. stt-transcribe 엣지함수(Supabase, v9)에 흔한 어시스턴트 마무리 문구 패턴 5개를 추가 배포(v4.html과 무관하게 즉시 적용). [2] 로그인 안 된 상태에서 "설정"(사이드바 팝업 메뉴의 "계정 설정" 또는 PC 축소 레일의 ⚙️)을 누르면 로그인 모달을 열기 전에 botCard()로 안내 카드를 하나 띄웠는데, 이게 a45에서 고친 goToDoc()과 같은 부작용(전역적으로 위저드 모드를 켜서 뜬금없이 하단에 이전/다음 내비게이션이 나타남)을 일으키고 있었음(사용자가 사이드바 접힌 상태에서 재현 — 실제로는 로그인 여부와 무관하게 로그아웃 상태이기만 하면 항상 발생하던 문제) — 안내 카드를 없애고 로그인 모달만 바로 연다. [3] "대상자 유형을 고르고, 상황을 말하거나 입력하면…"이라는 첫 화면 문구와 달리, 채팅창 팝업에서 유형을 직접 골라도 녹음 내용에서 AI가 다른(또는 불명확한) 유형을 추론하면 그 값으로 조용히 덮어써지고 있었음(사용자 질문으로 확인) — 이제 상담사가 유형을 직접 고르면(targetTypeManuallySet) 그 뒤로는 AI가 녹음에서 무엇을 추론하든 덮어쓰지 않고 사람의 선택을 그대로 유지, 새 상담을 시작하면 이 플래그도 초기화됨. 모두 v4.html과 stt-transcribe 엣지함수로 완결(DB 스키마 변경 없음).'},
     {tag:'v4-track a47', date:'2026-09-10', title:'녹음→AI 자동진행 사이에 "텍스트 확인"과 "AI 인식결과 확인" 화면 추가, Whisper 환각 필터 강화(서버), 위치 말풍선 위치·검정 그라데이션·계정 팝업 회귀 수정, 후속조치 요약에 AI 메모 포함', desc:'[1] 녹음→변환 완료 즉시 사람 확인 없이 바로 ①위기사유 화면으로 자동 진행되던 것(현장 지적: "텍스트 내용 확인 없이 바로 넘어가면 안 됨")을 고쳐, 이제 변환된 텍스트가 뜬 카드에서 상담사가 직접 "다음"을 눌러야만 AI 인식이 시작된다(startAiRecognitionReviewV4). AI 인식이 끝나면 무엇을 인식했고(✅) 무엇을 못 했는지(❓)를 보여주는 새 확인 화면이 뜨고, 여기서 "다음"을 눌러야 ①위기사유·긴급성으로 넘어간다. 그동안 ①위기사유 화면 자체에 뜨던 "AI가 다음 항목을 파악하지 못했어요" 경고문구는 이제 이 새 화면에서 먼저 안내되므로 제거(화면은 그대로 멈춰서 확인은 계속 강제함). 타이핑 입력 경로(autoRunFromText)는 원래도 사람이 자기가 쓴 글을 보고 있었으므로 변경하지 않음. [2] Whisper STT 서버(stt-transcribe 엣지함수)에서 "이 영상은 복지상담원의 유료광고를 포함하고 있습니다" 같은 환각이 필터를 통과한 사고 재신고 — 기존 정규식이 "이 영상은"과 "유료광고" 사이에 다른 말(이번엔 STT 프롬프트 문맥이 섞여 들어감)이 끼면 매칭을 못 하던 걸 고쳐 "이 영상은 (임의의 말) 포함하고 있습니다/합니다" 계열 전체를 잡도록 정규식을 넓히고, 문구 목록도 몇 개 추가. 더불어 오디오가 아주 짧은데(1.2초 미만) 텍스트가 길게(15자 초과) 나오면 물리적으로 의심스러운 신호로 보고 비우는 안전장치도 추가(둘 다 Supabase 대시보드에서 직접 배포, v4.html과 무관하게 즉시 적용됨). [3] ②거주지 정보의 위치 자동선택 말풍선(a43 regionToast)이 버튼 아래로 뜨면서 바로 밑의 시·도 드롭다운을 가리던 문제 — 버튼 위쪽으로 뜨도록 방향을 바꿈. [4] 화면 전체 하단에 검정 그라데이션이 보인다는 신고 — theme-color 메타 태그가 없어서 모바일 브라우저가 주소창·내비게이션 바 부분에 자체적으로 어두운 스크림을 합성해 넣는 것으로 보고, 페이지 배경색(라이트/다크)에 맞춘 theme-color를 추가해 브라우저가 자체 스크림을 만들 필요가 없게 함. [5] a46에서 사이드바 계정 버튼을 팝업 메뉴로 바꾸며 renderAcctUI()를 새로 쓰는 과정에서 PC 축소 아이콘 레일(#rail)의 계정 아바타(이니셜 표시)를 갱신하는 코드가 실수로 빠져 항상 "?"로 고정되는 회귀가 있었음 — 복구. 레일의 계정 버튼 클릭 동작도 예전 로그인창을 직접 여는 것 대신, 사이드바를 펼쳐서 새 팝업 메뉴로 이어지도록 변경(레일은 아이콘만 있어 좁아서 팝업을 그대로 넣기 어려움). [6] "이어짐 정보"(a46) 문구에 남아있던 "(홈리스핫)" 표기 제거 — 사단법인 명칭만 표기(사용자 요청: 앞으로 한글 문구에 "홈리스핫" 쓰지 않기). [7] ⑥지원·연계의 "긴급성 기반 후속조치 등록용 요약"에 녹음 내용을 AI가 정리한 메모(#memo, generateAiDraft 결과)도 맨 아래에 포함 — AI 초안이 나중에 만들어지는 자동진행 흐름에서도 요약이 최신 메모를 반영하도록 refreshScheduleSummaryIfVisible() 추가(상담일지 본문의 메모 스냅샷도 같이 최신화). 모두 v4.html과 stt-transcribe 엣지함수로 완결(DB 스키마 변경 없음).'},
     {tag:'v4-track a46', date:'2026-09-10', title:'사이드바 계정 버튼을 클로드 앱처럼 "이름+꺽쇠 팝업 메뉴"로 개편, 사이드바 하단 안내문구 제거 후 "이어짐 정보" 메뉴 신설', desc:'[1] 사이드바 하단 계정 영역이 아바타 원+이름+부제(이메일/상태)+별도 톱니바퀴 버튼으로 되어 있던 걸, 요청대로 이름과 꺽쇠(▾)만 보이게 단순화 — 누르면 꺽쇠가 반대 방향(▴, 180도 회전)으로 바뀌면서 위쪽으로 팝업 메뉴가 뜨고(사이드바 맨 아래라 아래 공간이 없어 위로 열림), 메뉴 맨 위에 이메일(또는 로그인 안내), 그 아래 설정 메뉴들(계정 설정/이어짐 정보), 맨 아래에 로그인 또는 로그아웃 버튼이 온다. 로그아웃 항목은 예전처럼 로그인 모달을 다시 여는 대신 바로 doSignOut()을 호출하도록 정리(acctAuthAction()). PC 전용 축소 아이콘 레일(#rail)의 계정 아바타는 아이콘만 있는 별도 UI라 이번 변경 대상에서 제외. [2] 사이드바 맨 아래 "UI 시안 · 실제 판정 로직은 통합 시 연결 / 본선 데모용 · 로그인하면…" 안내문구를 제거하고, 같은 내용을 재활용하지 않고 새로 작성해서 계정 메뉴의 "이어짐 정보"(appInfoModal)로 옮김 — 이어짐이 무엇을 하는 웹 앱인지, 지금이 해커톤 프로토타입 단계라는 점, 로그인의 의미, 버전기록·개인정보처리방침 위치, 제작 주체를 간단히 설명. 모두 v4.html 내부만으로 완결(서버/DB 변경 없음).'},
     {tag:'v4-track a45', date:'2026-09-10', title:'개인정보 처리방침 링크 위치·글씨 조정, 대상유형 칩→팝업 버튼 통합, 사이드바 "상담일지·문서" 안내가 위저드 내비게이션을 잘못 띄우던 문제 수정', desc:'[1] 정책 링크(policyLink)가 채팅 입력창(.composer-inner) 안쪽 첫 줄에 있어서 마치 입력창 일부처럼 보였음(사용자 스크린샷 지적) — .composer-inner 바깥, .composer 안(입력창 바로 위)으로 옮기고 글씨 크기를 1.28rem→.85rem로 줄임. .composer 자체는 위저드 모드에서 그대로 숨겨지므로(.wz-flow .composer{display:none}) 별도 CSS 없이도 a42에서 고친 위저드 화면 버튼 겹침 문제가 재발하지 않음. [2] 첫 화면의 대상자 유형 5개 칩(거리 노숙인·쪽방주민 등, 정적 HTML과 resetChat() 두 곳 모두)을 삭제하고, 입력창의 유형 선택을 네이티브 select 대신 누르면 위로 뜨는 팝업 버튼(.typePopupBtn/.typePopup, 위기가구·기타 포함 7개 전체)으로 통합 — 화면 정보량을 줄이면서 선택 기능(및 위기가구/기타 옵션)은 그대로 유지. 기존 select#targetType은 화면에서만 숨기고(다른 모든 로직이 .value로 참조하므로) 그대로 두어 회귀 위험 최소화, syncType()이 팝업 버튼 라벨을 select와 항상 동기화. [3] 사이드바 "상담일지·문서"를 상담 시작 전(문서 없음 상태)에 누르면 botCard()로 안내를 띄웠는데, botCard가 전역으로 wz-flow 모드를 켜는 부작용이 있어 뜬금없이 하단에 "이전/다음" 내비게이션이 나타났음(사용자가 첫 화면에서 재현) — 상담 흐름에 영향 없는 단순 안내이므로 자동으로 사라지는 토스트(showTopToast)로 교체. 모두 v4.html 내부만으로 완결(서버/DB 변경 없음).'},
@@ -2038,7 +2061,12 @@
   }
 
   /* 유형 */
-  function quickPick(t){ document.getElementById('targetType').value=t; syncType(); document.getElementById('input').focus(); }
+  // v4-track a48: 상담사가 채팅창 팝업에서 대상유형을 직접 골랐는데, 녹음 내용에서 AI가 다른(혹은
+  // 불명확한) 유형을 추론하면 그걸로 조용히 덮어써버리는 문제가 있었음("직접 고른 게 적용되는 게
+  // 맞냐"는 질문 — 실제로 덮어써질 수 있었음). 사람이 명시적으로 고른 뒤에는 그 선택을 우선하도록
+  // 플래그를 둔다(기본 선택값 그대로 둔 것과, 실제로 클릭해서 고른 것을 구분하기 위함).
+  var targetTypeManuallySet = false;
+  function quickPick(t){ document.getElementById('targetType').value=t; targetTypeManuallySet=true; syncType(); document.getElementById('input').focus(); }
   function syncType(){
     var sel = document.getElementById('targetType');
     var btn = document.getElementById('typePopupBtn');
@@ -2300,7 +2328,7 @@
       </div>
     </div>
 `;
-  var TPL_HEALTH_A = `      <div class="note" style="grid-column:1/-1;margin-bottom:.6rem">💬 이 항목들(정신질환·폭행 상해 등)은 <b>상담이 충분히 진행되어 신뢰가 쌓인 뒤</b>, 필요한 만큼만 편하게 여쭤보세요. 화면 순서는 기록용 참고일 뿐 <b>질문 순서가 아닙니다</b>.</div>
+  var TPL_HEALTH_A = `      <div class="note" style="grid-column:1/-1;margin-bottom:.6rem">건강상태<span class="infowrap"><button type="button" class="infoQBtn" onclick="toggleInfoPop(this,event)">?</button><div class="infoPop">💬 이 항목들(정신질환·폭행 상해 등)은 <b>상담이 충분히 진행되어 신뢰가 쌓인 뒤</b>, 필요한 만큼만 편하게 여쭤보세요. 화면 순서는 기록용 참고일 뿐 <b>질문 순서가 아닙니다</b>.</div></span></div>
       <div class="field" style="grid-column:1/-1"><span class="lab">건강상태 — 해당하는 것 모두 선택</span>
         <div class="chk chk2" id="health">
           <label><input type="checkbox" value="해당없음" data-none="1"/>특이사항 없음</label>
@@ -2706,6 +2734,8 @@
     // currentCaseId를 비워서 다음 saveCaseProgress()가 새 row를 만들게 함.
     currentCaseId = null;
     resultDone = false; resultCards = null; lastFreeText = ''; STEP = {}; caseFirstInputAt = null;
+    targetTypeManuallySet = false; // 새 상담이므로 유형 수동선택 여부도 초기화
+
     _activeRecCard = null; // 새 상담이므로 이전 녹음결과 카드 참조를 끊어서 다음 녹음이 새 카드로 시작되게 함
     step=0; setStep(0);
     chat.innerHTML=''; var w=document.createElement('div'); w.className='welcome';
@@ -3790,6 +3820,7 @@ ${d.memo ? '\n메모: '+d.memo : ''}
     if(reapplyFlag) add('<b style="color:var(--warn)">주의</b>: 최근 2년 내 동일사유 긴급지원 이력 — 긴급복지지원법상 재지원 제한 규정 검토 필요');
 
     let items = mapItems(crisis, health);
+    const itemTxt = items.map(i=>ITEM_LABEL[i]).join('·');
     const excluded = items.filter(i=>dup.includes(i));
     const box = document.getElementById('items'); box.innerHTML='';
     document.getElementById('itemDesc').classList.remove('show'); document.getElementById('itemDesc').innerHTML=''; lastActivePillItem=null;
@@ -3822,7 +3853,6 @@ ${d.memo ? '\n메모: '+d.memo : ''}
 
     const today = new Date().toISOString().slice(0,10);
     const firstInputHHMM = fmtHHMM(caseFirstInputAt);
-    const itemTxt = items.map(i=>ITEM_LABEL[i]).join('·');
     lastRunData = {
       targetType, urgency, urgencyLabel:(urgency==='date' ? ('지정일: '+(document.getElementById('urgencyDate').value || '미지정')) : URGENCY_LABEL[urgency]), crisis, crisisMet, regionName, regionTier, livingType, size, children,
       income, std, incomeOk, assetCalc, assetLimit, assetOk, incomeEntered, assetInfoEntered,
