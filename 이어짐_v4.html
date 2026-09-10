@@ -63,9 +63,9 @@
     display:flex;flex-direction:column;padding:14px 12px;
     transform:translateX(-100%);
     transition:transform .28s cubic-bezier(.32,.72,0,1);
-    will-change:transform; box-shadow:var(--shadow-md);
+    will-change:transform;
   }
-  .side.open{transform:translateX(0)}
+  .side.open{transform:translateX(0);box-shadow:var(--shadow-md)}
   .side-head{display:flex;align-items:center;gap:4px;padding:4px 4px 16px}
   .side-head .brand{flex:1;display:flex;align-items:center;justify-content:center;gap:9px;font-weight:800;font-size:1.05rem;color:#fff;min-width:0}
   .side-head .brand .logo{width:28px;height:28px;flex:none;border-radius:9px;display:grid;place-items:center;overflow:hidden}
@@ -285,7 +285,7 @@
   .vitem .vdesc{font-size:1.09rem;color:var(--mut);line-height:1.55}
 
   @media (min-width:761px){
-    .side{box-shadow:none}
+    .side.open{box-shadow:none}
   }
 
   /* ================= PC 전용: 사이드바를 펼치지 않아도 눌리는 축소 아이콘 레일 =================
@@ -1943,6 +1943,7 @@
      VERSION_LOG 배열 맨 앞에 새 항목을 추가할 것. 같은 날 여러 건이면 tag만 올려서(v0.x) 여러 줄 추가.
      "나중에 몰아서 기록"은 누락으로 이어지므로, 수정 직후 그 자리에서 바로 추가할 것. */
   var VERSION_LOG = [
+    {tag:'v4-track a52', date:'2026-09-10', title:'화면 하단(사이드바~중앙 전체) "검정 그라데이션"의 실제 최종 원인 확정·수정 — 닫힌 사이드바(.side)의 box-shadow가 GPU 합성 버그로 원래 자리에 남아있던 문제', desc:'a50(입력창 그림자)·a51(backdrop-filter)은 모두 틀렸음이 확인됨 — 사용자가 진단용 임시 파일(오프라인, 배포 안 함)로 배경색을 강제로 바꾸고 의심 요소들을 하나씩 꺼보며 직접 이등분 검증을 해준 끝에, box-shadow를 전부 끄면(backdrop류는 그대로 둔 채) 음영이 사라진다는 게 확인됨. 남은 box-shadow 목록을 전수 조사해서 색상까지 대조한 결과 — 화면에서 실측된 어두운 띠의 색(R120,G128,B132, 파란기가 도는 회색)이 정확히 --shadow-md/lg의 rgba(16,32,38,...) 색상과 일치 — 사이드바 본체(.side)의 box-shadow:var(--shadow-md)로 확정. .side는 position:fixed;top:0;bottom:0(화면 전체 높이)에 will-change:transform으로 별도 GPU 레이어로 승격되어 있고, 닫혀 있을 때 transform:translateX(-100%)로 화면 밖으로 밀려나는데, 이 그림자가 레이어 합성 과정에서 요소 본체와 함께 완전히 이동하지 않고 원래 위치(화면 왼쪽~바닥 경계)에 옅게 남는 렌더링 버그였음. 761px 이상 PC 화면에서는 기존에 @media(min-width:761px){.side{box-shadow:none}}로 이미 꺼져 있어서 창을 넓게 쓰면 안 보였지만, 창을 좁히거나(테스트 중 엣지 창을 735px 정도로 줄였을 때) 모바일(항상 761px 미만, 아이폰 사파리 포함)에서는 이 조건에 안 걸려 그림자가 계속 살아있었던 것 — PC에서 창 크기에 따라 보였다 안 보였다 하고 아이폰에서 항상 보였던 정황과 정확히 일치. 그림자를 .side 기본 상태에서 완전히 빼고 .side.open일 때만(실제로 열려서 화면 위에 떠 있을 때만) 적용하도록 수정 — 닫혀 있을 때는 그림자 자체가 아예 없으니 이 GPU 버그가 발생할 여지가 없어짐, 열렸을 때의 시각 효과는 그대로 유지. 모두 v4.html 내부만으로 완결(서버/DB 변경 없음). 사용자가 직접 만든 진단 파일(이어짐_v4_진단.html, 이어짐_v4_진단2.html)은 git에 올리지 않은 로컬 전용 테스트 파일이었으므로 삭제해도 무방함.'},
     {tag:'v4-track a51', date:'2026-09-10', title:'화면 하단(사이드바~중앙 전체) "검정 그라데이션"의 진짜 원인 발견·수정 — .backdrop의 backdrop-filter:blur(1px)가 opacity:0이어도 화면 가장자리에 새어나오던 GPU 렌더링 버그', desc:'a50에서 시도한 입력창 그림자 수정은 효과가 없었음(픽셀 대조 결과 a49와 완전히 동일 — 애초에 라이트 모드의 --shadow-md는 옅은 회색(rgba(16,32,38,.08))이라 검정 그라데이션의 원인이 될 만큼 강하지 않았음, 제가 다크모드 값을 착각해서 잘못 짚었던 것). 사용자가 개발자도구로 직접 확인해준 끝에 진짜 원인을 찾음 — 사이드바를 열 때 뒤에 까는 어두운 배경막 #backdrop(.backdrop, position:fixed;inset:0이라 사이드바~중앙 화면 전체를 덮음)이 평소엔 opacity:0으로 안 보이게 되어 있는데, 여기 항상 걸려 있던 backdrop-filter:blur(1px)가 크로미움/웹킷 계열 브라우저에서 opacity:0이어도 GPU 합성 과정에서 화면 가장자리(특히 하단)에 옅게 새어나오는 알려진 렌더링 버그를 일으키고 있었음(PC 엣지·크롬과 아이폰 사파리 양쪽에서 똑같이 보고된 것과 정확히 일치 — 두 엔진 모두 이 계열 버그가 보고돼 있음). backdrop-filter를 평소엔 아예 걸지 않고 실제로 사이드바가 열려 배경막이 켜질 때(.backdrop.on)만 적용하도록 수정 — 사이드바 열림 효과(흐림 처리)는 그대로 유지되면서, 평소 화면에서 새어나오던 음영은 사라짐. 모두 v4.html 내부만으로 완결(서버/DB 변경 없음).'},
     {tag:'v4-track a50', date:'2026-09-10', title:'화면 하단 "검정 그라데이션" 실제 원인 발견·수정 — 입력창(.composer-inner)의 그림자가 화면 맨 아래 빈 여백에 번져 보이던 문제', desc:'a47에서 theme-color 메타 태그로 시도했던 수정이 효과가 없었던 이유가 밝혀짐 — 실제 원인은 브라우저 자체 스크림이 아니라 채팅 입력창(.composer-inner)에 걸려 있던 그림자(box-shadow:var(--shadow-md) = 0 8px 24px rgba(0,0,0,.35))였음. 이 입력창이 화면 맨 아래 거의 붙어있다 보니, 원래는 "떠 있는 카드" 느낌을 주려고 넣은 아래쪽 그림자가 카드 밑에 깔릴 다른 내용 없이 화면의 빈 여백(패딩) 위에 그대로 번져서, 흰 배경에서 회색~검정으로 서서히 어두워지는 띠처럼 보이고 있었음(사용자가 직접 캡처해준 스크린샷의 픽셀을 실측해 확인 — 흰색(255,255,255)에서 화면 맨 아래(약 120,128,131)까지 정확히 약 30px 구간에 걸쳐 어두워지는데, 이는 그림자의 8px 오프셋+24px 블러 값과 정확히 일치함). 입력창 그림자를 훨씬 옅고 가까운 값(0 2px 10px rgba(0,0,0,.12))으로 교체 — 입력창이 살짝 떠 있는 느낌은 유지하면서 화면 맨 아래로 번지는 어두운 띠는 사라짐. 모두 v4.html 내부만으로 완결(서버/DB 변경 없음).'},
     {tag:'v4-track a49', date:'2026-09-10', title:'긴급복지 예비판단·상담일지 초안·후속조치 요약이 한꺼번에 먹통이던 치명적 회귀 수정(a47의 itemTxt 오류), 건강상태 안내문구를 다른 안내와 같은 방식으로 숨김, AI가 소득·재산을 근거 없이 "0"으로 지어내는 문제에 안전장치 추가', desc:'[치명적 버그, 최우선 수정] "긴급복지 예비판단이 정상작동 안 함", "6 지원연계 후속조치 요약이 비어 있음", "7 상담일지 초안에 상담내용이 완전히 없음" — 세 신고가 사실은 하나의 원인이었음. a47에서 buildScheduleSummary() 호출부(run() 함수)를 고치면서 아직 선언되지 않은 지역변수 itemTxt를 그보다 앞줄에서 먼저 참조하게 만들어(자바스크립트 const는 "선언 전 접근 금지" 규칙이 있어 이 경우 즉시 ReferenceError 발생) run() 함수가 그 줄에서 곧바로 멈춰버리고 있었음 — 판정 배지(verdict) 자체는 그 줄보다 앞이라 멀쩡해 보였지만, 그 뒤에 있던 후속조치 요약 채우기·lastRunData 저장·상담일지 초안 생성(buildDoc)·통계 기록이 전부 실행되지 못한 채 조용히 죽어 있었음(콘솔 외엔 아무 에러 표시도 없어 눈치채기 어려웠음). itemTxt 선언을 실제 필요한 시점보다 앞으로 옮겨서 수정 — a47 이후 판정을 한 번이라도 실행한 모든 상담이 같은 증상을 겪었을 것이므로, 실사용 중이었다면 최우선으로 재배포 확인 필요. [2] 건강상태(③) 화면 맨 위에 항상 떠 있던 "이 항목들은 신뢰가 쌓인 뒤에…" 안내문구를 다른 화면들과 똑같이 라벨 옆 물음표(ⓘ) 버튼 뒤로 숨김 — 눌러야만 팝오버로 뜨고, 평소엔 화면을 차지하지 않음(사용자 요청: "다른 안내멘트처럼 숨겨줘"). [3] "재산은 없고 빚만 있다"처럼 명시적으로 말하지 않았는데도 AI 인식 결과 화면에 월소득·임차보증금·금융재산·부채가 전부 "0원"으로 뜨는 사고 재신고 — OpenAI Structured Outputs strict 모드에서 nullable 정수 필드에 모델이 null 대신 0을 반환해버리는 사례로 추정(프롬프트 문구만으로는 100% 통제가 안 됨). 클라이언트에서 마지막 안전장치로, 4개 항목이 전부 0인데 원문에 "없다/없음/없어/없고" 같은 명시적 표현이 전혀 없으면 모델이 지어낸 값으로 보고 4개 다 null(미확인)로 되돌리는 sanitizeZeroFinancialsV4()를 requestExtractionV4()에 추가 — 실제로 "다 없다"고 말한 경우는 그대로 0으로 유지되므로 기존 정상 동작은 그대로 보존됨. 모두 v4.html 내부만으로 완결(서버/DB 변경 없음).'},
