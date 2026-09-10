@@ -207,6 +207,8 @@
   .privBubble::after{content:'';position:absolute;bottom:-5px;left:50%;width:10px;height:10px;background:var(--ink);transform:translateX(-50%) rotate(45deg)}
   .privBubble.show{opacity:1;transform:translateX(-50%) translateY(0)}
   .policyLink{display:block;text-align:center;font-size:1.28rem;color:var(--mut);padding:3px 0 2px;text-decoration:underline;cursor:pointer;background:none;border:none;width:100%}
+  #policyBackdrop{z-index:57}
+  #policyModal{z-index:58}
   .policyLink:hover{color:var(--accent)}
   .gateOverlay{position:fixed;inset:0;background:rgba(10,20,24,.55);z-index:9999;display:none;align-items:center;justify-content:center;padding:16px}
   .gateOverlay.on{display:flex}
@@ -1816,6 +1818,7 @@
      VERSION_LOG 배열 맨 앞에 새 항목을 추가할 것. 같은 날 여러 건이면 tag만 올려서(v0.x) 여러 줄 추가.
      "나중에 몰아서 기록"은 누락으로 이어지므로, 수정 직후 그 자리에서 바로 추가할 것. */
   var VERSION_LOG = [
+    {tag:'v4-track a39', date:'2026-09-10', title:'설정 화면에서 "전체 처리방침 자세히 보기" 클릭 시 처리방침 창이 설정 창 뒤에 숨던 버그 수정', desc:'a36의 policyModal/policyBackdrop과 a37의 settingsModal이 같은 .vmodal 계열 z-index(56/55)를 공유해서, DOM 순서상 나중에 나오는 settingsModal이 항상 위에 그려짐 — 그 결과 설정(AI·개인정보 안내 탭) 안에서 처리방침 링크를 눌러도 처리방침 바텀시트가 설정 창 뒤에 가려 안 보이는 버그(사용자 스크린샷으로 재현 확인). #policyBackdrop/#policyModal에 다른 vmodal보다 높은 z-index(57/58)를 전용으로 부여해 항상 최상단에 뜨도록 수정. 다른 로직 변경 없음.'},
     {tag:'v4-track a38', date:'2026-09-10', title:'개인정보 처리방침 문의처 이메일 정정', desc:'a36에서 처리방침 문의처에 잘못 넣은 admin@homelesshot.or.kr(관리자 로그인 계정 이메일)을 실제 문의 받을 이메일 homenaeil@naver.com으로 정정. 다른 로직 변경 없음.'},
     {tag:'v4-track a37', date:'2026-09-09', title:'설정 화면을 ChatGPT 스타일 좌측메뉴+우측패널로 개편 + "AI·개인정보 안내"(쉬운 설명) 탭 신설', desc:'[1] 설정(⚙️) 바텀시트를 단일 스크롤 목록에서 좌측 아이콘 메뉴(계정/AI·개인정보 안내/보안) + 우측 콘텐츠 패널 구조(.setWrap/.setNav/.setPanes, switchSettingsPane())로 개편. 기존 이름·소속·비밀번호 변경(계정)과 비밀키 관리(보안) 로직·마크업은 그대로 각 패널로 옮기기만 했고 기능 변경 없음. 좁은 화면(480px 이하 유사 기준 520px)에서는 좌측 메뉴가 상단 가로 탭으로 바뀌도록 반응형 처리. [2] 새 "AI·개인정보 안내" 패널 신설 — a36의 처리방침(법률 문서 톤)과 별개로, 상담원이 대상자에게 "AI를 쓴다고 정보가 새어나가는 게 아니다"를 쉬운 말로 설명할 수 있도록 쉬운 설명 3가지(기억 안 함/계속 저장 안 됨·30일 삭제/아무나 못 봄) + 그대로 읽어줄 수 있는 구어체 설명 문구("병원에서 녹음해서 자동으로 진료기록 정리하는 것처럼…") + 전체 처리방침 링크(openPolicy() 재사용)로 구성. 게이트(a36)의 격식있는 안내문과 역할 분담: 게이트=최초 1회 공식 고지, 이 탭=상담 중 언제든 참고할 수 있는 쉬운 설명. 모두 v4.html 내부만으로 완결(서버/DB 변경 없음).'},
     {tag:'v4-track a36', date:'2026-09-09', title:'개인정보 처리방침 문서 신설 + 화면 하단 링크 + 최초 1회 안내 게이트(상담원 구두 안내 문구 포함)', desc:'적대적 리뷰 보완 항목 ②("민감정보 국외이전 + 대상자 동의 절차 부재")에 대한 1차 대응. 기관 판단으로 별도 동의 체크박스 대신 "사전 공개 + 상담원 구두 안내"(개인정보보호법 28조의8 3호 — 계약 이행을 위한 처리위탁 근거) 방식으로 가기로 결정. [1] POLICY_TEXT_V1에 전체 처리방침 텍스트 신설(처리목적·처리정보·국외이전 상세[OpenAI/미국, 목적/방법/보유기간 30일/학습미사용/거부시 효과]·국내저장[Supabase 서울 리전]·안전조치·문의처). [2] 화면 하단 입력창(composer) 바로 위에 작은 "🔒 개인정보 처리방침" 링크 버튼 추가 → openPolicy()로 바텀시트(policyModal) 오픈, 언제든 재확인 가능. [3] 최초 1회 안내 게이트(gateOverlay) 추가 — localStorage(ieojim_policy_ack_v1) 플래그로 기기당 최초 1회만 표시되고, 국외이전/30일삭제/학습미사용 핵심 요약과 함께 "상담 시작 전 대상자에게 이렇게 안내해주세요" 문구를 눈에 띄게(강조 박스) 표시해 상담원이 구두 안내 방법을 명확히 알 수 있게 함. 매 녹음마다 막지 않고 최초 1회만 표시하도록 설계(실사용 피드백에서 확인된 "대화 흐름 방해 최소화" 원칙 유지). 모두 v4.html 내부만으로 완결(서버/DB 변경 없음). 최종 문구는 기관 개인정보 담당자 검토 권장.'},
