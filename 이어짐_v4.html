@@ -206,6 +206,8 @@
   .privBubble{position:absolute;bottom:82px;left:50%;width:210px;background:var(--ink);color:var(--surface);font-size:1.4rem;line-height:1.5;padding:8px 10px;border-radius:10px;box-shadow:var(--shadow-md);opacity:0;transform:translateX(-50%) translateY(4px);pointer-events:none;transition:opacity .18s,transform .18s;z-index:15}
   .privBubble::after{content:'';position:absolute;bottom:-5px;left:50%;width:10px;height:10px;background:var(--ink);transform:translateX(-50%) rotate(45deg)}
   .privBubble.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .regionToast{position:absolute;left:0;top:100%;margin-top:6px;min-width:220px;max-width:280px;background:var(--ink);color:var(--surface);font-size:1.1rem;line-height:1.5;padding:9px 12px;border-radius:10px;box-shadow:var(--shadow-md);opacity:0;transform:translateY(-4px);pointer-events:none;transition:opacity .18s,transform .18s;z-index:30}
+  .regionToast.show{opacity:1;transform:translateY(0)}
   .policyLink{display:block;text-align:center;font-size:1.28rem;color:var(--mut);padding:3px 0 2px;text-decoration:underline;cursor:pointer;background:none;border:none;width:100%}
   #policyBackdrop{z-index:57}
   #policyModal{z-index:58}
@@ -1816,6 +1818,8 @@
      VERSION_LOG 배열 맨 앞에 새 항목을 추가할 것. 같은 날 여러 건이면 tag만 올려서(v0.x) 여러 줄 추가.
      "나중에 몰아서 기록"은 누락으로 이어지므로, 수정 직후 그 자리에서 바로 추가할 것. */
   var VERSION_LOG = [
+    {tag:'v4-track a44', date:'2026-09-10', title:'"새 상담" 화면에 녹음 경고문구 누락 수정 + PC에서 마이크 권한 거부 시 "이전/완료" 버튼이 먹통이던 문제 수정', desc:'[1] a40에서 넣은 "⚠️ 주민번호는 절대 말하지 마세요…" 경고문구가 페이지를 처음 열었을 때의 정적 HTML에만 있고, resetChat()이 JS 문자열로 다시 그리는 "새 상담" 화면에는 같은 문구가 빠져 있어서 새 상담을 누르면 경고가 안 보이는 상태였음(사용자 지적) — resetChat()의 화면 재구성 문자열에도 동일한 경고문구를 추가해서 첫 화면과 "새 상담" 화면이 항상 같은 문구를 보여주도록 함. [2] PC에서 마이크 권한을 거부한 채 첫 녹음을 시도하면(아직 성공한 녹음이 한 번도 없는 상태) toggleRec()이 만드는 안내카드가 위저드의 첫 화면이 되는데, 이 카드엔 다음 동작이 연결돼 있지 않아서 "이전"은 첫 화면이라 원래 비활성이고 "완료"는 눌러도 실행될 함수가 없어 아무 반응이 없었음(사용자가 PC 화면 캡처로 재현 — 새로고침하거나 "새 상담"을 눌러야만 빠져나올 수 있었던 문제). 안내카드에 "입력으로 계속 ▸" 버튼을 달아 위기사유 입력 화면(직접 타이핑 진행)으로 넘어가도록 수정 — 이전에 이미 한 번 녹음에 성공한 뒤 재녹음 중 권한이 거부되는 경우는 원래도 정상 동작이라 손대지 않음. 모두 v4.html 내부만으로 완결(서버/DB 변경 없음).'},
+    {tag:'v4-track a43', date:'2026-09-10', title:'②거주지 정보 화면 — "현재 위치로 자동 선택" 버튼 밑 안내문구를 레이아웃 미는 고정 영역에서 탭하면 사라지는 말풍선(토스트)으로 변경', desc:'기존엔 #regionDetectNote가 min-height:1.2em으로 버튼과 select 사이에 항상 공간을 차지하고 있어서(1) 평소에도 불필요한 빈 여백이 생기고 (2) "위치 확인 중…"→"✓ 인천광역시로 자동 선택했습니다…" 같은 긴 문구가 뜨면 그 높이만큼 아래 select·다른 필드가 밀려 내려가는 문제가 있었음(사용자 스크린샷으로 지적받음). #regionDetectNote를 버튼 바로 아래 절대위치(position:absolute)로 뜨는 말풍선(.regionToast)으로 바꿔서 평소엔 공간을 전혀 차지하지 않고(select가 버튼 바로 아래 붙음), 상태 메시지는 오버레이로 잠깐 떴다가 화면 아무 곳이나 탭하면 사라지도록 함(showRegionToast()가 다음 클릭에 1회용 리스너를 걸어 닫음, 안 눌러도 8초 뒤 자동으로 사라지는 안전장치 포함). detectRegion() 로직·API 호출은 변경 없음, 메시지 표시 방식만 바뀜.'},
     {tag:'v4-track a42', date:'2026-09-10', title:'PC에서 위저드 화면의 "이전/완료" 버튼이 안 눌리던 버그 수정(개인정보 처리방침 링크 위치 문제)', desc:'a36에서 "화면 하단 입력창 바로 위"에 추가한 개인정보 처리방침 링크(policyLink)를 .composer 바깥의 형제 요소로 넣었었는데, 위저드(단계별) 흐름에서는 .wz-flow .composer{display:none}로 입력창만 숨겨지고 이 링크는 그대로 남아있어서, 위저드 하단 네비게이션(#wzNav, 이전·완료 버튼)과 레이아웃이 겹쳐 버튼 클릭이 씹히는 문제가 발생(사용자가 PC 화면 스크린샷으로 재현 확인 — 모바일에서는 우연히 안 겹쳐서 못 느꼈던 것으로 추정). 링크를 .composer-inner 안쪽(입력창 바로 위, 같은 시각적 위치)으로 옮겨서 위저드 모드에서 입력창과 함께 자동으로 숨겨지도록 수정 — 화면상 보이는 위치는 동일하고 위저드 화면 겹침만 해소됨.'},
     {tag:'v4-track a41', date:'2026-09-10', title:'설정 > AI·개인정보 안내 탭에 출처 표기 + 주민등록번호 절대금지(법조항 명시) + 고지 시 허용되는 개인정보 설명 추가', desc:'[1] a37에서 만든 3개 체크 항목(기억·학습 안함/30일삭제/암호화·상담원만 열람) 각각에 근거 출처를 표기 — 앞 2개는 OpenAI 개인정보 처리방침, 뒤 1개는 이어짐 자체 보안 설계(Supabase)임을 구분해서 밝힘(사용자 요청 — 내용이 뭉뚱그려 있으면 어디서 보장하는 안전장치인지 헷갈릴 수 있어 출처 구분). [2] 어제 논의한 개인정보보호법 제24조의2(주민등록번호 처리의 제한) 내용을 반영한 경고 박스 신설 — "동의를 받아도 주민등록번호는 AI로 처리 불가, 위반 시 과태료 최대 3천만원"을 법조항과 함께 명시. [3] 반대로 이름·주소·연락처 같은 일반 개인정보는 사전 고지(AI처리·30일삭제·국외이전 안내)만으로 별도 동의 없이 AI 처리에 활용 가능하다는 점을 개인정보보호법 제28조의8 제1항 제3호 근거와 함께 설명 — 주민등록번호와의 차이를 대비시켜 상담원이 "뭘 말하면 안전하고 뭘 말하면 절대 안 되는지" 한눈에 알 수 있게 함. 모두 v4.html 내부만으로 완결(서버/DB 변경 없음). 법 해석은 기관 개인정보 담당자·법률자문 최종 확인 권장.'},
     {tag:'v4-track a40', date:'2026-09-10', title:'프로덕션 화면에서 재상담 모드 전체 제거(별도 트랙으로 보류 확정) + 녹음 경고문구 간결화(주민번호 절대금지·법위반 명시, 사전고지 추가) + 처리방침 문의처에서 "(홈리스핫)" 삭제', desc:'[1] 재상담 모드(a31 테스트 트랙)가 언젠가 이어짐_v4.html 본체에 합쳐져 있던 것을 발견 — "재상담 기능은 나중에 별도로 결정하기로 했다"는 방침에 따라 웰컴 화면 체크박스(정적 HTML + resetChat 재구성용 JS 문자열 2곳), isRepeatVisit 변수, saveLastProfileV4/getLastProfileV4/markRepeatBannerV4/setCheckedValuesV4 함수, goHousehold/goHousehold2/goHealth/goHealth2의 프리필 분기, goResult의 저장 호출을 모두 제거. localStorage(ieojim_last_profile_v1)에 거주·가구·건강 정보를 평문 저장하던 것도 이걸로 같이 없어짐(sunny님 체크리스트 참고항목 ③ 해결). 재상담 자체를 다시 다룰 땐 여전히 별도 트랙(재상담테스트 파일)에서 시작. [2] 녹음 화면 경고문구(a34)를 "주민번호는 절대 말하지 마세요 — 개인정보보호법 위반입니다"로 강하게 명시하고, "녹음 전 AI로 정리된다는 걸 대상자에게 먼저 알려주세요"라는 사전고지 문구를 추가하면서 전체 길이는 오히려 줄임. [3] 개인정보 처리방침(a36) 문의처에서 괄호 병기 "(홈리스핫)"을 삭제 — "사단법인 인천내일을여는집"만 표기. 모두 v4.html 내부만으로 완결(서버/DB 변경 없음).'},
@@ -2059,7 +2063,11 @@
         updateRecCard(_activeRecCard, {status:'error', error:'마이크 권한이 거부되었거나 사용할 수 없습니다.'});
         _activeRecCard._advance = function(){ goToCrisisWithHint(null, null); };
       } else {
-        botCard('마이크 권한 필요', '녹음을 하려면 브라우저의 <b>마이크 사용 권한</b>을 허용해야 합니다. (권한 거부됨 또는 지원 안 됨)<br><span style="color:var(--mut)">대신 ＋ → 녹음 파일 올리기, 또는 아래에 직접 입력하셔도 됩니다.</span>', null);
+        /* v4-track a44: 첫 녹음 시도부터 마이크 권한이 거부되면 이 카드가 위저드의 첫 화면이 되는데,
+           예전엔 다음 동작(onNext)이 없는 단순 안내 카드라서 "이전"은 첫 화면이라 원래 비활성, "완료"는
+           바인딩된 동작이 없어 눌러도 아무 일도 안 일어나 화면이 막힌 것처럼 보였음(PC에서 마이크 권한을
+           거부한 실사용 화면 캡처로 재현 확인). 버튼에 실제 동작(위기사유 입력 화면으로 진행)을 달아준다. */
+        botCard('마이크 권한 필요', '녹음을 하려면 브라우저의 <b>마이크 사용 권한</b>을 허용해야 합니다. (권한 거부됨 또는 지원 안 됨)<br><span style="color:var(--mut)">허용 후 다시 녹음하거나, 아래 버튼을 눌러 직접 입력으로 계속하세요.</span>', '입력으로 계속 ▸', ()=>goToCrisisWithHint(null, null));
       }
     }
   }
@@ -2090,8 +2098,10 @@
 `;
   var TPL_HOUSEHOLD_A = `    <div class="grid">
       <div class="field"><span class="lab">거주지역(시·도)<span class="infowrap"><button type="button" class="infoQBtn" onclick="toggleInfoPop(this,event)">?</button><div class="infoPop">누를 때마다 브라우저 위치 권한을 새로 물어보며, 시·도 판별에만 1회 사용하고 저장하지 않습니다.</div></span></span>
-        <button type="button" class="btn small secondary" onclick="detectRegion()" style="margin-top:0">현재 위치로 자동 선택</button>
-        <div class="note" id="regionDetectNote" style="min-height:1.2em"></div>
+        <div style="position:relative">
+          <button type="button" class="btn small secondary" onclick="detectRegion()" style="margin-top:0">현재 위치로 자동 선택</button>
+          <div class="regionToast" id="regionDetectNote"></div>
+        </div>
         <select id="region" style="margin-top:.5rem">
           <option value="서울특별시">서울특별시</option>
           <option value="부산광역시">부산광역시</option>
@@ -2578,6 +2588,7 @@
       +'<span class="micwrap"><div class="privBubble" id="micPrivBubble">🔒 서버로 전송되지만 학습에는 쓰이지 않고, 악용 방지 목적으로 최대 30일 후 삭제돼요(OpenAI)</div>'
       +'<button class="cbtn mic mic-hero" id="micBtn" onclick="toggleRec()" title="녹음"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Z"/><path d="M19 11a7 7 0 0 1-14 0"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg></button></span>'
       +'<span style="font-size:.98rem;color:var(--mut)">눌러서 상황을 말로 녹음하기</span>'
+      +'<div style="max-width:340px;margin-top:10px;font-size:.92rem;line-height:1.5;color:var(--bad);background:var(--bad-bg);border-radius:10px;padding:8px 12px">⚠️ <b>주민번호는 절대 말하지 마세요 — 개인정보보호법 위반입니다.</b> 실명·주소·연락처도 피하고(‘어르신’·‘A씨’로), <b>녹음 전 AI로 정리된다는 걸 대상자에게 먼저 알려주세요.</b></div>'
       +'</div>';
     chat.appendChild(w); welcome=w;
     var s=document.getElementById('side');
@@ -3096,10 +3107,30 @@
     for(const [re, val] of REGION_ALIAS) if(re.test(text)) return val;
     return null;
   }
+  var _regionToastDismiss = null;
+  var _regionToastTimer = null;
+  function showRegionToast(msg){
+    var note = document.getElementById('regionDetectNote');
+    if(!note) return;
+    note.textContent = msg;
+    note.classList.add('show');
+    if(_regionToastDismiss){ document.removeEventListener('click', _regionToastDismiss, true); _regionToastDismiss = null; }
+    if(_regionToastTimer){ clearTimeout(_regionToastTimer); _regionToastTimer = null; }
+    var dismiss = function(){
+      note.classList.remove('show');
+      document.removeEventListener('click', _regionToastDismiss, true);
+      _regionToastDismiss = null;
+      if(_regionToastTimer){ clearTimeout(_regionToastTimer); _regionToastTimer = null; }
+    };
+    _regionToastDismiss = dismiss;
+    setTimeout(function(){
+      if(_regionToastDismiss === dismiss) document.addEventListener('click', dismiss, true);
+    }, 0);
+    _regionToastTimer = setTimeout(dismiss, 8000); // 안 눌러도 8초 뒤 자동으로 사라짐
+  }
   function detectRegion(){
-    const note = document.getElementById('regionDetectNote');
-    if(!navigator.geolocation){ note.textContent='이 브라우저는 위치 정보를 지원하지 않습니다. 직접 선택해 주세요.'; return; }
-    note.textContent = '위치 확인 중… (브라우저 권한 요청이 뜨면 허용해 주세요)';
+    if(!navigator.geolocation){ showRegionToast('이 브라우저는 위치 정보를 지원하지 않습니다. 직접 선택해 주세요.'); return; }
+    showRegionToast('위치 확인 중… (브라우저 권한 요청이 뜨면 허용해 주세요)');
     navigator.geolocation.getCurrentPosition(async pos=>{
       const {latitude, longitude} = pos.coords;
       try{
@@ -3108,15 +3139,15 @@
         const matched = matchRegion(gdata.principalSubdivision) || matchRegion(gdata.principalSubdivisionCode) || matchRegion(gdata.city) || matchRegion(gdata.locality);
         if(matched){
           document.getElementById('region').value = matched;
-          note.textContent = '✓ '+matched+'(으)로 자동 선택했습니다. 실제와 다르면 직접 바꿔주세요. (위치는 저장되지 않습니다)';
+          showRegionToast('✓ '+matched+'(으)로 자동 선택했습니다. 실제와 다르면 직접 바꿔주세요. (위치는 저장되지 않습니다)');
         } else {
-          note.textContent = '위치는 확인했지만 시·도를 자동으로 맞추지 못했습니다. 직접 선택해 주세요.';
+          showRegionToast('위치는 확인했지만 시·도를 자동으로 맞추지 못했습니다. 직접 선택해 주세요.');
         }
       }catch(e){
-        note.textContent = '위치 확인에 실패했습니다(네트워크 문제일 수 있음). 직접 선택해 주세요.';
+        showRegionToast('위치 확인에 실패했습니다(네트워크 문제일 수 있음). 직접 선택해 주세요.');
       }
     }, err=>{
-      note.textContent = '위치 권한이 거부되었거나 가져올 수 없습니다. 직접 선택해 주세요.';
+      showRegionToast('위치 권한이 거부되었거나 가져올 수 없습니다. 직접 선택해 주세요.');
     });
   }
 
