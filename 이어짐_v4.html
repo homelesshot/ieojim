@@ -946,6 +946,11 @@
       '- fin: 금융재산(원, 정수, "재산 없음" 등도 포함해서 없다고 말했으면 0)',
       '- debt: 부채(원, 정수, 없다고 말했으면 0)',
       '- health: 사용 가능한 값 ' + JSON.stringify(HEALTH_LIST_V4),
+      '- providedItems: 상담원이 대상자에게 오늘 실제로 주었거나 주겠다고 말한 물품·즉시지원을 원문',
+      '  표현 그대로 배열로 적어라(예: "빵 좀 드릴게요, 물도 드세요" → ["빵","물"]). 정해진 목록이 아니라',
+      '  원문에 나온 물품명을 자유롭게 적으면 된다. 준다는 말이 전혀 없으면 빈 배열로 둬라 — 이 항목은',
+      '  다른 항목과 달리 "이런 걸 준다면 좋겠다"는 상담원의 계획/추천이 아니라 실제로 준다고 말한 것만',
+      '  적어야 한다.',
       '',
       '[상담 녹음/입력 원문]',
       text
@@ -977,9 +982,10 @@
         deposit: {type:['integer','null']},
         fin: {type:['integer','null']},
         debt: {type:['integer','null']},
-        health: strArrEnum(HEALTH_LIST_V4)
+        health: strArrEnum(HEALTH_LIST_V4),
+        providedItems: {type:'array', items:{type:'string'}}
       },
-      required:['targetType','urgency','crisis','region','rural','livingType','size','children','ageGroup','gender','nationality','income','deposit','fin','debt','health'],
+      required:['targetType','urgency','crisis','region','rural','livingType','size','children','ageGroup','gender','nationality','income','deposit','fin','debt','health','providedItems'],
       additionalProperties:false
     };
   }
@@ -1158,7 +1164,9 @@
   // 녹음이든 타이핑이든, 구조화 JSON(ex)만 손에 들어오면 그 다음부터는 완전히 동일한 절차로
   // 위저드를 자동 진행시킨다(단계별로 그 화면 항목이 전부 확실하면 다음으로, 하나라도 불확실하면
   // 그 화면에서 멈춤). autoRunFromRecording()·autoRunFromText() 둘 다 이 함수를 공유한다.
+  var lastExtractedProvidedItems = []; // v4-track a66: AI가 원문에서 찾은 "실제로 준다고 말한 물품" — run()에서 자체지원 체크리스트에 병합
   function runAutoFillStepsV4(ex){
+    lastExtractedProvidedItems = Array.isArray(ex.providedItems) ? ex.providedItems.filter(Boolean) : [];
     // v4-track a48: 상담사가 이미 직접 유형을 고른 경우, 녹음에서 AI가 추론한 값으로 덮어쓰지 않는다.
     if(!targetTypeManuallySet && ex.targetType && TARGETTYPE_LIST_V4.indexOf(ex.targetType)!==-1){
       var tt = document.getElementById('targetType'); if(tt){ tt.value = ex.targetType; syncType(); }
@@ -1971,6 +1979,7 @@
      VERSION_LOG 배열 맨 앞에 새 항목을 추가할 것. 같은 날 여러 건이면 tag만 올려서(v0.x) 여러 줄 추가.
      "나중에 몰아서 기록"은 누락으로 이어지므로, 수정 직후 그 자리에서 바로 추가할 것. */
   var VERSION_LOG = [
+    {tag:'v4-track a66', date:'2026-09-11', title:'상담 원문에서 "빵 드릴게요" 같은 실제 지급 언급을 자체지원 체크리스트에 자동 반영 + hwpx 줄간격 겹침 문제 원인 확정·수정(문단모양을 "제목"에서 "본문"으로 교체)', desc:'a65에서 만든 자체지원 체크리스트(수동 편집 가능)에 이어, 구흥모님 요청으로 AI 항목추출이 원문에서 "실제로 준다고 말한 물품"까지 뽑아서 자동으로 체크해주도록 확장. [1] extractionJsonSchemaV4에 providedItems(자유 문자열 배열) 필드 추가, buildExtractionPrompt에 "빵 좀 드릴게요, 물도 드세요" → ["빵","물"] 같은 예시와 함께 "추천이 아니라 실제로 준다고 말한 것만" 적으라는 지시 추가. runAutoFillStepsV4가 ex.providedItems를 lastExtractedProvidedItems에 저장해뒀다가, run()에서 자동 제안 목록(initGiftSuggestions) 뒤에 mergeExtractedGiftItems()로 병합 — 이미 있는 제안과 표현이 겹치면(예: 원문 "빵" ↔ 제안 "식사대용(빵 등)") 그 제안을 체크만 하고, 안 겹치면 원문 표현 그대로 새 항목(직접 추가와 동일하게 ✕ 삭제 가능)으로 추가. [2] "한글에서 열면 줄간격이 이상해서 글자가 겹쳐 보이고, 수동으로 줄간격을 다시 지정하면 정상으로 돌아온다"는 신고의 실제 원인을 이번에 처음으로 확정함 — 내장 hwpx 템플릿(HWPX_TEMPLATE_B64)의 header.xml을 직접 디코드해서 buildAiHwpxParagraphs가 매 줄마다 반복 사용하던 paraPrIDRef="21"의 정의를 확인해보니 <hh:heading type="OUTLINE" idRef="0" level="4"/>(개요 4수준 "제목" 문단 모양)이고 keepWithNext="1" keepLines="1"(다음 문단과 항상 같은 페이지·블록에 묶여야 함)까지 걸려 있었음 — 원래 "●  참고(상담 메모)" 같은 굵은 소제목 한 줄 용으로 만들어둔 문단 모양을, AI 초안의 모든 줄(수십 줄일 수 있음)에 그대로 반복 적용해온 것. 한글이 이 여러 줄을 전부 "서로 붙어야 하는 개요 제목들"로 해석하면서 줄 배치 계산이 꼬여 겹쳐 보이는 것으로 추정됨 — 사용자가 줄간격을 다시 지정하면 그 조작이 문단을 강제로 다시 계산시켜 정상으로 보이는 정황과도 맞아떨어짐. 같은 header.xml에 있는 paraPrIDRef="0"(heading type="NONE", keepWithNext="0", 줄간격 115%인 일반 본문 문단 모양)으로 교체해서, 여러 줄을 반복 삽입해도 "제목처럼" 취급되지 않게 함(buildAiHwpxParagraphs 한 곳만 수정하면 AI 초안 전용 다운로드·메인 상담일지 다운로드 양쪽에 다 반영됨). 겸사겸사 발견: 메인 "한글(.hwpx) 다운로드"(downloadHwpx)는 지금까지 메모를 fillHwpxTemplate의 단순 1줄 치환으로 넣고 있어서, 메모가 여러 줄(AI 초안은 보통 여러 문단)이면 줄바꿈이 문단으로 안 살아나고 뭉쳐지거나 깨질 수 있는 별도 문제도 있었음 — AI 초안 전용 다운로드와 동일하게 fillHwpxTemplateWithMulti로 통일해서 두 다운로드 모두 같은 방식·같은 수정이 적용되게 함. 이번 확인은 실제 XML 정의를 근거로 한 것이라 이전(a65)의 "추정"보다 근거가 훨씬 탄탄하지만, 그래도 실제 한글 프로그램으로 렌더링까지 확인하지는 못했음(샌드박스에 한글 프로그램 없음) — 여전히 이상하면 알려주시기 바람. 모두 v4.html 내부만으로 완결(서버/DB 변경 없음). (구흥모님 요청 — 실사용 재신고 대응)'},
     {tag:'v4-track a65', date:'2026-09-11', title:'실사용 재신고 대응 — AI 항목추출 프롬프트 보강(반어법·근사치·완곡한 건강표현), 자체지원 항목을 상담원이 직접 체크·추가·삭제하게 변경, 후속조치 요약 메모 라벨 단순화, hwpx AI초안 줄간격 완화 시도', desc:'구흥모님이 텍스트로 직접 실사용 테스트("주안역 6개월째… 재산 하나도 없죠… 빚만 1억쯤… 허리 디스크… 가끔 싸움나서 다치기도")해보고 신고한 여러 항목 대응. [1] 왜 소득 외에 재산·부채·건강 드롭다운까지 안 채워졌는지 분석 결과 — "재산이 어디 있나요 하나도 없죠"류 반어법(직접 "없다"는 단어가 없는 되묻는 말투)과 "1억쯤"류 근사치 표현을 buildExtractionPrompt()의 기존 예시("재산 없음" 같은 정형화된 문구)가 커버 못 해서 모델이 확신 없이 null로 남겼을 가능성이 높고, 건강상태도 "허리 디스크·거동불편"·"싸움으로 다침"처럼 HEALTH_LIST_V4 단어와 표현이 다르면 모델이 매칭을 주저했을 가능성이 있음(실제 모델 원본 응답이 로그로 안 남아 있어 100% 확정은 못 함 — 그래서 이번에 처음으로 requestExtractionV4가 성공 시 원본 JSON을 console.info로 남기게 해서 다음엔 실제 증거로 확인 가능하게 함). 대응: 프롬프트에 반어법·근사치·완곡한 증상 표현을 그대로 인정하고 채우라는 명시적 지시와 예시를 추가(반어법→0, 근사치→그 숫자 그대로, "허리디스크"→중증질환/거동불편, "싸워서 다침"→폭행상해). [2] "지금 줄 수 있는 긴급 자체지원"(빵·응급약품 등)이 대상유형·계절 규칙으로만 자동 생성되고 상담원이 고칠 수 없어 실제로 안 드렸거나 다른 걸 드려도 상담일지·요약에 늘 규칙값 그대로 나가는 문제(구흥모님 지적: "떡일 수도, 못 드렸을 수도, 물을 드렸을 수도") — 자동 제안을 기본 체크된 추천 체크박스로 바꾸고(giftState/renderGiftbox/toggleGiftItem), 상담원이 체크 해제·직접 추가(addGiftItem)·삭제(removeGiftItem)로 실제 지급 내역을 편집할 수 있게 함. 편집 즉시 lastRunData.selfItems가 갱신되고 상담일지(buildDoc)·후속조치 요약(buildScheduleSummary, "즉시지원(실제 지급):" 줄 신규 추가)·자동저장까지 다시 반영됨(onGiftChange). 이어하기(재상담) 시에는 giftState가 화면 DOM 밖의 순수 JS 변수라 스냅샷에 자동으로 안 실리는 점을 고려해, restoreCaseState가 복원된 chatHTML 안의 giftbox 체크박스 상태를 그대로 읽어 giftState를 재구성하도록 함. [3] 후속조치 요약의 "[녹음 내용 AI 정리 메모]" 라벨이 실제로는 상담원이 녹음을 안 하고 타이핑만 했어도 뜨고, AI가 만들었다는 사실을 상담일지에 굳이 표시할 필요도 없다는 지적 — "[메모]"로 단순화. [4] AI 초안을 상담일지(hwpx)에 넣으면 한글에서 줄간격이 이상해지고 수동으로 한 번 고치면 정상화된다는 신고 — 실제 한글 프로그램이 없는 샌드박스 환경이라 100% 확정은 못 하지만, 유력한 원인(문단 앞뒤 간격이 있는 스타일을 쓰는 빈 줄 문단이 여러 개 겹쳐 간격이 중첩되는 것으로 추정)에 대한 완화책으로 buildAiHwpxParagraphs()가 연속된 빈 줄을 하나로 압축하고 맨 앞뒤 빈 줄을 제거하도록 수정 — 여전히 어긋나면 수동으로 고친 뒤의 정확한 줄간격 값을 알려주시면 문단 속성에 직접 반영해 근본 해결 시도 가능. [5] "원문에 있는 사실은 사소해 보여도 빠짐없이 반영하라"는 지시를 AI 초안(generateAiDraft) 프롬프트에 추가 — 이번에 "가끔 싸움나서 다치기도" 부분이 AI가 정리한 메모에서 빠진 사고 재발 방지 시도(단, LLM 요약 특성상 100% 보장은 안 됨). 모두 v4.html 내부만으로 완결(서버/DB 변경 없음), sanitizeZeroFinancialsV4 등 기존 안전장치는 그대로 유지. (구흥모님 요청 — 실사용 테스트 재신고 대응)'},
     {tag:'v4-track a64', date:'2026-09-11', title:'②거주지 정보 — 구·군 입력칸 추가(위치 자동선택 시 함께 채움) + 위치 권한 "항상 허용" 안내 문구/상태 표시', desc:'구흥모님 요청 대응. (1) 화면 배치: "지역 유형(재산기준)" 체크박스를 "현재 거주형태" 오른쪽으로 옮기고(2행), 거주지역 필드를 1행 전체 폭으로 넓혀서 시·도 select 옆에 "구/군(선택)" 텍스트 입력칸을 새로 추가. (2) detectRegion()이 브라우저 위치 → bigdatacloud 리버스지오코딩 결과에서 시·도뿐 아니라 구·군도 함께 추정해서 채우도록 확장(extractDistrict() 신규 — 응답의 localityInfo.administrative 배열/locality/city 후보 중 "OO구·OO군·OO시"로 끝나는 값을 탐색). 100% 정확은 보장 못 해서(리버스지오코딩 특성상) 입력칸은 항상 직접 수정 가능하게 텍스트 입력으로 둠 — 자동으로 못 찾으면 토스트로 "직접 입력해 주세요" 안내. 판정 로직(재산기준 regionTier)은 원래대로 시·도 단위로만 계산되고 구·군은 화면 표시·상담일지(hwpx) 문구·DB 저장용 전체 지명(regionFullLabel)에만 반영돼 판정 결과에는 영향 없음. (3) 위치 권한 안내: "매번 권한을 다시 묻는다"는 문의에 대해 — 브라우저 표준 동작이라 웹페이지 코드로 "항상 허용"을 강제로 켤 수는 없음(OS/브라우저가 관리하는 권한이라 사용자가 프롬프트에서 직접 선택하거나 브라우저 설정에서 바꿔야 함). 대신 (a) 거주지역 필드의 물음표 안내문에 "이번만 허용" 대신 "허용"(아이폰은 "앱 사용 중 허용")을 선택하면 다음부터 안 물어본다는 설명과, 이미 그렇게 안 했다면 브라우저 설정에서 바꾸는 방법을 추가했고 (b) Permissions API(navigator.permissions.query)를 지원하는 브라우저에서는 화면 진입 시·위치 확인 시도 후 현재 권한 상태를 "🔓 위치 권한 허용됨" / "🔒 위치 권한이 거부돼 있습니다…" 문구로 버튼 아래에 실시간 표시(checkGeoPermissionHint()) — 이 API를 지원하지 않는 브라우저(예: 일부 iOS Safari 버전)에서는 조용히 빈 문구로 남아 오작동 없음. (4) 이어하기(재상담)로 저장된 사례를 다시 열 때도 구·군 입력값이 chatHTML 스냅샷에 자동으로 함께 저장·복원됨(snapshotCaseState가 모든 input 요소를 범용으로 처리하는 기존 구조 덕분에 이 필드 전용 코드 추가 불필요). (구흥모님 요청)'},
     {tag:'v4-track a63', date:'2026-09-11', title:'재녹음/중지 버그 최종 해결 확인 + 임시 디버그 도구(eruda, a61) 제거', desc:'구흥모님이 a62 적용 후 재테스트 → "문제 해결이야"로 최종 확인(2026-09-11). 정리하면 이번 재녹음 버그는 총 5단계(a57~a62)를 거쳐 해결됨: a57(세대 번호 경쟁 상태) → a58(오류 메시지 오분류) → a59(화면 갱신 실패 시 마이크 방치) → a60(녹음 중 다음버튼 차단 안전장치) → a61(현장 재현이 하도 안 잡혀서 아이폰 화면에서 직접 콘솔을 볼 수 있는 임시 디버그 도구 도입) → a62(그 도구로 구흥모님이 직접 캡처한 콘솔 로그 "null is not an object (evaluating \'btn.classList\')"로 진짜 원인 확정: #micBtn은 최초 "환영 화면"에만 있는 버튼이라 재녹음부터는 항상 null인데 null 체크 없이 접근해 onstop이 중간에 멈춰버렸던 것 — null 가드 추가로 근본 해결). 문제가 최종 해결됐으므로 a61에서 넣었던 임시 디버그 도구(eruda, ?debug=1)는 이제 필요 없어 코드에서 완전히 삭제 — 평소 URL에는 원래 흔적도 없었지만(코드가 아예 실행 안 됐음), 다음 원인 조사 시 다시 필요해지면 그때 새로 추가하면 됨. 이번 사례는 "현장 신고 → 여러 차례 추정 수정 → 그래도 재현 → 사용자와 함께 진단 도구를 붙여 실제 증거(콘솔 로그)를 확보 → 정확한 원인 확정·해결"까지의 전체 디버깅 과정이 잘 드러나는 사례라 README·발표자료에도 반영. 모두 v4.html 내부만으로 완결(서버/DB 변경 없음).'},
@@ -2875,7 +2884,7 @@
     currentCaseId = null;
     resultDone = false; resultCards = null; lastFreeText = ''; STEP = {}; caseFirstInputAt = null;
     targetTypeManuallySet = false; // 새 상담이므로 유형 수동선택 여부도 초기화
-    giftState = []; giftSeasonLabel = ''; // v4-track a65: 자체지원 실제 지급 항목 체크리스트도 새 상담이면 초기화
+    giftState = []; giftSeasonLabel = ''; lastExtractedProvidedItems = []; // v4-track a65/a66: 자체지원 실제 지급 항목 체크리스트도 새 상담이면 초기화
 
     _activeRecCard = null; // 새 상담이므로 이전 녹음결과 카드 참조를 끊어서 다음 녹음이 새 카드로 시작되게 함
     step=0; setStep(0);
@@ -3199,14 +3208,20 @@
 
   // 표 템플릿의 한 문단 슬롯({{MEMO_LINE}})을, AI 초안처럼 여러 줄인 텍스트를 위해
   // 줄마다 별도의 <hp:p> 문단으로 펼쳐서 채워 넣습니다(문단 구분이 실제로 살아있게).
-  // v4-track a65: "한글에서 열면 줄간격이 이상해지는데 수동으로 한 번 고치면 정상으로 돌아온다"는
-  // 신고 — 확실한 원인 규명은 실제 한글 프로그램 없이는 어려우나(샌드박스에 한글 프로그램 없음),
-  // 유력한 원인 하나는 고칠 수 있어 우선 반영: AI 초안 텍스트는 문단 사이에 빈 줄(\n\n)이 여러 개
-  // 들어있는 경우가 많은데, 기존 코드는 빈 줄 하나하나까지 전부 별도의 <hp:p>(문단 속성 paraPrIDRef=21
-  // 그대로 상속)로 만들어서, 문단 앞뒤 간격이 있는 스타일이면 빈 줄 개수만큼 간격이 중첩돼 위치마다
-  // 간격이 들쭉날쭉해 보일 수 있음. 연속된 빈 줄은 문단 구분 하나로 압축하고 맨 앞뒤 빈 줄은 제거해서
-  // 이 중첩을 줄인다 — 완전한 해결이라는 보장은 없고(한글 프로그램으로 직접 확인 못 함), 계속 어긋나면
-  // 수동으로 고친 뒤의 정확한 줄간격 값을 알려주시면 그 값을 문단 속성에 직접 반영해 근본 해결 가능.
+  // v4-track a66: "한글에서 열면 줄간격이 이상해서 글자가 겹쳐 보이고, 수동으로 줄간격을 한 번
+  // 다시 지정하면 정상으로 돌아온다"는 신고의 실제 원인을 이번에 확인함 — 내장된 hwpx 템플릿의
+  // header.xml을 직접 디코드해서 paraPrIDRef="21"의 정의를 열어보니, 이 문단 모양은
+  // <hh:heading type="OUTLINE" idRef="0" level="4"/>(개요 4수준 "제목" 문단)이고
+  // keepWithNext="1" keepLines="1"(다음 문단과 항상 같은 페이지에 붙여야 함)까지 걸려 있었음 —
+  // 원래 템플릿에서 "●  참고(상담 메모)" 같은 굵은 소제목 한 줄에나 쓰라고 만들어둔 모양인데,
+  // buildAiHwpxParagraphs가 AI 초안의 모든 줄(수십 줄일 수 있음)마다 이 "제목" 문단 모양을 그대로
+  // 반복 적용하고 있었던 것 — 한글이 이 여러 줄을 전부 "서로 붙어있어야 하는 개요 제목들"로 해석하면서
+  // 줄간격·배치 계산이 꼬여 겹쳐 보이는 것으로 추정됨(사용자가 줄간격을 다시 지정하면, 그 조작이
+  // 문단을 일반 문단으로 강제 재계산시켜 정상으로 보이는 것과도 맞아떨어짐). 같은 header.xml에 있는
+  // paraPrIDRef="0"은 heading type="NONE"·keepWithNext="0"인 일반 본문 문단 모양(줄간격 115%, 다른
+  // 본문 문단들과 동일)이라 이쪽으로 바꿔서 여러 줄을 반복 삽입해도 "제목처럼" 취급되지 않게 함.
+  // 다만 이 확인은 XML 정의를 근거로 한 것이고 실제 한글 프로그램으로 렌더링까지 확인하지는 못했으니
+  // (샌드박스에 한글 프로그램 없음), 그래도 이상하면 알려주세요.
   function buildAiHwpxParagraphs(text){
     var normalized = String(text||'').replace(/\r\n/g,'\n').replace(/\n{2,}/g,'\n').replace(/^\n+|\n+$/g,'');
     const lines = normalized.split('\n');
@@ -3214,7 +3229,7 @@
     return lines.map(function(line){
       id += 37;
       const t = line==='' ? '<hp:t/>' : '<hp:t>'+xmlEscape(line)+'</hp:t>';
-      return '<hp:p id="'+id+'" paraPrIDRef="21" styleIDRef="3" pageBreak="0" columnBreak="0" merged="0"><hp:run charPrIDRef="0">'+t+'</hp:run></hp:p>';
+      return '<hp:p id="'+id+'" paraPrIDRef="0" styleIDRef="3" pageBreak="0" columnBreak="0" merged="0"><hp:run charPrIDRef="0">'+t+'</hp:run></hp:p>';
     }).join('');
   }
   function fillHwpxTemplateWithMulti(origXml, tokens, multiKey, multiText){
@@ -3594,6 +3609,24 @@
   function currentGiftItems(){
     return giftState.filter(function(i){ return i.checked; }).map(function(i){ return i.label; });
   }
+  // v4-track a66: AI 항목추출(ex.providedItems)이 원문에서 "빵 드릴게요" 같은 실제 지급 언급을
+  // 찾아내면, 자동 제안 목록과 별개로 giftState에 병합해서 처음부터 체크된 채로 보여준다.
+  // 이미 있는 제안 항목과 표현이 겹치면(예: 원문 "빵" ↔ 제안 "식사대용(빵 등)") 새로 추가하지 않고
+  // 그 제안 항목을 체크만 해주고, 겹치는 게 없으면 원문 표현 그대로 새 항목(직접 추가와 동일하게
+  // custom:true, ✕로 삭제 가능)으로 넣는다.
+  function mergeExtractedGiftItems(items){
+    if(!Array.isArray(items)) return;
+    items.forEach(function(raw){
+      var label = String(raw||'').trim();
+      if(!label) return;
+      var matched = giftState.find(function(it){
+        return it.label.indexOf(label)!==-1 || label.indexOf(it.label)!==-1;
+      });
+      if(matched) matched.checked = true;
+      else giftState.push({label:label, checked:true, custom:true});
+    });
+    renderGiftbox();
+  }
   function onGiftChange(){
     if(!lastRunData) return;
     lastRunData.selfItems = currentGiftItems();
@@ -3969,7 +4002,15 @@ ${d.memo ? '\n메모: '+d.memo : ''}
       const templateBytes = b64ToBytes(HWPX_TEMPLATE_B64);
       const {entries, names} = await parseZip(templateBytes);
       const origSection0 = new TextDecoder('utf-8').decode(entries['Contents/section0.xml']);
-      entries['Contents/section0.xml'] = new TextEncoder().encode(fillHwpxTemplate(origSection0, tokens));
+      // v4-track a66: 메모(AI 초안)는 보통 여러 줄(문단)인데, 기존엔 fillHwpxTemplate의 단순 치환이라
+      // {{MEMO_LINE}} 한 자리에 줄바꿈 문자가 그대로 들어가 한 문단 안에 뭉쳐지거나 렌더링이 깨질 수
+      // 있었음 — AI 초안 전용 다운로드(downloadAiDraftHwpx)와 동일하게 fillHwpxTemplateWithMulti로
+      // 줄마다 별도 문단으로 펼쳐서 넣도록 통일(같은 buildAiHwpxParagraphs를 쓰므로 위에서 고친
+      // paraPrIDRef=0 수정도 이 다운로드에 동일하게 적용됨).
+      const filledSection0 = tokens.MEMO_LINE
+        ? fillHwpxTemplateWithMulti(origSection0, tokens, 'MEMO_LINE', tokens.MEMO_LINE)
+        : fillHwpxTemplate(origSection0, tokens);
+      entries['Contents/section0.xml'] = new TextEncoder().encode(filledSection0);
       const orderedNames = ['mimetype', ...names.filter(n=>n!=='mimetype')];
       const outBytes = buildStoredZip(orderedNames, entries);
       const blob = new Blob([outBytes], {type:'application/hwp+zip'});
@@ -4101,6 +4142,7 @@ ${d.memo ? '\n메모: '+d.memo : ''}
     // 조정한 뒤(onGiftChange) 최종적으로 채워짐 — 여기서는 아직 아무 편집도 없었을 때의 초기값만 둠.
     const ss = selfSupport(targetType);
     initGiftSuggestions(ss.items, ss.season);
+    mergeExtractedGiftItems(lastExtractedProvidedItems);
 
     // 다음 단계 연계
     document.getElementById('nextbox').innerHTML = '※ 긴급지원 이후 담당자 연계로 진행:<br>· '+nextSteps(targetType, livingType).join('<br>· ');
