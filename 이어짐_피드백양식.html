@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>이어짐 사용 피드백</title>
+<style>
+  :root{--ink:#0C3440;--mut:#5B747C;--accent:#137D92;--soft:#DDF3EC;--line:#CBDDD8;--bg:#F5F8F7;--bad:#c0392b}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif;line-height:1.5}
+  .wrap{max-width:560px;margin:0 auto;padding:18px 16px 60px}
+  header h1{font-size:1.4rem;margin:.3rem 0 .2rem;color:var(--accent)}
+  header p{margin:.2rem 0;color:var(--mut);font-size:.95rem}
+  .sec{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 14px 6px;margin:14px 0}
+  .sec > h2{font-size:1.02rem;margin:.1rem 0 .8rem;color:var(--accent)}
+  .q{margin:0 0 15px}
+  .q label.t{display:block;font-weight:700;font-size:.98rem;margin-bottom:6px}
+  .q .req{color:var(--bad);font-weight:800}
+  input[type=text],input[type=number],textarea,select{width:100%;padding:10px 11px;border:1.5px solid var(--line);border-radius:10px;font-size:1rem;font-family:inherit;background:#fff;color:var(--ink)}
+  textarea{min-height:64px;resize:vertical}
+  .opts{display:flex;flex-wrap:wrap;gap:7px}
+  .opts label{display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--line);border-radius:20px;padding:7px 13px;font-size:.95rem;cursor:pointer;background:#fff}
+  .opts input{accent-color:var(--accent);margin:0}
+  .scale{display:flex;gap:6px;align-items:stretch}
+  .scale label{flex:1;text-align:center;border:1.5px solid var(--line);border-radius:10px;padding:9px 0;cursor:pointer;font-weight:700;background:#fff}
+  .scale input{display:none}
+  .scale input:checked + span{color:#fff}
+  .scale label:has(input:checked){background:var(--accent);border-color:var(--accent);color:#fff}
+  .scaleends{display:flex;justify-content:space-between;font-size:.8rem;color:var(--mut);margin-top:3px}
+  .send{position:sticky;bottom:0;background:linear-gradient(transparent,var(--bg) 30%);padding-top:12px}
+  .send button{width:100%;background:var(--accent);color:#fff;border:0;border-radius:12px;padding:15px;font-size:1.08rem;font-weight:800;cursor:pointer}
+  .send button:disabled{opacity:.6}
+  .note{font-size:.86rem;color:var(--mut);margin-top:8px;text-align:center}
+  .done{display:none;background:var(--soft);border:1px solid var(--accent);border-radius:12px;padding:20px;text-align:center;color:var(--ink)}
+  .done h2{color:var(--accent);margin:.2rem 0}
+  .fallback{display:none;margin-top:12px}
+  .fallback textarea{min-height:150px;font-size:.85rem}
+  .miss{border-color:var(--bad)!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>이어짐 사용 피드백</h1>
+    <p>이어짐으로 인터뷰 → 상담일지 초안을 만들어보신 뒤 응답해 주세요. 약 3분.</p>
+    <p style="color:var(--bad)">※ 실제 대상자 정보 대신 <b>가상·재연 사례</b>로 테스트해 주세요.</p>
+  </header>
+
+  <form id="f">
+    <div class="sec">
+      <h2>1. 기관 정보</h2>
+      <div class="q"><label class="t">기관명 <span class="req">*</span></label><input type="text" name="기관명" data-req></div>
+      <div class="q"><label class="t">기관 유형 <span class="req">*</span></label>
+        <div class="opts" data-req>
+          <label><input type="radio" name="기관유형" value="노숙인 시설">노숙인 시설</label>
+          <label><input type="radio" name="기관유형" value="지역아동센터">지역아동센터</label>
+          <label><input type="radio" name="기관유형" value="종합사회복지관">종합사회복지관</label>
+          <label><input type="radio" name="기관유형" value="장애인복지관">장애인복지관</label>
+          <label><input type="radio" name="기관유형" value="노인복지시설">노인복지시설</label>
+          <label><input type="radio" name="기관유형" value="기타">기타</label>
+        </div>
+      </div>
+      <div class="q"><label class="t">응답자 역할 <span class="req">*</span></label>
+        <div class="opts" data-req>
+          <label><input type="radio" name="역할" value="사회복지사">사회복지사</label>
+          <label><input type="radio" name="역할" value="팀장·관리자">팀장·관리자</label>
+          <label><input type="radio" name="역할" value="기타">기타</label>
+        </div>
+      </div>
+      <div class="q"><label class="t">담당 위기가구 규모(월 대략) <span class="req">*</span></label>
+        <div class="opts" data-req>
+          <label><input type="radio" name="규모" value="월10건미만">월 10건 미만</label>
+          <label><input type="radio" name="규모" value="10~30건">10~30건</label>
+          <label><input type="radio" name="규모" value="30~50건">30~50건</label>
+          <label><input type="radio" name="규모" value="50건이상">50건 이상</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <h2>2. 사용 경험 (숫자)</h2>
+      <div class="q"><label class="t">이어짐으로 상담일지 초안 1건 만드는 데 걸린 시간(분) <span class="req">*</span></label><input type="number" name="이어짐분" min="0" data-req></div>
+      <div class="q"><label class="t">기존 방식(수기+입력+서류)으로는 1건에 보통(분) <span class="req">*</span></label><input type="number" name="기존분" min="0" data-req></div>
+      <div class="q"><label class="t">전반 만족도 <span class="req">*</span></label>
+        <div class="scale" data-req data-scale="만족도"></div>
+        <div class="scaleends"><span>1 매우 불만</span><span>5 매우 만족</span></div>
+      </div>
+      <div class="q"><label class="t">업무 부담 체감 변화 <span class="req">*</span></label>
+        <div class="scale" data-req data-scale="업무부담"></div>
+        <div class="scaleends"><span>1 훨씬 늘었다</span><span>5 훨씬 줄었다</span></div>
+      </div>
+      <div class="q"><label class="t">AI가 녹음/입력에서 항목을 잘 채웠는지 <span class="req">*</span></label>
+        <div class="scale" data-req data-scale="AI정확도"></div>
+        <div class="scaleends"><span>1 거의 못함</span><span>5 대부분 맞음</span></div>
+      </div>
+      <div class="q"><label class="t">실제 업무에 계속 쓸 의향 <span class="req">*</span></label>
+        <div class="opts" data-req>
+          <label><input type="radio" name="의향" value="예">예</label>
+          <label><input type="radio" name="의향" value="아니오">아니오</label>
+          <label><input type="radio" name="의향" value="조건부">조건부(개선되면)</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <h2>3. 사용 경험 (서술)</h2>
+      <div class="q"><label class="t">가장 도움이 된 점 1가지 <span class="req">*</span></label><textarea name="도움된점" data-req></textarea></div>
+      <div class="q"><label class="t">불편하거나 오류가 난 점 (어느 화면에서 무엇을)</label><textarea name="불편오류"></textarea></div>
+      <div class="q"><label class="t">꼭 개선됐으면 하는 점 1가지</label><textarea name="개선점"></textarea></div>
+      <div class="q"><label class="t">다른 기관에도 권할 만한가? 이유</label><textarea name="권유이유"></textarea></div>
+    </div>
+
+    <div class="sec">
+      <h2>4. 개인정보 확인</h2>
+      <div class="q"><label class="t">이번 테스트를 가상/재연 사례로 하셨나요? <span class="req">*</span></label>
+        <div class="opts" data-req>
+          <label><input type="radio" name="테스트유형" value="가상·재연">예(가상·재연)</label>
+          <label><input type="radio" name="테스트유형" value="실제사례">아니오(실제 사례)</label>
+        </div>
+      </div>
+      <div class="q"><label class="t">(실제 사례였다면) 상담일지에 실명·주민번호·주소가 [___]로 비워졌나요?</label>
+        <div class="opts">
+          <label><input type="radio" name="가명화" value="예확인함">예, 확인함</label>
+          <label><input type="radio" name="가명화" value="아니오">아니오</label>
+          <label><input type="radio" name="가명화" value="해당없음">해당없음(가상이었음)</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="send">
+      <button type="submit" id="submitBtn">제출하기</button>
+      <div class="note" id="note">응답은 담당자에게 자동 전송됩니다.</div>
+    </div>
+  </form>
+
+  <div class="done" id="done">
+    <h2>✅ 제출 완료</h2>
+    <p>소중한 피드백 감사합니다. 이어짐 개선에 반영하겠습니다.</p>
+  </div>
+
+  <div class="fallback" id="fallback">
+    <p class="note" style="color:var(--bad)">자동 전송이 안 됐어요. 아래 내용을 <b>전체 복사</b>해서 담당자에게 카톡/메일로 보내주세요.</p>
+    <textarea id="fbText" readonly></textarea>
+    <div class="send"><button type="button" id="copyBtn">전체 복사하기</button></div>
+  </div>
+</div>
+
+<script>
+  // ▼▼▼ 여기에 Apps Script 웹앱 배포 URL(.../exec)을 붙여넣으세요 (설정 전엔 복사-회신 방식으로 동작) ▼▼▼
+  var SCRIPT_URL = "";
+  // ▲▲▲
+
+  // 1~5 배율 버튼 생성
+  document.querySelectorAll('[data-scale]').forEach(function(box){
+    var name = box.getAttribute('data-scale');
+    for(var i=1;i<=5;i++){
+      var l=document.createElement('label');
+      l.innerHTML='<input type="radio" name="'+name+'" value="'+i+'"><span>'+i+'</span>';
+      box.appendChild(l);
+    }
+  });
+
+  var form=document.getElementById('f');
+  var FIELDS=['기관명','기관유형','역할','규모','이어짐분','기존분','만족도','업무부담','AI정확도','의향','도움된점','불편오류','개선점','권유이유','테스트유형','가명화'];
+
+  function collect(){
+    var fd=new FormData(form), o={};
+    FIELDS.forEach(function(k){ o[k]=(fd.get(k)||'').toString().trim(); });
+    return o;
+  }
+  function firstMissing(){
+    var groups=document.querySelectorAll('[data-req]');
+    for(var i=0;i<groups.length;i++){
+      var g=groups[i];
+      if(g.hasAttribute('data-scale') || g.classList.contains('opts')){
+        var nm=g.hasAttribute('data-scale')?g.getAttribute('data-scale'):g.querySelector('input').name;
+        if(!form.querySelector('input[name="'+nm+'"]:checked')) return g;
+      } else if(g.tagName==='INPUT' || g.tagName==='TEXTAREA'){
+        if(!g.value.trim()) return g;
+      }
+    }
+    return null;
+  }
+  function asText(o){
+    return '[이어짐 피드백]\n'
+      +'기관명: '+o.기관명+'\n기관유형: '+o.기관유형+'\n역할: '+o.역할+'\n규모: '+o.규모+'\n'
+      +'이어짐 소요(분): '+o.이어짐분+'\n기존 소요(분): '+o.기존분+'\n'
+      +'만족도(1-5): '+o.만족도+'\n업무부담변화(1-5): '+o.업무부담+'\nAI정확도(1-5): '+o.AI정확도+'\n의향: '+o.의향+'\n'
+      +'도움된점: '+o.도움된점+'\n불편/오류: '+o.불편오류+'\n개선점: '+o.개선점+'\n권유이유: '+o.권유이유+'\n'
+      +'테스트유형: '+o.테스트유형+'\n가명화확인: '+o.가명화;
+  }
+  function showFallback(o){
+    document.getElementById('fbText').value=asText(o);
+    document.getElementById('fallback').style.display='block';
+    document.getElementById('fallback').scrollIntoView({behavior:'smooth'});
+  }
+  function showDone(){
+    form.style.display='none';
+    document.getElementById('done').style.display='block';
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    document.querySelectorAll('.miss').forEach(function(x){x.classList.remove('miss');});
+    var miss=firstMissing();
+    if(miss){
+      miss.classList.add('miss');
+      miss.scrollIntoView({behavior:'smooth',block:'center'});
+      document.getElementById('note').textContent='필수(*) 항목을 채워주세요.';
+      return;
+    }
+    var o=collect();
+    var btn=document.getElementById('submitBtn');
+    btn.disabled=true; btn.textContent='전송 중…';
+
+    if(!SCRIPT_URL){ showFallback(o); btn.disabled=false; btn.textContent='제출하기'; return; }
+
+    var body=new URLSearchParams(o);
+    fetch(SCRIPT_URL,{method:'POST',mode:'no-cors',body:body})
+      .then(function(){ showDone(); })
+      .catch(function(){ showFallback(o); btn.disabled=false; btn.textContent='제출하기'; });
+  });
+
+  document.getElementById('copyBtn').addEventListener('click', function(){
+    var ta=document.getElementById('fbText'); ta.select();
+    var ok=false; try{ ok=document.execCommand('copy'); }catch(e){}
+    if(navigator.clipboard){ navigator.clipboard.writeText(ta.value).then(function(){},function(){}); }
+    this.textContent = ok ? '복사됐어요 ✓ 카톡/메일로 보내주세요' : '길게 눌러 전체 선택 후 복사해주세요';
+  });
+</script>
+</body>
+</html>
