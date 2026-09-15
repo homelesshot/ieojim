@@ -785,7 +785,7 @@
   /* ===== 상담원 로그인 + 상담내역 저장/이어하기 (Supabase Auth + DB) =====
      로그인 없이도 판단 흐름은 100% 그대로 동작해야 함 — 모든 DB 호출은 로그인 세션이
      없거나 네트워크/DB 오류가 나도 절대 판단 흐름을 막지 않도록 try/catch로 감쌈. */
-  // v4-track a71: 소속(기관명)은 문서 위조 방지를 위해 상담원별 자유입력이 아니라 앱 전체가
+  // v4-track a72: 소속(기관명)은 문서 위조 방지를 위해 상담원별 자유입력이 아니라 앱 전체가
   // 공유하는 고정 상수로 전환. 다른 기관이 이 코드를 가져다 쓸 때는 이 한 줄만 바꾸면 됨.
   var ORG_NAME = '사단법인 인천내일을여는집';
   var SUPABASE_URL = 'https://ueidoudgwhuanrtowudy.supabase.co';
@@ -1393,7 +1393,7 @@
     var m=document.getElementById('acctMenu'), b=document.getElementById('acctBtn');
     if(m && m.classList.contains('open') && !m.contains(e.target) && !(b && b.contains(e.target))){ closeAcctMenu(); }
   });
-  // v4-track a70: 로그인 비밀번호를 눈으로 확인할 수 있게(오타·자동대문자화 등 입력 실수를 본인이
+  // v4-track a71: 로그인 비밀번호를 눈으로 확인할 수 있게(오타·자동대문자화 등 입력 실수를 본인이
   // 바로 확인 가능) — 누르고 있을 때만이 아니라 눌러서 토글, 다시 누르면 다시 숨김.
   function togglePwVisible(inputId, btn){
     var el = document.getElementById(inputId);
@@ -1401,7 +1401,7 @@
     if(el.type === 'password'){ el.type = 'text'; if(btn) btn.textContent = '🙈'; }
     else { el.type = 'password'; if(btn) btn.textContent = '👁'; }
   }
-  // v4-track a70: 안드로이드 크롬 시크릿 모드에서 "로그인" 눌러도 성공도 실패도 안 뜨고
+  // v4-track a71: 안드로이드 크롬 시크릿 모드에서 "로그인" 눌러도 성공도 실패도 안 뜨고
   // 화면이 그대로였다는 현장 보고(2026-09-15) — 원인을 특정 못 했으므로(네트워크가 응답 없이
   // 계속 걸려있거나, 특정 기기 브라우저의 알 수 없는 문제) 최소한 "응답이 안 온다"는 사실 자체는
   // 항상 화면에 뜨도록 타임아웃 안전장치를 추가. 이제부터는 성공/비밀번호 오류/네트워크 무응답
@@ -1447,7 +1447,7 @@
       if(r.error) throw r.error;
       var uid = r.data && r.data.user && r.data.user.id;
       if(uid){
-        // v4-track a71: 소속(org)은 더 이상 사용자가 자유입력할 수 없음 — 문서 위조 방지를 위해
+        // v4-track a72: 소속(org)은 더 이상 사용자가 자유입력할 수 없음 — 문서 위조 방지를 위해
         // 앱 전체가 하나의 고정 기관명(ORG_NAME)만 사용하도록 변경(회원가입 시에도 그대로 저장).
         try{ await sb.from('counselor_profiles').upsert({id:uid, display_name:name, org: ORG_NAME}); }
         catch(e2){ console.warn('counselor_profiles upsert 실패:', e2); }
@@ -1523,7 +1523,7 @@
       // update가 아니라 upsert를 써야 함 — 이메일 인증이 필요했던 시절 가입한 계정 등은애초에
       // counselor_profiles 행 자체가 없을 수 있는데, 없는 행을 update하면 조용히 0건 처리되고
       // "저장했어요"만 뜨고 실제로는 반영이 안 됨(새로고침하면 이메일 앞부분으로 되돌아가 보이는 원인).
-      // v4-track a71: org는 더 이상 사용자 입력을 받지 않고 항상 고정 기관명(ORG_NAME)으로 저장.
+      // v4-track a72: org는 더 이상 사용자 입력을 받지 않고 항상 고정 기관명(ORG_NAME)으로 저장.
       var r = await sb.from('counselor_profiles').upsert({id:currentCounselor.id, display_name:name, org: ORG_NAME});
       if(r.error) throw r.error;
       currentCounselor.display_name = name;
@@ -2025,8 +2025,8 @@
      VERSION_LOG 배열 맨 앞에 새 항목을 추가할 것. 같은 날 여러 건이면 tag만 올려서(v0.x) 여러 줄 추가.
      "나중에 몰아서 기록"은 누락으로 이어지므로, 수정 직후 그 자리에서 바로 추가할 것. */
   var VERSION_LOG = [
-    {tag:'v4-track a71', date:'2026-09-15', title:'보안 SQL 3건 실행(Supabase 직접 적용) + 소속(org) 필드를 상담원별 자유입력에서 앱 전체 고정값으로 전환(문서 위조 방지)', desc:'갭분석(`심사기준-갭분석-2026-09-11.md`)에서 지목된 "SQL은 준비됐지만 미실행" 항목 3건을 이번 세션에서 Supabase MCP로 직접 조회·실행함. [1] 실행 전 안전 확인: sunny님이 9/14에 decrypt_case_field 관련 SQL이 참조하는 name_enc·address_enc·memo_enc·raw_transcript_enc·doc_text_enc 컬럼이 클라이언트 코드에 없다고 우려했는데, 실제 cases 테이블 스키마를 조회해보니 그 5개 컬럼은 이미 다 존재함(과거 설계의 흔적으로 추정, 현재 클라이언트는 state_json_enc만 사용) — "컬럼이 없어서 예외가 난다"는 우려는 근거가 없었고, 준비된 SQL을 그대로 실행해도 안전함을 확인 후 진행. [2] 실행 순서(sunny님 제안대로 B→C→A): (B) counselor_profiles에 is_admin 컬럼 추가 + cases 테이블 SELECT/UPDATE 정책을 "본인 것이거나 관리자면"으로 교체 — 조직 접근(퇴사·부재 인계) 정책이 이제 기술적으로도 동작(단, is_admin=true로 켤 계정이 아직 없어 실제 관리자 접근은 관리자 본인이 SQL로 한 번 더 켜야 함). (C) decrypt_case_field 함수에 소유권 검증 추가 — 이제 로그인한 사람이 실제로 자기 사례(또는 관리자면 전체)에 속한 암호문만 복호화 가능, 다른 사람의 암호문을 직접 RPC로 넘겨도 거부됨(어드바이저 경고이던 SECURITY DEFINER 무검증 문제 해소). (A) touch_counselor_keys 함수 search_path 고정. 셋 다 Supabase 어드바이저로 재확인, 클라이언트 코드 변경 없이 DB 쪽만 적용(정상 저장·이어하기 동작에 영향 없음 — state_json_enc는 항상 본인 소유 행에서만 읽으므로 새 소유권 검증을 그대로 통과함). [3] org(소속) 필드 문제 — 지금까지 회원가입·계정설정에서 상담원이 소속을 자유롭게 입력할 수 있어서, 정식 상담원이 아닌 사람도 "사단법인 인천내일을여는집"이라고 직접 타이핑해 넣으면 그 문구가 그대로 hwpx 사유서 기관명란에 찍히는 문서 위조 위험이 있었음(adversarial-review-2026-09-09.md 지적 사항). 회원가입·계정설정 화면의 "소속" 입력칸을 전부 제거하고, 코드 최상단에 새로 만든 전역 상수 ORG_NAME("사단법인 인천내일을여는집")으로 대체 — 화면에는 이제 이 고정값이 읽기전용으로만 표시되고, 회원가입 시 저장되는 값도 항상 ORG_NAME, 상담일지(hwpx) 3곳의 ORG_LINE도 전부 상담원별 값 대신 ORG_NAME을 직접 사용하도록 통일(과거에 자유입력으로 저장된 값이 있어도 문서 생성 시점엔 무시됨). 다른 기관이 이 코드를 가져다 쓸 때는 ORG_NAME 상수 한 줄만 바꾸면 되도록 설계(임팩트 항목 "적용 가이드"에도 반영 예정). 모두 v4.html 내부 + Supabase DB 변경(서버 인프라), 클라이언트 판정 로직은 그대로. (갭분석 우선순위 2·4 대응, 구흥모님 요청)'},
-    {tag:'v4-track a70', date:'2026-09-15', title:'로그인 실패 원인 진단 — 비밀번호 자동대문자화 방지 + 눈모양 비밀번호 표시 버튼 + "응답 없음" 타임아웃 안내(안드로이드 크롬 로그인 안 됨 신고 대응)', desc:'현장 신고(2026-09-15): 안드로이드 크롬에서만 로그인이 안 되고(삼성인터넷·아이폰 사파리/크롬은 정상), 일반 탭에서는 "Invalid login credentials"(비밀번호 불일치)가 뜨는데 시크릿 탭에서 직접 입력했을 때는 성공도 실패도 문구 없이 그냥 아무 반응이 없었다는 보고. [1] 비밀번호를 직접 입력했는데도 계속 불일치가 난다면 안드로이드 키보드가 비밀번호 칸 첫 글자를 자동으로 대문자화하는 등 입력값이 실제로 의도한 것과 달라졌을 가능성이 있어, 로그인/회원가입/비밀번호변경/비밀키 관련 모든 password·email input에 autocapitalize="off" autocorrect="off" spellcheck="false"와 적절한 autocomplete(username/current-password/new-password)를 명시(브라우저·키보드에 자동변형 하지 말라고 명확히 지시). [2] 로그인 비밀번호 칸에 👁 눈모양 버튼(togglePwVisible)을 추가해 본인이 입력한 값을 직접 눈으로 확인할 수 있게 함(현재는 로그인 칸에만 적용). [3] 시크릿 탭의 "아무 반응 없음" 신고에 대해 — 이유를 특정하지 못했지만(요청이 정말 안 갔는지, 응답이 안 왔는지 기기 콘솔 없이는 확정 불가) 원인과 무관하게 "성공도 실패도 아무 문구 없이 멈춰있는" 상태 자체가 있어서는 안 된다고 보고, doSignIn에 15초 타임아웃(withTimeout)을 추가 — 이제 로그인은 반드시 성공(팝업 닫힘) / 비밀번호·계정 오류 문구 / "서버 응답이 15초 넘게 없어요…" 네트워크 안내 셋 중 하나로 귀결됨. 이 타임아웃 안내가 실제로 뜨는지 여부가 다음 재현 시 원인(네트워크 무응답 vs 다른 문제)을 좁히는 첫 단서가 됨. 모두 v4.html 내부만으로 완결(서버/DB 변경 없음), 로그인 로직 자체(signInWithPassword 호출)는 바꾸지 않음 — 입력값 정확성 확보와 진단 가시성 확보만 추가. (구흥모님 신고 대응)'},
+    {tag:'v4-track a72', date:'2026-09-15', title:'보안 SQL 3건 실행(Supabase 직접 적용) + 소속(org) 필드를 상담원별 자유입력에서 앱 전체 고정값으로 전환(문서 위조 방지)', desc:'갭분석(`심사기준-갭분석-2026-09-11.md`)에서 지목된 "SQL은 준비됐지만 미실행" 항목 3건을 이번 세션에서 Supabase MCP로 직접 조회·실행함. [1] 실행 전 안전 확인: sunny님이 9/14에 decrypt_case_field 관련 SQL이 참조하는 name_enc·address_enc·memo_enc·raw_transcript_enc·doc_text_enc 컬럼이 클라이언트 코드에 없다고 우려했는데, 실제 cases 테이블 스키마를 조회해보니 그 5개 컬럼은 이미 다 존재함(과거 설계의 흔적으로 추정, 현재 클라이언트는 state_json_enc만 사용) — "컬럼이 없어서 예외가 난다"는 우려는 근거가 없었고, 준비된 SQL을 그대로 실행해도 안전함을 확인 후 진행. [2] 실행 순서(sunny님 제안대로 B→C→A): (B) counselor_profiles에 is_admin 컬럼 추가 + cases 테이블 SELECT/UPDATE 정책을 "본인 것이거나 관리자면"으로 교체 — 조직 접근(퇴사·부재 인계) 정책이 이제 기술적으로도 동작(단, is_admin=true로 켤 계정이 아직 없어 실제 관리자 접근은 관리자 본인이 SQL로 한 번 더 켜야 함). (C) decrypt_case_field 함수에 소유권 검증 추가 — 이제 로그인한 사람이 실제로 자기 사례(또는 관리자면 전체)에 속한 암호문만 복호화 가능, 다른 사람의 암호문을 직접 RPC로 넘겨도 거부됨(어드바이저 경고이던 SECURITY DEFINER 무검증 문제 해소). (A) touch_counselor_keys 함수 search_path 고정. 셋 다 Supabase 어드바이저로 재확인, 클라이언트 코드 변경 없이 DB 쪽만 적용(정상 저장·이어하기 동작에 영향 없음 — state_json_enc는 항상 본인 소유 행에서만 읽으므로 새 소유권 검증을 그대로 통과함). [3] org(소속) 필드 문제 — 지금까지 회원가입·계정설정에서 상담원이 소속을 자유롭게 입력할 수 있어서, 정식 상담원이 아닌 사람도 "사단법인 인천내일을여는집"이라고 직접 타이핑해 넣으면 그 문구가 그대로 hwpx 사유서 기관명란에 찍히는 문서 위조 위험이 있었음(adversarial-review-2026-09-09.md 지적 사항). 회원가입·계정설정 화면의 "소속" 입력칸을 전부 제거하고, 코드 최상단에 새로 만든 전역 상수 ORG_NAME("사단법인 인천내일을여는집")으로 대체 — 화면에는 이제 이 고정값이 읽기전용으로만 표시되고, 회원가입 시 저장되는 값도 항상 ORG_NAME, 상담일지(hwpx) 3곳의 ORG_LINE도 전부 상담원별 값 대신 ORG_NAME을 직접 사용하도록 통일(과거에 자유입력으로 저장된 값이 있어도 문서 생성 시점엔 무시됨). 다른 기관이 이 코드를 가져다 쓸 때는 ORG_NAME 상수 한 줄만 바꾸면 되도록 설계(임팩트 항목 "적용 가이드"에도 반영 예정). 모두 v4.html 내부 + Supabase DB 변경(서버 인프라), 클라이언트 판정 로직은 그대로. (갭분석 우선순위 2·4 대응, 구흥모님 요청)'},
+    {tag:'v4-track a71', date:'2026-09-15', title:'로그인 실패 원인 진단 — 비밀번호 자동대문자화 방지 + 눈모양 비밀번호 표시 버튼 + "응답 없음" 타임아웃 안내(안드로이드 크롬 로그인 안 됨 신고 대응)', desc:'현장 신고(2026-09-15): 안드로이드 크롬에서만 로그인이 안 되고(삼성인터넷·아이폰 사파리/크롬은 정상), 일반 탭에서는 "Invalid login credentials"(비밀번호 불일치)가 뜨는데 시크릿 탭에서 직접 입력했을 때는 성공도 실패도 문구 없이 그냥 아무 반응이 없었다는 보고. [1] 비밀번호를 직접 입력했는데도 계속 불일치가 난다면 안드로이드 키보드가 비밀번호 칸 첫 글자를 자동으로 대문자화하는 등 입력값이 실제로 의도한 것과 달라졌을 가능성이 있어, 로그인/회원가입/비밀번호변경/비밀키 관련 모든 password·email input에 autocapitalize="off" autocorrect="off" spellcheck="false"와 적절한 autocomplete(username/current-password/new-password)를 명시(브라우저·키보드에 자동변형 하지 말라고 명확히 지시). [2] 로그인 비밀번호 칸에 👁 눈모양 버튼(togglePwVisible)을 추가해 본인이 입력한 값을 직접 눈으로 확인할 수 있게 함(현재는 로그인 칸에만 적용). [3] 시크릿 탭의 "아무 반응 없음" 신고에 대해 — 이유를 특정하지 못했지만(요청이 정말 안 갔는지, 응답이 안 왔는지 기기 콘솔 없이는 확정 불가) 원인과 무관하게 "성공도 실패도 아무 문구 없이 멈춰있는" 상태 자체가 있어서는 안 된다고 보고, doSignIn에 15초 타임아웃(withTimeout)을 추가 — 이제 로그인은 반드시 성공(팝업 닫힘) / 비밀번호·계정 오류 문구 / "서버 응답이 15초 넘게 없어요…" 네트워크 안내 셋 중 하나로 귀결됨. 이 타임아웃 안내가 실제로 뜨는지 여부가 다음 재현 시 원인(네트워크 무응답 vs 다른 문제)을 좁히는 첫 단서가 됨. 모두 v4.html 내부만으로 완결(서버/DB 변경 없음), 로그인 로직 자체(signInWithPassword 호출)는 바꾸지 않음 — 입력값 정확성 확보와 진단 가시성 확보만 추가. (구흥모님 신고 대응)'},
     {tag:'v4-track a70', date:'2026-09-15', title:'실사용 피드백 후속 — 가정폭력 "가해자" 대상유형 신설 + 결과 화면에서 대상유형 고쳐 상담일지·hwpx까지 즉시 재반영', desc:'a69에 이어, 팀장 피드백의 "가해자인데 피해자로 도출 + 결과화면에서 수정 불가"를 소스에서 근본 해결(sunny님 지시, 구흥모님과 조율됨). [1 — 가해자 카테고리] 대상유형에 "가정폭력 가해자"(값 가정폭력가해)를 신설: select 옵션·대상유형 팝업 버튼·TARGETTYPE_LIST_V4(=AI 추출 enum, 이제 AI도 가해자를 구분 추출 가능)·LIVING_PRESET(가해자는 피해자 쉼터 프리셋이 아니라 "기타·확인필요")에 추가. 판정(run)은 대상 가능 여부를 소득·재산·위기사유로만 정하고 대상유형은 프리셋·연계 안내·라벨에만 쓰므로, 카테고리 추가가 예비판단 결과 계산을 바꾸지 않음(안전). 피해자 전용 자동 지원제안·연계(쉼터 입소 등)는 조건이 targetType==="가정폭력피해"라 가해자에는 자동으로 안 붙음. [2 — 결과화면 대상유형 수정→hwpx 반영] 상담일지 초안 카드에 "대상유형이 틀렸나요?" 셀렉트(docTargetFix) 추가. 바꾸면 changeTargetAndRerun()이 #targetType 값만 교체하고 run()을 재실행 — run()은 모든 필드를 DOM에서 다시 읽어 판정·상담일지(buildDoc)·lastRunData를 새로 만들고, hwpx 다운로드는 lastRunData 기반이라 이제 화면 수정이 .hwpx에도 반영됨(a69의 pre#doc 텍스트 편집은 복사·txt만 반영됐던 한계를 대상유형에 한해 근본 해결). run()은 결과 카드를 새로 만들지 않고 기존 카드 내용만 갱신하므로 재실행해도 카드 중복이 없고, syncType은 부르지 않아 거주형태 등 다른 필드가 프리셋으로 덮어써지지 않음. run() 끝에서 docTargetFix를 현재 targetType과 동기화. [남은 것] 대상유형 외 다른 항목(소득 등)까지 결과화면에서 직접 고치는 일반 편집, 목적별 상담일지 양식(외부발송/보관용) 선택은 별도(양식 파일 필요) — 아이디어_메모.md 참고. v4.html 내부만으로 완결(서버/DB·hwpx 템플릿 변경 없음). (sunny님 지시 — 구흥모님과 조율됨, Claude 세션)'},
     {tag:'v4-track a69', date:'2026-09-15', title:'실사용 피드백(내일을여는자활쉼터 팀장) 반영 — 시작 화면 "필수 확인 사항" 사전 안내 + 상담일지 초안 화면에서 직접 수정 가능', desc:'2번째 실사용 피드백(팀장·관리자, feedback.html 통해 수집)의 두 가지를 안전하게 반영. [배경] "예비판단 결과 화면에서 내용 오류(가정폭력 가해자인데 피해자로 도출)와 수정 불가"·"거리 노숙인은 사후 재접촉이 어려워 상담 자리에서 필수 항목을 놓치면 다시 못 물음"이라는 지적. [반영1 — 시작 화면 필수 확인 안내] 웰컴 화면에 "상담 자리에서 꼭 확인하세요(거리 상담은 나중에 다시 묻기 어렵습니다) — 소득·재산(밀린 월세·공과금 포함)·대상자와의 관계(예: 가정폭력 피해/가해)·건강상태·다시 연락 가능 여부" 안내 박스 추가 — 오분류·누락을 상담 시점에 예방. [반영2 — 상담일지 초안 직접 수정] 결과 화면의 상담일지 미리보기(pre#doc)를 contenteditable로 바꿔, 잘못 나온 표현("피해자"→"가해자" 등)을 상담원이 화면에서 바로 고칠 수 있게 함. 고친 내용은 "복사하기"·텍스트(.txt) 다운로드(둘 다 doc.textContent를 읽음)에 그대로 반영됨. [정직한 한계 안내] 한글(.hwpx)은 항목값(토큰)으로 문서를 새로 만들기 때문에 화면 글자 수정이 .hwpx에는 반영되지 않음 — 이 점을 결과 화면 안내(?)에 명시하고, 항목 자체를 .hwpx까지 바꾸려면 이전 단계에서 항목 수정 후 재실행하도록 안내. [별도 논의로 남긴 것] (a) 가정폭력 "가해자" 대상유형/관계 필드 신설은 판정 로직에 영향이 있어 기관·구흥모님 결정 필요, (b) 결과 화면에서 항목값을 직접 고쳐 .hwpx까지 즉시 반영하는 기능은 doc/hwpx 파이프라인 재설계가 필요, (c) 목적별 상담일지 양식(외부발송용/보관용) 선택은 양식 다수+UI 필요 — 셋 다 아이디어_메모.md에 정리. 이번 변경은 v4.html 내부만으로 완결(서버/DB·hwpx 파이프라인 구조 변경 없음). (sunny님 지시 — 구흥모님과 조율됨, 실사용 피드백 대응, Claude 세션)'},
     {tag:'v4-track a68', date:'2026-09-14', title:'부채 추출 개선 — 밀린 월세·공과금·전기·수도세 등 연체액을 모두 부채로 합산 + "세 달치" 같은 기간은 총액 계산', desc:'현장(sunny님, 사회복지사) 판단 반영: 대상자가 갚아야 주거·생계를 유지할 수 있는 밀린 월세·관리비·공과금·전기세·수도세·가스비 등 "연체액"은 모두 채무로 봐야 한다는 결정. [문제] 실제 재현에서 "세 달치 월세가 밀렸고(월 29만) 전기요금 11만원도 못 냈다"는 문장에 대해 AI가 debt를 한 달치(290,000)로만 잡고 전기요금 연체는 누락했음 — 기간 곱셈을 안 하고 연체 공과금도 부채로 보지 않은 추출 오류. [수정] buildExtractionPrompt의 debt 항목 설명을 보강: (1) 금융기관·개인 간 빚뿐 아니라 밀린 월세·관리비·공과금·전기/수도/가스 연체액을 전부 debt에 합산하도록 명시, (2) "세 달치 월세가 밀렸다"처럼 기간이 나오면 월액×개월수로 계산(예: 29만×3+전기 11만 = 980,000), (3) 여러 연체는 모두 더하도록 지시. 다만 이 값은 상담원이 확인·수정할 초안이며 "재산 산정에서 실제로 부채로 인정할지·최종 판정은 담당 기관 심사를 따른다"는 단서도 프롬프트에 함께 넣어, 앱이 제도 판단을 단정하지 않게 함(기존 면책 원칙과 일치). 추출(프롬프트)만 바뀌고 판정 로직(run)·화면은 그대로 — 상담원이 소득·재산 화면에서 늘 확인 후 진행하는 정책(a32)도 유지. v4.html 내부만으로 완결(서버/DB 변경 없음). (sunny님 판단 반영, Claude 세션)'},
@@ -3333,7 +3333,7 @@
         GENDER:'-', AGE:'-', SIZE:'-', TARGET:'-', NAT:'-', REGION:'-', LIVING:'-',
         URGENCY:'-', URGENCY2:'-', LOC:'해당 없음', CRISIS_LINES:'-', INCOME_LINE:'-', ASSET_LINE:'-', RESULT_LINE:'-',
         HEALTH_LINE:'-', ITEMS_LINE:'-', SELF_LINE:'-',
-        ORG_LINE: ORG_NAME, // v4-track a71: 상담원별 org 무시, 항상 고정 기관명
+        ORG_LINE: ORG_NAME, // v4-track a72: 상담원별 org 무시, 항상 고정 기관명
         DATE_LINE:'작성일: '+new Date().toISOString().slice(0,10)+'    작성: [담당 상담원]',
         DATE_VALUE: new Date().toISOString().slice(0,10),
         SIGN_NAME: (currentCounselor && currentCounselor.display_name) ? currentCounselor.display_name : '담당 상담원',
@@ -3768,7 +3768,7 @@
   function buildDoc(){
     if(!lastRunData) return;
     const d = lastRunData;
-    const orgLine = ORG_NAME; // v4-track a71: 상담원별 org 무시, 항상 고정 기관명
+    const orgLine = ORG_NAME; // v4-track a72: 상담원별 org 무시, 항상 고정 기관명
     const signName = (currentCounselor && currentCounselor.display_name) ? currentCounselor.display_name : '담당 상담원';
     const doc = `[긴급복지 지원 요청 상담일지 — 초안]
 ${orgLine} · 초안(담당자 확인 후 확정)
@@ -3957,7 +3957,7 @@ ${d.memo ? '\n메모: '+d.memo : ''}
       MEMO_LINE: d.memo ? '메모: '+d.memo : '',
       DATE_LINE: '작성일 : '+d.today,
       DATE_VALUE: d.today,
-      // 소속은 v4-track a71부터 상담원별 입력을 받지 않고 항상 고정 기관명(ORG_NAME) — 작성자(이름)만
+      // 소속은 v4-track a72부터 상담원별 입력을 받지 않고 항상 고정 기관명(ORG_NAME) — 작성자(이름)만
       // 로그인한 상담원의 계정 설정(⚙️) 값을 반영, 로그인 안 했으면 기본 문구로 대체.
       ORG_LINE: ORG_NAME,
       SIGN_NAME: (currentCounselor && currentCounselor.display_name) ? currentCounselor.display_name : '담당 상담원',
