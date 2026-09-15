@@ -599,7 +599,7 @@
           <input type="text" id="authName" placeholder="예: 김상담" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:1.2rem">
         </div>
         <div class="field" id="authOrgField" style="display:none"><span class="lab">소속</span>
-          <input type="text" id="authOrg" placeholder="예: 사단법인 인천내일을여는집" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:1.2rem">
+          <div class="note" style="margin:0;padding:10px 12px;background:var(--surface-2);border-radius:10px;font-weight:700">🏢 <span id="authOrgFixedLabel"></span> <span style="font-weight:500;color:var(--mut)">(고정값 — 문서 위조 방지를 위해 직접 입력할 수 없어요)</span></div>
         </div>
         <div class="field"><span class="lab">이메일</span>
           <input type="email" id="authEmail" placeholder="you@example.org" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="username" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:1.2rem">
@@ -653,11 +653,11 @@
         <input type="text" id="setName" placeholder="예: 김상담" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:1.2rem">
       </div>
       <div class="field"><span class="lab">소속</span>
-        <input type="text" id="setOrg" placeholder="예: 사단법인 인천내일을여는집" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:1.2rem">
+        <div class="note" style="margin:0;padding:10px 12px;background:var(--surface-2);border-radius:10px;font-weight:700">🏢 <span id="setOrgFixedLabel"></span> <span style="font-weight:500;color:var(--mut)">(고정값 — 문서 위조 방지를 위해 직접 입력할 수 없어요)</span></div>
       </div>
       <div class="note" id="setNameNote" style="min-height:1.2em"></div>
       <div class="btnrow" style="margin-top:.2rem">
-        <button class="btn small" onclick="saveNameChange()">이름·소속 저장</button>
+        <button class="btn small" onclick="saveNameChange()">이름 저장</button>
       </div>
 
       <div style="border-top:1px solid var(--line);margin:1rem 0 .8rem"></div>
@@ -782,6 +782,9 @@
   /* ===== 상담원 로그인 + 상담내역 저장/이어하기 (Supabase Auth + DB) =====
      로그인 없이도 판단 흐름은 100% 그대로 동작해야 함 — 모든 DB 호출은 로그인 세션이
      없거나 네트워크/DB 오류가 나도 절대 판단 흐름을 막지 않도록 try/catch로 감쌈. */
+  // v4-track a71: 소속(기관명)은 문서 위조 방지를 위해 상담원별 자유입력이 아니라 앱 전체가
+  // 공유하는 고정 상수로 전환. 다른 기관이 이 코드를 가져다 쓸 때는 이 한 줄만 바꾸면 됨.
+  var ORG_NAME = '사단법인 인천내일을여는집';
   var SUPABASE_URL = 'https://ueidoudgwhuanrtowudy.supabase.co';
   var sb = null;
   try{
@@ -1318,6 +1321,7 @@
     var isSignup = authMode === 'signup';
     document.getElementById('authNameField').style.display = isSignup ? '' : 'none';
     document.getElementById('authOrgField').style.display = isSignup ? '' : 'none';
+    var orgLabel = document.getElementById('authOrgFixedLabel'); if(orgLabel) orgLabel.textContent = ORG_NAME;
     document.getElementById('authPwConfirmField').style.display = isSignup ? '' : 'none';
     document.getElementById('authSigninBtn').style.display = isSignup ? 'none' : '';
     document.getElementById('authSignupBtn').style.display = isSignup ? '' : 'none';
@@ -1430,7 +1434,6 @@
     var email = (document.getElementById('authEmail').value||'').trim();
     var pw = document.getElementById('authPw').value||'';
     var name = (document.getElementById('authName').value||'').trim() || email.split('@')[0] || '상담원';
-    var org = (document.getElementById('authOrg').value||'').trim();
     var pwConfirm = document.getElementById('authPwConfirm').value||'';
     if(!email || !pw){ if(note) note.textContent = '이메일과 비밀번호를 입력해 주세요.'; return; }
     if(pw.length < 6){ if(note) note.textContent = '비밀번호는 6자 이상이어야 해요.'; return; }
@@ -1441,7 +1444,9 @@
       if(r.error) throw r.error;
       var uid = r.data && r.data.user && r.data.user.id;
       if(uid){
-        try{ await sb.from('counselor_profiles').upsert({id:uid, display_name:name, org: org || null}); }
+        // v4-track a71: 소속(org)은 더 이상 사용자가 자유입력할 수 없음 — 문서 위조 방지를 위해
+        // 앱 전체가 하나의 고정 기관명(ORG_NAME)만 사용하도록 변경(회원가입 시에도 그대로 저장).
+        try{ await sb.from('counselor_profiles').upsert({id:uid, display_name:name, org: ORG_NAME}); }
         catch(e2){ console.warn('counselor_profiles upsert 실패:', e2); }
       }
       if(note){
@@ -1471,7 +1476,7 @@
       return;
     }
     var nameInput = document.getElementById('setName'); if(nameInput) nameInput.value = currentCounselor.display_name || '';
-    var orgInput = document.getElementById('setOrg'); if(orgInput) orgInput.value = currentCounselor.org || '';
+    var orgLabel = document.getElementById('setOrgFixedLabel'); if(orgLabel) orgLabel.textContent = ORG_NAME;
     var note = document.getElementById('setNameNote'); if(note) note.textContent = '';
     closePwChange();
     switchSettingsPane('acct');
@@ -1509,17 +1514,17 @@
     var note = document.getElementById('setNameNote');
     if(!sb || !currentCounselor){ if(note){ note.style.color='var(--bad)'; note.textContent = '로그인 상태를 확인할 수 없어요.'; } return; }
     var name = (document.getElementById('setName').value||'').trim();
-    var org = (document.getElementById('setOrg').value||'').trim();
     if(!name){ if(note){ note.style.color='var(--bad)'; note.textContent = '이름을 입력해 주세요.'; } return; }
     if(note){ note.style.color='var(--mut)'; note.textContent = '저장 중…'; }
     try{
       // update가 아니라 upsert를 써야 함 — 이메일 인증이 필요했던 시절 가입한 계정 등은애초에
       // counselor_profiles 행 자체가 없을 수 있는데, 없는 행을 update하면 조용히 0건 처리되고
       // "저장했어요"만 뜨고 실제로는 반영이 안 됨(새로고침하면 이메일 앞부분으로 되돌아가 보이는 원인).
-      var r = await sb.from('counselor_profiles').upsert({id:currentCounselor.id, display_name:name, org: org || null});
+      // v4-track a71: org는 더 이상 사용자 입력을 받지 않고 항상 고정 기관명(ORG_NAME)으로 저장.
+      var r = await sb.from('counselor_profiles').upsert({id:currentCounselor.id, display_name:name, org: ORG_NAME});
       if(r.error) throw r.error;
       currentCounselor.display_name = name;
-      currentCounselor.org = org || null;
+      currentCounselor.org = ORG_NAME;
       renderAcctUI();
       if(note){ note.style.color='var(--accent-ink)'; note.textContent = '이름·소속을 저장했어요.'; }
     }catch(e){
@@ -2017,6 +2022,7 @@
      VERSION_LOG 배열 맨 앞에 새 항목을 추가할 것. 같은 날 여러 건이면 tag만 올려서(v0.x) 여러 줄 추가.
      "나중에 몰아서 기록"은 누락으로 이어지므로, 수정 직후 그 자리에서 바로 추가할 것. */
   var VERSION_LOG = [
+    {tag:'v4-track a71', date:'2026-09-15', title:'보안 SQL 3건 실행(Supabase 직접 적용) + 소속(org) 필드를 상담원별 자유입력에서 앱 전체 고정값으로 전환(문서 위조 방지)', desc:'갭분석(`심사기준-갭분석-2026-09-11.md`)에서 지목된 "SQL은 준비됐지만 미실행" 항목 3건을 이번 세션에서 Supabase MCP로 직접 조회·실행함. [1] 실행 전 안전 확인: sunny님이 9/14에 decrypt_case_field 관련 SQL이 참조하는 name_enc·address_enc·memo_enc·raw_transcript_enc·doc_text_enc 컬럼이 클라이언트 코드에 없다고 우려했는데, 실제 cases 테이블 스키마를 조회해보니 그 5개 컬럼은 이미 다 존재함(과거 설계의 흔적으로 추정, 현재 클라이언트는 state_json_enc만 사용) — "컬럼이 없어서 예외가 난다"는 우려는 근거가 없었고, 준비된 SQL을 그대로 실행해도 안전함을 확인 후 진행. [2] 실행 순서(sunny님 제안대로 B→C→A): (B) counselor_profiles에 is_admin 컬럼 추가 + cases 테이블 SELECT/UPDATE 정책을 "본인 것이거나 관리자면"으로 교체 — 조직 접근(퇴사·부재 인계) 정책이 이제 기술적으로도 동작(단, is_admin=true로 켤 계정이 아직 없어 실제 관리자 접근은 관리자 본인이 SQL로 한 번 더 켜야 함). (C) decrypt_case_field 함수에 소유권 검증 추가 — 이제 로그인한 사람이 실제로 자기 사례(또는 관리자면 전체)에 속한 암호문만 복호화 가능, 다른 사람의 암호문을 직접 RPC로 넘겨도 거부됨(어드바이저 경고이던 SECURITY DEFINER 무검증 문제 해소). (A) touch_counselor_keys 함수 search_path 고정. 셋 다 Supabase 어드바이저로 재확인, 클라이언트 코드 변경 없이 DB 쪽만 적용(정상 저장·이어하기 동작에 영향 없음 — state_json_enc는 항상 본인 소유 행에서만 읽으므로 새 소유권 검증을 그대로 통과함). [3] org(소속) 필드 문제 — 지금까지 회원가입·계정설정에서 상담원이 소속을 자유롭게 입력할 수 있어서, 정식 상담원이 아닌 사람도 "사단법인 인천내일을여는집"이라고 직접 타이핑해 넣으면 그 문구가 그대로 hwpx 사유서 기관명란에 찍히는 문서 위조 위험이 있었음(adversarial-review-2026-09-09.md 지적 사항). 회원가입·계정설정 화면의 "소속" 입력칸을 전부 제거하고, 코드 최상단에 새로 만든 전역 상수 ORG_NAME("사단법인 인천내일을여는집")으로 대체 — 화면에는 이제 이 고정값이 읽기전용으로만 표시되고, 회원가입 시 저장되는 값도 항상 ORG_NAME, 상담일지(hwpx) 3곳의 ORG_LINE도 전부 상담원별 값 대신 ORG_NAME을 직접 사용하도록 통일(과거에 자유입력으로 저장된 값이 있어도 문서 생성 시점엔 무시됨). 다른 기관이 이 코드를 가져다 쓸 때는 ORG_NAME 상수 한 줄만 바꾸면 되도록 설계(임팩트 항목 "적용 가이드"에도 반영 예정). 모두 v4.html 내부 + Supabase DB 변경(서버 인프라), 클라이언트 판정 로직은 그대로. (갭분석 우선순위 2·4 대응, 구흥모님 요청)'},
     {tag:'v4-track a70', date:'2026-09-15', title:'로그인 실패 원인 진단 — 비밀번호 자동대문자화 방지 + 눈모양 비밀번호 표시 버튼 + "응답 없음" 타임아웃 안내(안드로이드 크롬 로그인 안 됨 신고 대응)', desc:'현장 신고(2026-09-15): 안드로이드 크롬에서만 로그인이 안 되고(삼성인터넷·아이폰 사파리/크롬은 정상), 일반 탭에서는 "Invalid login credentials"(비밀번호 불일치)가 뜨는데 시크릿 탭에서 직접 입력했을 때는 성공도 실패도 문구 없이 그냥 아무 반응이 없었다는 보고. [1] 비밀번호를 직접 입력했는데도 계속 불일치가 난다면 안드로이드 키보드가 비밀번호 칸 첫 글자를 자동으로 대문자화하는 등 입력값이 실제로 의도한 것과 달라졌을 가능성이 있어, 로그인/회원가입/비밀번호변경/비밀키 관련 모든 password·email input에 autocapitalize="off" autocorrect="off" spellcheck="false"와 적절한 autocomplete(username/current-password/new-password)를 명시(브라우저·키보드에 자동변형 하지 말라고 명확히 지시). [2] 로그인 비밀번호 칸에 👁 눈모양 버튼(togglePwVisible)을 추가해 본인이 입력한 값을 직접 눈으로 확인할 수 있게 함(현재는 로그인 칸에만 적용). [3] 시크릿 탭의 "아무 반응 없음" 신고에 대해 — 이유를 특정하지 못했지만(요청이 정말 안 갔는지, 응답이 안 왔는지 기기 콘솔 없이는 확정 불가) 원인과 무관하게 "성공도 실패도 아무 문구 없이 멈춰있는" 상태 자체가 있어서는 안 된다고 보고, doSignIn에 15초 타임아웃(withTimeout)을 추가 — 이제 로그인은 반드시 성공(팝업 닫힘) / 비밀번호·계정 오류 문구 / "서버 응답이 15초 넘게 없어요…" 네트워크 안내 셋 중 하나로 귀결됨. 이 타임아웃 안내가 실제로 뜨는지 여부가 다음 재현 시 원인(네트워크 무응답 vs 다른 문제)을 좁히는 첫 단서가 됨. 모두 v4.html 내부만으로 완결(서버/DB 변경 없음), 로그인 로직 자체(signInWithPassword 호출)는 바꾸지 않음 — 입력값 정확성 확보와 진단 가시성 확보만 추가. (구흥모님 신고 대응)'},
     {tag:'v4-track a68', date:'2026-09-14', title:'부채 추출 개선 — 밀린 월세·공과금·전기·수도세 등 연체액을 모두 부채로 합산 + "세 달치" 같은 기간은 총액 계산', desc:'현장(sunny님, 사회복지사) 판단 반영: 대상자가 갚아야 주거·생계를 유지할 수 있는 밀린 월세·관리비·공과금·전기세·수도세·가스비 등 "연체액"은 모두 채무로 봐야 한다는 결정. [문제] 실제 재현에서 "세 달치 월세가 밀렸고(월 29만) 전기요금 11만원도 못 냈다"는 문장에 대해 AI가 debt를 한 달치(290,000)로만 잡고 전기요금 연체는 누락했음 — 기간 곱셈을 안 하고 연체 공과금도 부채로 보지 않은 추출 오류. [수정] buildExtractionPrompt의 debt 항목 설명을 보강: (1) 금융기관·개인 간 빚뿐 아니라 밀린 월세·관리비·공과금·전기/수도/가스 연체액을 전부 debt에 합산하도록 명시, (2) "세 달치 월세가 밀렸다"처럼 기간이 나오면 월액×개월수로 계산(예: 29만×3+전기 11만 = 980,000), (3) 여러 연체는 모두 더하도록 지시. 다만 이 값은 상담원이 확인·수정할 초안이며 "재산 산정에서 실제로 부채로 인정할지·최종 판정은 담당 기관 심사를 따른다"는 단서도 프롬프트에 함께 넣어, 앱이 제도 판단을 단정하지 않게 함(기존 면책 원칙과 일치). 추출(프롬프트)만 바뀌고 판정 로직(run)·화면은 그대로 — 상담원이 소득·재산 화면에서 늘 확인 후 진행하는 정책(a32)도 유지. v4.html 내부만으로 완결(서버/DB 변경 없음). (sunny님 판단 반영, Claude 세션)'},
     {tag:'v4-track a67', date:'2026-09-14', title:'AI 자동추출값이 "앞 단계에서 멈추면 뒤 단계에서 버려지던" 문제 수정 — 타이핑도 녹음처럼 끝까지 자동 기입', desc:'현장/실사용 피드백(sunny님): "녹음할 때는 항목이 잘 채워지는데, 상황을 타이핑으로 입력하면 상담 메모로만 들어가고 답변(위저드 항목)으로 자동 기입이 안 된다"는 신고. 브라우저로 직접 재현·진단한 결과, 타이핑도 AI 추출 자체는 정상 성공했고(콘솔 확인: ex={region:인천광역시, crisis:2개, urgency:null …}), 진짜 원인은 별개였음 — runAutoFillStepsV4는 각 단계에서 그 단계 항목이 하나라도 null이면 markUnsureNoteV4로 안내만 하고 return으로 멈추는데, 그 뒤 사람이 직접 "다음"을 누르면 goHousehold/goHousehold2/goIncome/goHealth가 AI 추출값(ex) 없이 화면을 새로 그려서, AI가 이미 뽑아둔 뒤 단계 값(예: region 인천)이 전부 버려지고 기본값(서울)으로 되돌아가고 있었음. 타이핑은 문장이 짧아 긴급성(urgency) 같은 항목이 자주 빠지므로 ①에서 멈추는 일이 잦아 "타이핑은 자동기입이 안 된다"처럼 보인 것(녹음은 말이 풍부해 긴급성까지 자연히 들어가 통과율이 높았던 것뿐 — 코드상 타이핑/녹음 경로는 동일). [수정] 추출 결과 ex를 상담 단위 세션 변수 lastExtractionV4에 보관(runAutoFillStepsV4 진입 시 저장, autoRunFromText/autoRunFromRecording 시작과 resetChat에서 null로 초기화)하고, 각 단계 화면 렌더 함수(goHousehold→fillHouseholdFieldsAV4, goHousehold2→fillHouseholdFieldsBV4, goIncome→fillIncomeFieldsV4, goHealth→fillHealthFieldsV4)가 그 값이 있으면 이어서 채우도록 함. 이제 앞 단계에서 멈춰도, 사람이 그 단계만 확인하고 "다음"을 누르면 거주지역·거주형태·가구원수·연령대·성별·국적·소득·재산·건강상태가 AI값으로 계속 채워짐. 거주형태는 기존 대상유형 프리셋을 적용한 "뒤에" AI값을 얹어 AI가 더 구체적으로 뽑은 값을 우선하고, AI값이 없으면(null) 프리셋/기본값을 그대로 둔다. 소득·재산을 사람이 반드시 확인하고 넘어가게 하는 정책(a32)과 자동 진행(auto-advance) 로직은 그대로 유지 — 이번 변경은 "값 채우기"만 각 화면에 항상 적용되게 한 것이라 기존 동작을 바꾸지 않음. AI 없이 순수 수동으로 진행하는 경우엔 lastExtractionV4가 null이라 아무 영향 없음. 모두 v4.html 내부만으로 완결(서버/DB 변경 없음). (sunny님 신고·구흥모님과 조율 후 반영, Claude 세션)'},
@@ -3309,7 +3315,7 @@
         GENDER:'-', AGE:'-', SIZE:'-', TARGET:'-', NAT:'-', REGION:'-', LIVING:'-',
         URGENCY:'-', URGENCY2:'-', LOC:'해당 없음', CRISIS_LINES:'-', INCOME_LINE:'-', ASSET_LINE:'-', RESULT_LINE:'-',
         HEALTH_LINE:'-', ITEMS_LINE:'-', SELF_LINE:'-',
-        ORG_LINE: (currentCounselor && currentCounselor.org) ? currentCounselor.org : '사단법인 인천내일을여는집',
+        ORG_LINE: ORG_NAME, // v4-track a71: 상담원별 org 무시, 항상 고정 기관명
         DATE_LINE:'작성일: '+new Date().toISOString().slice(0,10)+'    작성: [담당 상담원]',
         DATE_VALUE: new Date().toISOString().slice(0,10),
         SIGN_NAME: (currentCounselor && currentCounselor.display_name) ? currentCounselor.display_name : '담당 상담원',
@@ -3744,7 +3750,7 @@
   function buildDoc(){
     if(!lastRunData) return;
     const d = lastRunData;
-    const orgLine = (currentCounselor && currentCounselor.org) ? currentCounselor.org : '사단법인 인천내일을여는집';
+    const orgLine = ORG_NAME; // v4-track a71: 상담원별 org 무시, 항상 고정 기관명
     const signName = (currentCounselor && currentCounselor.display_name) ? currentCounselor.display_name : '담당 상담원';
     const doc = `[긴급복지 지원 요청 상담일지 — 초안]
 ${orgLine} · 초안(담당자 확인 후 확정)
@@ -3933,9 +3939,9 @@ ${d.memo ? '\n메모: '+d.memo : ''}
       MEMO_LINE: d.memo ? '메모: '+d.memo : '',
       DATE_LINE: '작성일 : '+d.today,
       DATE_VALUE: d.today,
-      // 소속·작성자는 로그인한 상담원의 계정 설정(⚙️) 값을 그대로 반영 — 로그인 안 했거나 값을 안 채운 경우엔
-      // 기존처럼 기본 문구로 대체(빈 칸으로 뜨는 것보다 나음).
-      ORG_LINE: (currentCounselor && currentCounselor.org) ? currentCounselor.org : '사단법인 인천내일을여는집',
+      // 소속은 v4-track a71부터 상담원별 입력을 받지 않고 항상 고정 기관명(ORG_NAME) — 작성자(이름)만
+      // 로그인한 상담원의 계정 설정(⚙️) 값을 반영, 로그인 안 했으면 기본 문구로 대체.
+      ORG_LINE: ORG_NAME,
       SIGN_NAME: (currentCounselor && currentCounselor.display_name) ? currentCounselor.display_name : '담당 상담원',
       SIGN_LINE: '작성자 : '+((currentCounselor && currentCounselor.display_name) ? currentCounselor.display_name : '담당 상담원')+' (서명)'
     };
