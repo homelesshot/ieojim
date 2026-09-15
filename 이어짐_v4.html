@@ -1099,8 +1099,7 @@
     s.wrap.scrollIntoView({behavior:'smooth', block:'start'});
   }
   function autoRunAiDraftAfterResultV4(){
-    var sec = document.getElementById('aiDraftSection');
-    if(sec) sec.style.display = '';
+    // v4-track a81: 수동 "AI로 초안 다듬기" 카드를 삭제하면서, 그 카드를 보이게 하던 줄도 함께 삭제.
     try{ generateAiDraft(); }catch(e){ console.warn('자동 AI초안 생성 실패:', e); }
   }
   var MIN_EXTRACT_CHARS_V4 = 10; // 이보다 짧은 입력은 항목 추출 API를 호출하지 않고 건너뜀(비용 절감)
@@ -1896,7 +1895,6 @@
         }
       });
     }catch(e){ console.warn('snapshotCaseState 속성 동기화 실패:', e); }
-    var aiDraftEl = document.getElementById('aiDraftOutput');
     return {
       chatHTML: chat.innerHTML,
       resultDone: resultDone,
@@ -1904,11 +1902,14 @@
       lastFreeText: lastFreeText,
       mainInputLocked: mainInputLocked,
       docText: currentCaseDocText(),
-      aiDraftOutput: aiDraftEl ? aiDraftEl.value : '',
       // 상담일지(hwpx/txt/rtf) 생성은 화면 표시 텍스트가 아니라 이 구조화된 데이터를 직접 읽음
       // (buildHwpxTokens/buildDoc). 이걸 저장 안 하면 다른 사례 보고 돌아왔을 때
       // "상담일지 저장"/"한글 다운로드" 버튼이 아무 반응 없거나 다른 사례 데이터로 만들어짐.
       lastRunData: (typeof lastRunData !== 'undefined') ? lastRunData : null,
+      // v4-track a81: 상담원이 ⑦ 화면에서 "저장"을 눌러 직접 고친 내용(있으면)도 함께 저장 — 이걸 안
+      // 챙기면 이어하기(재상담)로 돌아왔을 때 방금 저장한 수정본이 사라지고 원래 계산값으로 되돌아감.
+      docManualOverrideActive: docManualOverrideActive, docManualOverrideText: docManualOverrideText,
+      memoAiGenerated: memoAiGenerated,
       caseFirstInputAt: caseFirstInputAt,
       step: step,
       savedAt: Date.now()
@@ -1980,8 +1981,10 @@
         setStep(typeof state.step === 'number' ? state.step : 0);
       }
       if(state.mainInputLocked) lockMainInput(); else unlockMainInput();
-      var aiDraftEl = document.getElementById('aiDraftOutput');
-      if(aiDraftEl && state.aiDraftOutput) aiDraftEl.value = state.aiDraftOutput;
+      // v4-track a81: "저장"으로 남겨둔 수정본·메모 출처 플래그도 함께 복원.
+      docManualOverrideActive = !!state.docManualOverrideActive;
+      docManualOverrideText = state.docManualOverrideText || '';
+      memoAiGenerated = !!state.memoAiGenerated;
       scroll();
     }catch(e){
       console.warn('restoreCaseState 실패:', e);
@@ -2064,6 +2067,11 @@
      VERSION_LOG 배열 맨 앞에 새 항목을 추가할 것. 같은 날 여러 건이면 tag만 올려서(v0.x) 여러 줄 추가.
      "나중에 몰아서 기록"은 누락으로 이어지므로, 수정 직후 그 자리에서 바로 추가할 것. */
   var VERSION_LOG = [
+    {tag:'v4-track a82', date:'2026-09-15', title:'"상담 자리에서 꼭 확인하세요" 팝업 — "1주일간 보지 않기"를 눌러도 새로고침하면 다시 뜨던 버그 수정', desc:'구흥모님 재신고(2026-09-15): "1주일간 보지 않기" 눌러도 새로고침하면 또 뜸. 배포된 실제 페이지를 브라우저 자동화로 직접 열어 재현·확인 — localStorage에 스누즈 시각(ieojim_precheck_snooze_until)은 정확히 저장돼 있었는데도, 새로고침 직후 #precheckOverlay의 정적 HTML class가 이미 "gateOverlay on"(켜진 상태)으로 내려오고 있었음(협업자와 동시에 같은 파일을 작업하는 중 병합 과정에서 섞여 들어간 것으로 추정). showPrecheckIfNeeded()는 지금까지 "보여줘야 할 때만 .on 추가"만 했지 "보여주면 안 될 때 .on 제거"는 하지 않고 있어서, 처음부터 켜진 채로 내려온 HTML을 아무도 꺼주지 않은 채 그대로 남아있었던 것 — 스누즈 기간이 안 지났을 때도 명시적으로 .on을 제거하도록 수정해, 정적 HTML이 어떤 상태로 내려오든 항상 정확한 최종 상태가 되도록 방어적으로 고침. v4.html 내부만으로 완결(서버/DB 변경 없음). (구흥모님 재신고 대응)'},
+    {tag:'v4-track a81', date:'2026-09-15', title:'메모를 "상담내용·상담의견·조치사항" 3항목으로 자동 정리 + "AI로 초안 다듬기" 수동 카드 삭제(자동 생성은 유지) + 이전 단계 수정 후 메모가 안 갱신되던 버그 수정 + ⑦ 화면에 "저장" 버튼 추가(직접 고친 내용이 한글(.hwpx)에도 반영)', desc:'구흥모님 요청 3가지를 함께 처리. [1 — 메모 3항목 구조화] 기관에서 쓰는 "자활 상담일지" 양식(기본정보 + 상담내용/상담의견/조치사항)을 참고해, AI가 메모를 정리할 때(generateAiDraft) 반드시 "상담내용:/상담의견:/조치사항:" 세 항목으로 나눠 쓰도록 프롬프트(buildAiPrompt)를 바꿈. 상담일지 본문에도 이 메모를 "6. 상담내용·상담의견·조치사항" 섹션으로 명확히 구분해 표시(이전엔 5.법적근거 뒤에 "메모: "로만 덧붙였음). [2 — 수동 UI 삭제] ⑦ 화면에 있던 "AI로 초안 다듬기 (선택)" 카드(버튼·출력칸·수동 붙여넣기 대체경로)를 통째로 삭제 — 이미 예비판단 결과가 뜰 때마다 자동으로 한 번씩 실행되고 있어서(a56) 수동 버튼은 중복 기능이었음. generateAiDraft() 자체(배경 자동 생성)는 그대로 유지하되, 화면 요소에 의존하지 않게 다시 작성(실패해도 조용히 console.warn만 남기고 상담일지 진행은 막지 않음) — 이제 없는 요소를 참조하던 prepareFallbackPromptOnly/copyAiDraft/copyAiFallbackPrompt/toggleAiFallback/downloadAiDraftHwpx도 함께 삭제. [3 — 재확인 시 메모 미갱신 버그] 구흥모님 실사용 재신고: 예비판단 완료 후 이전 단계로 돌아가 건강상태를 추가하고 "수정사항 반영하고 계속"을 눌렀더니, ⑤ 예비판단 결과·⑦ 상담일지 "3.건강상태" 항목은 최신 값으로 바뀌었는데 "메모:"(AI가 정리한 서술)만 처음 값 그대로 남아있던 문제 — 원인은 AI 메모 자동 생성이 최초 결과 화면(goResult)에서 딱 한 번만 실행되고 재확인(regenerateResult)에서는 다시 실행되지 않았던 것. 새 플래그 memoAiGenerated(메모가 "AI가 방금 쓴 것"인지, "상담원이 직접 타이핑한 것"인지 구분 — 메모칸에 직접 입력하면 oninput으로 자동 false)를 추가해, run()이 성공하고 현재 메모가 여전히 AI가 쓴 것이라면 regenerateResult()에서도 안전하게 다시 생성하도록 수정(상담원이 직접 쓴 메모는 절대 덮어쓰지 않음). [4 — 저장 버튼 + hwpx 반영] "위 상담일지 초안은 직접 고칠 수 있어요(예: 피해자→가해자). 고친 내용은 복사하기·텍스트(.txt)에 반영되지만 한글(.hwpx)에는 반영 안 됨" — 이 정보 불일치 자체가 문제라는 지적("그러면 안돼")에 따라, ⑦ 화면 편집 영역 바로 아래에 "저장" 버튼을 추가. 누르면 현재 화면에 보이는 전체 텍스트를 저장해두고(docManualOverrideActive/docManualOverrideText), 그 뒤 "한글(.hwpx) 다운로드"를 누르면 표 형태의 개별 항목 값 대신 저장된 전체 내용을 하나의 이어지는 본문으로 담아 만듦(AI 초안 전용 다운로드였던 downloadAiDraftHwpx와 같은 fillHwpxTemplateWithMulti 방식 재사용 — 표·본문에 같은 내용이 중복되지 않도록 표의 개별 항목 칸은 "-"로 비움). 이전 단계를 고쳐 예비판단이 다시 실행되면(buildDoc 재호출) 저장본은 최신 값과 어긋나지 않도록 자동으로 꺼짐(다시 확인 후 재저장 필요). 이제 hwpx가 편집 내용을 반영하므로 ".hwpx는 항목값으로 새로 만들어서 화면 수정이 반영 안 된다"던 기존 안내 문구와, 더 이상 필요 없어진 ".hwpx 파일 안내" 설명 박스(id=hwpxNote)도 함께 삭제(구흥모님 요청 — "굳이 설명이 필요없어"). 저장·이어하기(재상담) 시 저장본·메모 출처 플래그도 함께 스냅샷에 담아 복원되게 함. 모두 v4.html 내부만으로 완결(서버/DB 변경 없음). (구흥모님 요청)'},
+    {tag:'v4-track a80', date:'2026-09-15', title:'거주지역을 선택하지 않았을 때 재산기준 기본값을 "중소도시"(a78)에서 "인천광역시(대도시)"로 변경', desc:'a78에서는 거주지역 미입력 시 재산 상한을 관대하게 잘못 적용하는 위험을 피하려 보수적인 "중소도시" 기준을 기본값으로 뒀는데, 구흥모님 결정: 지금 시범사용 중인 전 기관이 인천 소재 기관이므로 지역을 안 정해도 실제 사용 현장과 같은 기준으로 계산되는 게 더 적절함. REGION_TIER[regionName]이 없을 때(지역 미입력)의 대체값을 "중소도시" 고정 문자열 대신 REGION_TIER["인천광역시"](대도시)로 변경. 거주지역 필드 안내(?) 문구도 "중소도시 기준"에서 "인천광역시(대도시) 기준"으로 함께 수정. v4.html 내부만으로 완결(서버/DB 변경 없음). (구흥모님 요청)'},
+    {tag:'v4-track a79', date:'2026-09-15', title:'연령대·성별을 대상유형별 자동 기본값 방식에서 "선택 안 하면 공란" 방식으로 전환', desc:'구흥모님 요청: 연령대·성별은 그냥 선택 항목으로 두고, 상담원이 직접 고르지 않으면 값이 채워지지 않고 공란으로 남아야 함. 기존에는 대상유형(targetType)을 정하는 순간 그 유형에서 가장 흔한 연령대·성별(AGE_PRESET/GENDER_PRESET, 예: "노숙인"→50대·남성)이 자동으로 미리 선택돼 있었는데, 이게 상담원이 실제로 확인하지 않은 값을 이미 선택된 것처럼 보이게 해서 그대로 넘어갈 위험이 있었음. renderSelectOrder()가 만드는 옵션 목록 맨 앞에 빈 옵션("선택 안 함")을 추가하고 기본 선택값을 항상 빈 문자열로 바꿔서, 상담원이 직접 고르거나 AI 음성/텍스트 추출이 값을 찾아낸 경우에만 채워지도록 변경 — 더 이상 쓰이지 않는 AGE_PRESET/GENDER_PRESET 상수는 삭제. 공란인 채로 예비판단을 실행해도 판정 자체(소득·재산 요건 등)는 연령대·성별과 무관해 영향 없고, 상담일지·근거 목록 등 표시 문구에서는 "미입력"으로 나오도록 함(AGE_LABEL[ageGroup]이 빈 값일 때 undefined가 그대로 찍히던 것도 함께 방지). 필드 안내(?) 문구도 "대상유형에 따라 자동 선택"에서 "필수 입력 아님, 고르지 않으면 공란"으로 수정. v4.html 내부만으로 완결(서버/DB 변경 없음). (구흥모님 요청)'},
+    {tag:'v4-track a78', date:'2026-09-15', title:'거주지역(시·도) 선택을 필수에서 선택으로 전환 — 기본값이 조용히 "서울특별시"로 고정돼있던 문제 수정', desc:'구흥모님 질문(2026-09-15): "거주지역 선택 안 하면 서울특별시로 고정되나?" — 실제로 그랬음. #region select의 첫 옵션이 서울특별시였고 다른 값을 지정하는 코드가 없어서, 상담원이 지역을 안 건드리고 넘어가면 조용히 서울(대도시 재산기준)로 판정되는 문제가 있었음(다른 지역 상담인데 재산 상한이 실제보다 높게 적용될 위험). 구흥모님 결정: 이건 필수 입력이 아니고, 입력 안 하면 공란으로 둔다. select 맨 앞에 값 없는 "선택하세요" 옵션을 기본 선택으로 추가해 더 이상 특정 지역이 암묵적으로 고정되지 않게 함. 지역을 비워두면 상담일지 등 표시용 문구는 "미입력"(구·군만 입력했으면 구·군만)으로 나오고, 재산기준 계산(regionTier)은 어느 지역인지 알 수 없으므로 임의로 서울(대도시)을 적용하는 대신 상한액이 더 낮은(보수적인) "중소도시" 기준으로 계산되도록 함(재산 상한을 실제보다 관대하게 잘못 적용할 위험을 피하는 쪽으로 안전하게 선택). 거주지역 필드 안내(?)에도 "필수 입력이 아니며, 비우면 미입력 표시+중소도시 기준 적용"을 명시해 상담원이 결과를 미리 알 수 있게 함. 모두 v4.html 내부만으로 완결(서버/DB 변경 없음). (구흥모님 요청)'},
     {tag:'v4-track a77', date:'2026-09-15', title:'대상자 유형 선택을 첫 화면 팝업에서 "① 위기사유·긴급성" 드롭다운으로 이동 + 결과 화면의 "대상유형이 틀렸나요?" 중복 셀렉트 삭제', desc:'구흥모님 스크린샷 지적(2026-09-15): 첫 화면 입력 바에 "대상자 유형을 선택하세요" 팝업 버튼이 있고, 결과 화면(⑦상담일지초안)에도 같은 값을 고치는 "🔧 대상유형이 틀렸나요?" 셀렉트(docTargetFix, a70)가 따로 있어 값을 어디서 바꿔야 하는지 헷갈리고 두 값이 서로 어긋날 여지도 있었음. 대상자 유형 선택을 "① 위기사유·긴급성" 카드(TPL_CRISIS) 안의 일반 드롭다운(#targetType, 기존 urgency 셀렉트와 같은 자리·스타일) 하나로 통일. [1] 첫 화면 composer의 typesel 블록(팝업 버튼·숨김 select·팝업 메뉴·"대상자 유형을 선택하세요" 안내문)을 전부 제거 — 이제 첫 화면에는 "상황 입력 없이 바로 진행 ▸" 버튼, 녹음 버튼, 텍스트 입력창, 파일첨부 버튼만 남음. 관련 함수(quickPick/syncType/toggleTypePopup/closeTypePopup/pickType)는 더 이상 안 쓰여 삭제, onTargetTypeChangeManual()이 새 드롭다운의 change 핸들러로 targetTypeManuallySet 플래그를 표시(a48 유지)한 뒤 기존 onTargetTypeChange()(거주형태·위기사유 순서·연령대·성별 기본값 재계산)를 그대로 호출. [2] #targetType이 이제 페이지 로드 시가 아니라 ① 카드가 만들어질 때 생기므로, AI 자동추출(runAutoFillStepsV4)이 그 값을 세팅하는 시점을 ① 카드 생성 이후로 재배치(다른 3곳의 카드 생성 경로는 #targetType을 만지지 않아 그대로 둬도 안전함을 확인). [3] 결과 화면의 docTargetFix 셀렉트와 changeTargetAndRerun() 함수를 완전히 삭제 — 대상유형을 고치려면 이제 이전 단계(①)로 돌아가 드롭다운을 바꾸고 "수정사항 반영하고 계속"을 누르면 regenerateResult()(a76)가 알아서 재판정·재작성함. run() 끝에서 docTargetFix와 값을 동기화하던 죽은 코드도 함께 제거. .typePopupBtn/.typePopup/.typehint CSS는 더 이상 안 쓰이지만 해가 없어 남겨둠(추후 정리 가능). 모두 v4.html 내부만으로 완결(서버/DB 변경 없음). (구흥모님 요청)'},
     {tag:'v4-track a76', date:'2026-09-15', title:'"예비판단 완료 → 이전으로 돌아가 수정 → 다시 진행" 시 결과 화면(⑤⑥⑦)이 통째로 비어버리는 문제 방어 — run()/regenerateResult() null-안전화 + 재판정 경쟁 상태(race condition) 제거', desc:'구흥모님 스크린샷 신고(2026-09-15): 예비판단을 모두 완료한 뒤 "이전" 버튼으로 앞 단계(④지원이력·특수상황)로 돌아가 값을 고치고 "수정사항 반영하고 계속"을 누르면, 결과 화면 3장(⑤예비판단결과·⑥지원연계·⑦상담일지초안)이 판정문구·근거·giftbox·문서 전부 빈 채로 남는 문제. 코드 검토로 두 가지 원인이 될 수 있는 지점을 찾아 함께 고침(실사용 정확한 트리거는 재현 시도에도 100% 재현하지 못해, 이번 수정은 "가장 유력한 원인들에 대한 방어적 보강"이지 확정된 단일 근본원인 수정이라 단정하지는 않음 — 재발 시 알려주시면 좋음). [1] run()이 판정에 쓰는 약 20개 입력 필드를 전부 document.getElementById(id).value/.checked로 직접 읽는데, 어떤 이유로든(화면이 여러 번 다시 그려지는 이 경로 특성상) 그 중 하나라도 그 순간 DOM에 없으면 null의 value를 읽으려다 예외가 나서 run() 전체가 맨 앞에서(verdict를 채우기도 전에) 조용히 멈춰버림 — 스크린샷의 "전부 비어있음"(verdict까지 포함) 증상과 정확히 일치. getMoneyValue/hasMoneyValue를 포함해 모든 값 읽기를 안전한 safeVal()/safeChecked() 헬퍼로 교체해 특정 입력칸 하나가 없어도 나머지가 안 깨지게 함. [2] regenerateResult()(다시 확인할 때 결과 3장을 갱신하는 함수)는 카드를 비우고 botTyping()의 650ms 지연 뒤에야 다시 채우는데, 위저드 "다음" 버튼(wzNext)은 그 재확인 클릭 직후 50ms만 기다렸다가 바로 다음 카드로 넘어가버리는 경쟁 상태가 있었고, 게다가 이 함수는 run()을 try/catch 없이 불러서(형제 함수 goResult()는 try/catch가 있었는데 여기만 없었음) run()이 도중에 오류를 던지면 방금 비운 템플릿이 그대로 빈 채 남고 아무도 알아채지 못했음. botTyping 지연을 없애 동기적으로 즉시 다시 채우도록 바꾸고(경쟁 상태 자체를 제거), goResult()와 동일하게 try/catch를 추가해 그래도 오류가 나면 verdict 박스에 "다시 계산하는 중 문제가 발생했습니다 — 이전 단계 값을 다시 확인해주세요" 안내를 표시하도록 함(조용히 비어있는 대신 눈에 보이는 오류 메시지로 대체). 모두 v4.html 내부만으로 완결(서버/DB 변경 없음). (구흥모님 신고 대응)'},
     {tag:'v4-track a75', date:'2026-09-15', title:'⑥지원·연계 화면 giftbox 체크박스 라벨이 좁아지며 한글이 한 글자씩 세로로 쌓이는 레이아웃 버그 수정(a6과 동일 계열 버그 재발)', desc:'구흥모님 스크린샷 신고(2026-09-15): ⑥지원·연계 화면에서 응급약품·생수 등 giftbox 항목을 체크하면 텍스트 칸이 오른쪽으로 밀리며 극단적으로 좁아져 한글이 세로쓰기처럼 한 글자씩 쌓여 보이는 문제. 2026-09-07에 있었던 동일 증상(v4-track a6, 체크박스 뒤 안내 문구가 <span> 없이 "벌거벗은 텍스트 노드"로 들어가 익명 flex item 처리가 꼬이는 문제)과 같은 계열의 버그로, 그때 확립된 해결 패턴(텍스트를 <span>으로 감싸고 word-break:keep-all + 체크박스는 flex:none)이 giftbox의 .g 스팬에는 절반만(스팬 감싸기만) 적용돼 있고 flex 크기 조정 쪽(flex:1;min-width:0)과 체크박스·삭제버튼의 flex:none이 빠져 있던 게 재발 원인. .giftbox .g에 flex:1;min-width:0을 추가하고, .giftbox label에 flex-wrap:nowrap, 체크박스·삭제버튼에 flex:none을 추가해 텍스트만 유연하게 늘어나고 체크박스·버튼은 줄어들지 않게 분리 — a6 패턴을 giftbox에도 완전히 적용해 근본 해결. v4.html 내부만으로 완결(서버/DB 변경 없음). (구흥모님 신고 대응)'},
@@ -2494,7 +2502,7 @@
     </div>
 `;
   var TPL_HOUSEHOLD_A = `    <div class="grid">
-      <div class="field" style="grid-column:1/-1"><span class="lab">거주지역(시·도/구·군)<span class="infowrap"><button type="button" class="infoQBtn" onclick="toggleInfoPop(this,event)">?</button><div class="infoPop">누를 때마다 브라우저 위치 권한을 새로 물어보며, 시·도(+가능한 경우 구·군까지)를 자동으로 채워줍니다. 위치 값 자체는 저장하지 않습니다.<br><br>📍 <b>매번 권한을 다시 묻는다면</b> — 팝업이 뜰 때 "이번만 허용" 대신 "허용"(아이폰은 "앱 사용 중 허용")을 선택하면 다음부터는 다시 묻지 않습니다. 이미 "이번만"으로 선택해서 계속 물어본다면, 브라우저 설정 → 사이트 설정(개인정보 보호 및 보안)에서 이 사이트의 위치 권한을 "허용"으로 바꿔주세요.</div></span></span>
+      <div class="field" style="grid-column:1/-1"><span class="lab">거주지역(시·도/구·군, 선택)<span class="infowrap"><button type="button" class="infoQBtn" onclick="toggleInfoPop(this,event)">?</button><div class="infoPop">누를 때마다 브라우저 위치 권한을 새로 물어보며, 시·도(+가능한 경우 구·군까지)를 자동으로 채워줍니다. 위치 값 자체는 저장하지 않습니다.<br><br>📍 <b>매번 권한을 다시 묻는다면</b> — 팝업이 뜰 때 "이번만 허용" 대신 "허용"(아이폰은 "앱 사용 중 허용")을 선택하면 다음부터는 다시 묻지 않습니다. 이미 "이번만"으로 선택해서 계속 물어본다면, 브라우저 설정 → 사이트 설정(개인정보 보호 및 보안)에서 이 사이트의 위치 권한을 "허용"으로 바꿔주세요.<br><br>🏙️ <b>필수 입력이 아닙니다</b> — 선택하지 않고 넘어가면 상담일지에는 "미입력"으로 표시되고, 재산기준(재산 상한액)은 "인천광역시(대도시)" 기준으로 계산됩니다.</div></span></span>
         <div style="position:relative">
           <button type="button" class="btn small secondary" onclick="detectRegion()" style="margin-top:0">현재 위치로 자동 선택</button>
           <div class="regionToast" id="regionDetectNote"></div>
@@ -2502,6 +2510,7 @@
         <div id="geoPermHint" style="font-size:.85rem;opacity:.65;margin-top:.3rem"></div>
         <div style="display:flex;gap:8px;margin-top:.5rem;flex-wrap:wrap">
           <select id="region" style="flex:2;min-width:140px">
+            <option value="" selected>선택하세요</option>
             <option value="서울특별시">서울특별시</option>
             <option value="부산광역시">부산광역시</option>
             <option value="대구광역시">대구광역시</option>
@@ -2546,10 +2555,10 @@
       <div class="field"><span class="lab">동반 미성년 자녀 수</span>
         <input type="number" id="children" class="num" placeholder="0" min="0"/>
       </div>
-      <div class="field"><span class="lab">연령대<span class="infowrap"><button type="button" class="infoQBtn" onclick="toggleInfoPop(this,event)">?</button><div class="infoPop">목록은 항상 나이순이며, 대상 유형에 따라 가장 많은 연령대가 기본 선택됩니다. 눌러서 자유롭게 바꿀 수 있어요.</div></span></span>
+      <div class="field"><span class="lab">연령대 (선택)<span class="infowrap"><button type="button" class="infoQBtn" onclick="toggleInfoPop(this,event)">?</button><div class="infoPop">목록은 항상 나이순입니다. 필수 입력이 아니며, 고르지 않으면 공란으로 남습니다.</div></span></span>
         <select id="ageGroup" onchange="ageGroupTouched=true"></select>
       </div>
-      <div class="field"><span class="lab">성별<span class="infowrap"><button type="button" class="infoQBtn" onclick="toggleInfoPop(this,event)">?</button><div class="infoPop">대상 유형에 따라 가장 많은 성별이 기본 선택됩니다. 눌러서 자유롭게 바꿀 수 있어요.</div></span></span>
+      <div class="field"><span class="lab">성별 (선택)<span class="infowrap"><button type="button" class="infoQBtn" onclick="toggleInfoPop(this,event)">?</button><div class="infoPop">필수 입력이 아니며, 고르지 않으면 공란으로 남습니다.</div></span></span>
         <select id="gender" onchange="genderTouched=true"></select>
       </div>
       <div class="field" style="grid-column:1/-1"><span class="lab">국적 · 체류자격<span class="infowrap"><button type="button" class="infoQBtn" onclick="toggleInfoPop(this,event)">?</button><div class="infoPop">무주소·주민등록 말소, 외국인 체류자격 관련 사항은 이 항목에서만 선택합니다(특수상황과 중복 표시하지 않음).</div></span></span>
@@ -2613,8 +2622,8 @@
           <label><input type="checkbox" value="신원확인곤란"/>신원 확인 곤란(무서류)</label>
         </div>
       </div>
-      <div class="field" style="grid-column:1/-1"><span class="lab">메모 (선택)</span>
-        <textarea id="memo" placeholder="상담원 자유 기록"></textarea>
+      <div class="field" style="grid-column:1/-1"><span class="lab">메모 (선택)<span class="infowrap"><button type="button" class="infoQBtn" onclick="toggleInfoPop(this,event)">?</button><div class="infoPop">비워두면 예비판단 실행 시 AI가 상담 원문을 바탕으로 "상담내용·상담의견·조치사항" 세 항목으로 구분해 자동으로 정리해 넣습니다. 직접 입력하면 그 내용이 그대로 유지되고, AI가 덮어쓰지 않습니다.</div></span></span>
+        <textarea id="memo" placeholder="비워두면 AI가 상담내용·상담의견·조치사항으로 정리해 채워줍니다" oninput="memoAiGenerated=false"></textarea>
       </div>
 `;
   var TPL_RESULT1 = `    <div class="sec">① 긴급복지 예비판단</div>
@@ -2644,45 +2653,18 @@
 `;
   var TPL_DOC = `    <div class="note" style="background:var(--accent-soft);color:var(--accent-ink);border:1.5px solid var(--accent);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:1.1rem;font-weight:700">✅ 상담 완료 — 예비판단·지원 안내·상담일지 초안이 모두 만들어졌어요. 아래 내용을 확인하고 저장하세요.</div>
     <pre class="doc" id="doc" contenteditable="true" spellcheck="false" aria-label="상담일지 초안 — 직접 수정 가능"></pre>
-    <div class="note" style="color:var(--accent-ink)">✏️ 위 상담일지 초안은 <b>직접 고칠 수 있어요</b>(예: 잘못 나온 표현 정정 — "피해자"→"가해자"). 고친 내용은 <b>"복사하기"·텍스트(.txt)</b>에 그대로 반영됩니다.<span class="infowrap"><button type="button" class="infoQBtn" onclick="toggleInfoPop(this,event)">?</button><div class="infoPop">한글(.hwpx)은 입력한 <b>항목값</b>으로 문서를 새로 만들기 때문에, 이 화면에서 글자만 고친 것은 .hwpx에는 반영되지 않습니다. 대상유형처럼 표에 들어가는 항목을 .hwpx까지 바꾸려면 이전 단계로 돌아가 항목을 고친 뒤 "예비판단 실행"을 다시 눌러주세요. (항목 자체를 결과 화면에서 바로 고치는 기능은 개선 예정)</div></span></div>
+    <div class="note" style="color:var(--accent-ink)">✏️ 위 상담일지 초안은 <b>직접 고칠 수 있어요</b>(예: 잘못 나온 표현 정정 — "피해자"→"가해자"). 고친 뒤 아래 <b>"저장"</b>을 누르면 "복사하기"·텍스트(.txt)·<b>한글(.hwpx) 다운로드</b>에 모두 그대로 반영됩니다.</div>
+    <div class="btnrow">
+      <button class="btn" onclick="saveDocEdits()">저장</button>
+    </div>
     <div class="note">개인식별정보 처리 안내<span class="infowrap"><button type="button" class="infoQBtn" onclick="toggleInfoPop(this,event)">?</button><div class="infoPop">개인식별정보(성명·주민번호·주소)는 [___]로 두었습니다. 실제 기입은 담당자가 오프라인에서 처리합니다. 실명·주민번호는 외부 AI에 입력하지 않습니다.</div></span></div>
     <div class="btnrow">
       <button class="btn small" onclick="copyDocText()">복사하기</button>
       <button class="btn small" onclick="downloadHwpx()">한글(.hwpx) 다운로드</button>
       <button class="btn small secondary" onclick="downloadDoc('txt')">텍스트(.txt) 다운로드</button>
     </div>
-    <div class="note" id="hwpxNote">.hwpx 파일 안내<span class="infowrap"><button type="button" class="infoQBtn" onclick="toggleInfoPop(this,event)">?</button><div class="infoPop">.hwpx는 한글 프로그램에서 곧바로 열리는 정식 개방형 한글 형식이에요(더블클릭하면 한글이 실행됩니다). 브라우저가 오래됐거나 특수한 환경이면 여기에 오류가 표시될 수 있는데, 그럴 땐 .txt를 대신 써주세요.</div></span></div>
-<div id="aiDraftSection" style="display:none;margin-top:14px;border-top:1px solid var(--line);padding-top:12px">
-      <div class="sub" style="margin-top:0">AI로 초안 다듬기 (선택)</div>
-      <div class="note" style="margin-bottom:.8rem">바로 위 "가명화 도우미" 결과를 바탕으로 AI(OpenAI)가 상담일지 초안을 작성합니다. API 키는 이어짐 서버(Supabase)에만 저장되어 있고, 이 브라우저에는 절대 노출되지 않습니다.</div>
-
-      <div class="btnrow" style="margin-top:.6rem">
-        <button class="btn" id="aiDraftBtn" onclick="generateAiDraft()">AI 초안 만들기</button>
-      </div>
-      <div class="note" style="margin-top:.35rem;font-size:1.44rem">⚠️ 서버(OpenAI API)로 전송됩니다. OpenAI API 정책상 별도로 동의하지 않는 한 AI 모델 학습에는 사용되지 않지만, 민감정보는 넣지 않는 게 안전해요.</div>
-      <div class="note" id="aiDraftNote" style="margin-top:.5rem"></div>
-
-      <div class="field" style="margin-top:.6rem"><span class="lab">② AI 초안 결과 — 자유롭게 수정하세요</span>
-        <textarea id="aiDraftOutput" rows="10" placeholder="여기에 AI가 작성한 초안이 표시됩니다."></textarea>
-      </div>
-      <div class="btnrow">
-        <button class="btn small" onclick="copyAiDraft()">초안 복사</button>
-        <button class="btn small secondary" onclick="downloadAiDraftHwpx()">한글파일(.hwpx)로 다운로드</button>
-      </div>
-
-      <div style="margin-top:.9rem;border-top:1px solid var(--line, #ddd);padding-top:.7rem">
-        <div style="cursor:pointer;display:flex;align-items:center;color:var(--mut);font-size:1.17rem" onclick="toggleAiFallback()">API 키 없이, 또는 한도 초과 시 — 수동으로 Claude/ChatGPT 앱에 붙여넣기<span id="aiFallbackToggle" style="margin-left:auto;font-weight:800;color:var(--accent-ink)">열기 ▾</span></div>
-        <div id="aiFallbackBody" style="display:none;margin-top:.6rem">
-          <div class="note">아래 "지시문 만들기"를 누르면 가명화 결과 + 작성 지시문이 합쳐진 텍스트가 만들어져요. 이걸 복사해서 Claude·ChatGPT 무료 앱에 붙여넣고, 나온 결과를 위 ②에 붙여넣으면 돼요.</div>
-          <div class="btnrow" style="margin-top:.4rem"><button class="btn small secondary" onclick="prepareFallbackPromptOnly()">지시문 만들기</button></div>
-          <textarea id="aiDraftPromptFallback" rows="6" readonly style="margin-top:.4rem"></textarea>
-          <div class="btnrow" style="margin-top:.4rem"><button class="btn small secondary" onclick="copyAiFallbackPrompt()">지시문 복사</button></div>
-        </div>
-      </div>
-
-      <div class="disclaimer" style="margin-top:.8rem">⚠️ AI가 작성한 초안은 <b>참고용</b>입니다. 실제 서류로 쓰기 전 상담원이 반드시 내용을 검토·수정하세요. 마스킹이 덜 된 정보가 남아있지 않은지도 다시 확인하세요.</div>
     <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line)"><button onclick="resetChat()" style="width:100%;background:var(--ink);color:var(--surface);border:0;border-radius:12px;padding:12px;font-size:1.24rem;font-weight:800;cursor:pointer;font-family:inherit">＋ 새 상담 시작</button></div>
-    </div>`;
+`;
 
   /* 입력하신 상황 설명을 실제로 활용: 키워드로 위기사유·긴급성 자동 체크 + 메모에 원문 보존 */
   var lastFreeText = '';
@@ -2940,15 +2922,27 @@
     markCardBody(resultCards.r1, '⑤ 예비판단 결과', TPL_RESULT1);
     markCardBody(resultCards.r2, '⑥ 지원·연계', TPL_RESULT2);
     markCardBody(resultCards.r3, '⑦ 상담일지 초안', TPL_DOC);
+    var runOk = true;
     try{
       run();
     }catch(e){
+      runOk = false;
       console.warn('regenerateResult: run() 오류:', e);
       var v = document.getElementById('verdict');
       if(v){
         v.className = 'verdict v-warn';
         v.innerHTML = '<span class="tag">오류</span><span>다시 계산하는 중 문제가 발생했습니다 — 화면을 위로 스크롤해 이전 단계 값을 다시 한번 확인한 뒤 "수정사항 반영하고 계속"을 다시 눌러주세요. (문제가 계속되면 "＋ 새 상담"으로 다시 시작해주세요)</span>';
       }
+    }
+    // v4-track a81: 구흥모님 실사용 재신고(2026-09-15) — 이전 단계로 돌아가 건강상태 등을 고치고
+    // "수정사항 반영하고 계속"을 눌러 ⑤ 예비판단은 최신 값으로 다시 계산됐는데, ⑦ 상담일지 초안의
+    // "메모:"(AI가 정리한 상담내용·상담의견·조치사항)는 처음 만들어질 때 값 그대로 남아있던 문제.
+    // 원인: AI 메모 자동 생성(generateAiDraft)은 지금까지 최초 결과 화면이 뜰 때(goResult) 딱 한 번만
+    // 실행되고, 다시 확인할 때는 다시 실행되지 않았음. run()이 성공했고, 지금 메모칸 내용이 여전히
+    // "AI가 쓴 것"(상담원이 직접 고치지 않은 상태 — memoAiGenerated)이라면 안전하게 최신 값으로 다시
+    // 생성해서 갱신 — 상담원이 메모를 직접 타이핑했다면(memoAiGenerated=false) 절대 덮어쓰지 않음.
+    if(runOk && memoAiGenerated){
+      try{ generateAiDraft(); }catch(e){ console.warn('메모 자동 재생성 실패:', e); }
     }
     resultCards.r1.scrollIntoView({behavior:'smooth', block:'start'});
     try{ saveCaseProgress(); }catch(e){ console.warn('saveCaseProgress 오류:', e); }
@@ -3002,6 +2996,7 @@
     targetTypeManuallySet = false; // 새 상담이므로 유형 수동선택 여부도 초기화
     giftState = []; giftSeasonLabel = ''; lastExtractedProvidedItems = []; // v4-track a65/a66: 자체지원 실제 지급 항목 체크리스트도 새 상담이면 초기화
     lastExtractionV4 = null; // v4-track a67: 새 상담이므로 이전 AI 추출값(뒤 단계 이어채움용)도 초기화
+    memoAiGenerated = false; docManualOverrideActive = false; docManualOverrideText = ''; // v4-track a81: 새 상담이므로 메모·저장된 hwpx 수정본도 초기화
 
     _activeRecCard = null; // 새 상담이므로 이전 녹음결과 카드 참조를 끊어서 다음 녹음이 새 카드로 시작되게 함
     step=0; setStep(0);
@@ -3211,22 +3206,14 @@
     b.style.display = open ? 'block' : 'none';
     t.textContent = open ? '닫기 ▴' : '열기 ▾';
   }
-  // ===== 업데이트 노트(협업자 확인용) =====
-  // ⚠️ 이 도구를 수정하는 모든 AI/개발자: 수정할 때마다 오늘 날짜로 반드시 항목을 추가하세요.
-  //    - 오늘 날짜 항목이 이미 있으면 그 items 배열 끝에 이어서 추가(자동으로 순번이 매겨짐)
-  //    - 오늘 날짜 항목이 없으면 배열 맨 앞에 새 날짜로 추가({ date:'YYYY-MM-DD', items:[...] })
-  function toggleAiFallback(){
-    const b=document.getElementById('aiFallbackBody'), t=document.getElementById('aiFallbackToggle');
-    const open = b.style.display==='none';
-    b.style.display = open ? 'block' : 'none';
-    t.textContent = open ? '닫기 ▴' : '열기 ▾';
-  }
   /* structuredDoc: 이어짐이 상담원 확인 항목(소득·재산 판정, 위기사유, 지원항목 등)으로 이미 만들어둔
      "⑦ 상담일지 초안"(#doc) 텍스트 — 수치·판정은 이게 정답이므로 그대로 신뢰.
      rawText: 음성/타이핑으로 받은 상담 원문을 가명 처리한 것 — 상담일지에 없는 경위·정황을 보강하는 참고자료.
      예전엔 rawText만 AI에 넘겨서, 타이핑을 짧게 하거나 원문이 없으면("s" 같은 테스트 입력 등) AI가
      상담일지에 이미 있는 실제 판정 결과(소득기준 충족 여부 등)조차 못 쓰고 "확인 필요"만 반복하는 문제가
      있었음 — 두 자료를 함께 넘기도록 수정. */
+  // v4-track a81: 구흥모님 요청 — 기관에서 실제 쓰는 "자활 상담일지" 양식을 참고해, 메모를 하나의
+  // 뭉친 문단이 아니라 상담내용·상담의견·조치사항 세 항목으로 나눠서 정리하도록 프롬프트를 바꿈.
   function buildAiPrompt(structuredDoc, rawText){
     return [
       '너는 한국 거리상담(아웃리치) 사회복지사의 상담일지 작성을 돕는 보조자다.',
@@ -3236,9 +3223,22 @@
       '아래 [상담 원문(가명처리)]은 음성/타이핑으로 받은 상담 내용을 가명 처리한 원문으로, 상담일지에 없는',
       '상황 설명·경위·상담원의 관찰 내용을 보강하는 용도로만 참고하라.',
       '',
-      '이 두 자료를 바탕으로, 다음 형식의 상담일지 초안을 자연스러운 문단으로 다시 작성하라.',
-      '- 첫 줄: "이름(성별/장소)" 형식 헤더. 자료에 있는 가명·정보만 사용하고, 없으면 "미상"으로 표기',
-      '- 본문: 상담 경위, 대상자 상태·이력, 오늘 제공한 지원, 상담원의 처우계획 및 관찰내용을 문단으로 서술',
+      '이 두 자료를 바탕으로, 반드시 아래 세 항목으로 나누어(각 항목 제목을 그대로 줄 맨 앞에 쓰고,',
+      '그 다음 줄부터 내용을 문단으로 서술) 상담일지 초안을 작성하라 — 기관에서 쓰는 "상담내용 / 상담의견 /',
+      '조치사항" 구분 양식을 그대로 따르는 것이다.',
+      '',
+      '상담내용:',
+      '(오늘 상담에서 확인된 사실만 서술 — 대상자 상황, 위기 경위, 상담 중 언급된 사실관계. 상담원의',
+      '판단·의견은 여기 넣지 말 것)',
+      '',
+      '상담의견:',
+      '(위 사실을 바탕으로 상담원이 내린 평가·판단 — 위기 정도, 지원 필요성, 우려되는 점 등)',
+      '',
+      '조치사항:',
+      '(오늘 실제로 제공/약속한 지원과 향후 계획 — 구조화된 상담일지의 지원항목·연계 안내를 반영)',
+      '',
+      '그 외 지침:',
+      '- 자료에 없는 이름 등 개인정보는 "미상"으로 표기',
       '- 구조화된 상담일지의 수치·판정은 그대로 반영하되, 상담 원문의 구체적 정황을 살려 서술을 풍부하게 만들 것',
       '- 두 자료 모두에 없는 사실은 절대 지어내지 말 것. 불확실한 부분은 "(확인 필요)"라고 표시',
       '- 반대로 원문에 실제로 언급된 사실은 사소해 보여도(예: 가끔 다툼으로 인한 부상 등) 임의로',
@@ -3260,23 +3260,17 @@
     var el = document.getElementById('doc');
     return (el ? el.textContent : '').trim();
   }
-  function prepareFallbackPromptOnly(){
-    const note = document.getElementById('aiDraftNote');
-    const src = currentAnonSourceText(), doc = currentCaseDocText();
-    if(!src && !doc){ note.textContent='⚠ 먼저 "예비판단 실행"으로 상담일지를 만들거나, 가명화 도우미에 원문을 입력해 주세요.'; return; }
-    document.getElementById('aiDraftPromptFallback').value = buildAiPrompt(doc, src);
-    note.textContent='';
-  }
+  // v4-track a81: "AI로 초안 다듬기 (선택)" 수동 UI 카드(버튼·출력칸·수동 붙여넣기용 대체 경로)를
+  // 화면에서 완전히 삭제(구흥모님 요청 — 어차피 결과 화면이 뜰 때마다 자동으로 한 번씩 실행되고
+  // 있어서 수동 버튼은 중복 기능이었음). generateAiDraft()는 이제 화면 요소 없이 배경에서만 동작하고,
+  // 실패하면 조용히 console.warn만 남김(상담원이 굳이 몰라도 되는 보조 기능이고, 실패해도 상담일지
+  // 자체는 정상 진행됨). prepareFallbackPromptOnly/copyAiDraft/copyAiFallbackPrompt/toggleAiFallback/
+  // downloadAiDraftHwpx(수동 카드 전용 기능들)도 함께 삭제.
   var AI_DRAFT_URL = 'https://ueidoudgwhuanrtowudy.supabase.co/functions/v1/ai-draft';
   async function generateAiDraft(){
-    const note = document.getElementById('aiDraftNote');
     const src = currentAnonSourceText(), doc = currentCaseDocText();
-    if(!src && !doc){ note.textContent='⚠ 먼저 "예비판단 실행"으로 상담일지를 만들거나, 가명화 도우미에 원문을 입력해 주세요.'; return; }
+    if(!src && !doc) return; // 참고할 원문·상담일지가 아직 없으면 조용히 건너뜀
     const prompt = buildAiPrompt(doc, src);
-    document.getElementById('aiDraftPromptFallback').value = prompt;
-    const btn = document.getElementById('aiDraftBtn');
-    btn.disabled = true; const oldTxt = btn.textContent; btn.textContent = '작성 중…';
-    note.textContent = '';
     try{
       const res = await fetch(AI_DRAFT_URL, {
         method:'POST',
@@ -3284,45 +3278,25 @@
         body: JSON.stringify({prompt: prompt})
       });
       const data = await res.json().catch(function(){ return {}; });
-      if(res.status===429 || data.code==='RATE_LIMIT'){
-        note.innerHTML = '⚠ 오늘 무료 사용 한도를 넘었습니다. 아래 "지시문 복사"로 Claude·ChatGPT 앱에 직접 붙여넣어 주세요.';
-        return;
-      }
+      if(res.status===429 || data.code==='RATE_LIMIT'){ console.warn('AI 초안: 오늘 무료 사용 한도 초과'); return; }
       if(!res.ok){ throw new Error(data.error || ('HTTP '+res.status)); }
       if(!data.text){ throw new Error('응답에서 텍스트를 찾을 수 없습니다'); }
       const draftTextForMemo = data.text.trim();
-      document.getElementById('aiDraftOutput').value = draftTextForMemo;
-      // 2026-09-07: 지금까지는 이 AI 초안이 별도의 "AI_상담일지초안.hwpx" 다운로드에만 쓰이고,
-      // 정작 메인 상담일지(⑦ 상담일지 초안 / 한글·텍스트 다운로드)의 비고란은 상담원이 녹음·타이핑한
-      // 원문을 그대로 덤프하고 있어 문장이 어색했음(구흥모님 지적) — AI가 정리한 문장을 메인
-      // 메모란에도 반영하고, 상담일지를 다시 만들어서(run) 화면·다운로드에 바로 보이게 한다.
+      // 2026-09-07(a10): AI가 정리한 문장을 메인 메모란(#memo)에도 반영하고, 상담일지를 다시 만들어서
+      // (run) 화면·다운로드에 바로 보이게 한다. v4-track a81: 이 값이 "AI가 방금 쓴 것"임을 표시해둬서
+      // (memoAiGenerated=true) 나중에 이전 단계 수정 후 재실행될 때 안전하게 다시 덮어써도 되는지
+      // 판단할 수 있게 함 — 상담원이 그 사이 메모를 직접 고쳤다면(oninput으로 false가 됨) 덮어쓰지 않음.
       const memoEl = document.getElementById('memo');
       if(memoEl){ memoEl.value = draftTextForMemo; }
+      memoAiGenerated = true;
       if(lastRunData){ lastRunData.memo = draftTextForMemo; } // 상담일지(buildDoc)가 참조하는 스냅샷도 같이 갱신
       try{ rebuildDocIfVisible(); }catch(e3){ console.warn('메모 반영 후 상담일지 재생성 오류:', e3); }
       try{ refreshScheduleSummaryIfVisible(); }catch(e4){ console.warn('메모 반영 후 후속조치 요약 재생성 오류:', e4); }
       try{ saveCaseProgress(); }catch(e2){ console.warn('saveCaseProgress 오류:', e2); }
     }catch(e){
-      note.innerHTML = '⚠ AI 요청 중 오류가 발생했습니다(' + escHtml(e.message) + '). 아래 "지시문 복사"로 Claude·ChatGPT 앱에 직접 붙여넣어 주세요.';
-    } finally {
-      btn.disabled = false; btn.textContent = oldTxt;
+      console.warn('AI 초안 생성 오류:', e);
     }
   }
-  function copyAiDraft(){
-    const v = document.getElementById('aiDraftOutput').value;
-    if(!v.trim()){ alert('먼저 AI 초안을 만들어 주세요.'); return; }
-    const done=function(){ const b=event&&event.target; if(b){ const t=b.textContent; b.textContent='복사됨 ✓'; setTimeout(function(){b.textContent=t;},1500); } };
-    if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(v).then(done,function(){ genericFallbackCopy(v); }); }
-    else genericFallbackCopy(v);
-  }
-  function copyAiFallbackPrompt(){
-    const v = document.getElementById('aiDraftPromptFallback').value;
-    if(!v.trim()){ alert('먼저 "지시문 만들기"를 눌러 주세요.'); return; }
-    const done=function(){ const b=event&&event.target; if(b){ const t=b.textContent; b.textContent='복사됨 ✓'; setTimeout(function(){b.textContent=t;},1500); } };
-    if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(v).then(done,function(){ genericFallbackCopy(v); }); }
-    else genericFallbackCopy(v);
-  }
-  function genericFallbackCopy(v){ const ta=document.createElement('textarea'); ta.value=v; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy');}catch(e){} document.body.removeChild(ta); }
 
   // 표 템플릿의 한 문단 슬롯({{MEMO_LINE}})을, AI 초안처럼 여러 줄인 텍스트를 위해
   // 줄마다 별도의 <hp:p> 문단으로 펼쳐서 채워 넣습니다(문단 구분이 실제로 살아있게).
@@ -3363,39 +3337,18 @@
     const pEnd = xml.indexOf('</hp:p>', idx) + '</hp:p>'.length;
     return xml.slice(0,pStart) + buildAiHwpxParagraphs(multiText) + xml.slice(pEnd);
   }
-  async function downloadAiDraftHwpx(){
-    const note = document.getElementById('aiDraftNote');
-    if(!window.DecompressionStream){
-      note.innerHTML = '⚠ 이 브라우저는 .hwpx 생성을 지원하지 않습니다. 최신 Chrome/Edge를 이용하거나, 대신 "초안 복사"로 복사해 붙여넣어 주세요.';
-      return;
-    }
-    const draftText = document.getElementById('aiDraftOutput').value.trim();
-    if(!draftText){ note.textContent='⚠ 먼저 AI 초안을 만들어 주세요.'; return; }
-    try{
-      const templateBytes = b64ToBytes(HWPX_TEMPLATE_B64);
-      const {entries, names} = await parseZip(templateBytes);
-      const origSection0 = new TextDecoder('utf-8').decode(entries['Contents/section0.xml']);
-      const baseTokens = lastRunData ? buildHwpxTokens() : {
-        GENDER:'-', AGE:'-', SIZE:'-', TARGET:'-', NAT:'-', REGION:'-', LIVING:'-',
-        URGENCY:'-', URGENCY2:'-', LOC:'해당 없음', CRISIS_LINES:'-', INCOME_LINE:'-', ASSET_LINE:'-', RESULT_LINE:'-',
-        HEALTH_LINE:'-', ITEMS_LINE:'-', SELF_LINE:'-',
-        ORG_LINE: ORG_NAME, // v4-track a72: 상담원별 org 무시, 항상 고정 기관명
-        DATE_LINE:'작성일: '+new Date().toISOString().slice(0,10)+'    작성: [담당 상담원]',
-        DATE_VALUE: new Date().toISOString().slice(0,10),
-        SIGN_NAME: (currentCounselor && currentCounselor.display_name) ? currentCounselor.display_name : '담당 상담원',
-        SIGN_LINE: '작성자 : '+((currentCounselor && currentCounselor.display_name) ? currentCounselor.display_name : '담당 상담원')+' (서명)'
-      };
-      const filledXml = fillHwpxTemplateWithMulti(origSection0, baseTokens, 'MEMO_LINE', draftText);
-      entries['Contents/section0.xml'] = new TextEncoder().encode(filledXml);
-      const orderedNames = ['mimetype', ...names.filter(n=>n!=='mimetype')];
-      const outBytes = buildStoredZip(orderedNames, entries);
-      const blob = new Blob([outBytes], {type:'application/hwp+zip'});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href=url; a.download='AI_상담일지초안.hwpx';
-      document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-    }catch(e){
-      note.innerHTML = '⚠ .hwpx 파일 생성 중 오류가 발생했습니다(' + escHtml(e.message) + '). 대신 "초안 복사"를 이용해 주세요.';
-    }
+  // v4-track a81: "저장" 버튼(⑦ 상담일지 초안 화면, 직접 고친 내용 아래) — 지금까지는 #doc(화면
+  // 미리보기)을 손으로 고쳐도 "복사하기"·텍스트(.txt)에는 반영되지만 한글(.hwpx) 다운로드는 lastRunData
+  // 값으로 매번 새로 계산해서 만들어서 고친 내용이 전혀 반영되지 않았음(구흥모님 지적: "그러면 안돼").
+  // 저장을 누르면 지금 화면에 보이는 전체 텍스트를 docManualOverrideText에 담아두고, downloadHwpx()가
+  // 이 값이 있으면 그대로 사용하도록 함. 값이 다시 계산되면(buildDoc 재호출) 저장본은 자동으로 꺼짐.
+  function saveDocEdits(){
+    var docEl = document.getElementById('doc');
+    if(!docEl) return;
+    docManualOverrideText = docEl.textContent;
+    docManualOverrideActive = true;
+    try{ saveCaseProgress(); }catch(e){ console.warn('saveCaseProgress 오류:', e); }
+    showTopToast('✅ 저장했습니다 — 이제 "한글(.hwpx) 다운로드"에도 이 내용이 그대로 반영됩니다.');
   }
 
   function getCrisisOrder(targetType){
@@ -3434,32 +3387,24 @@
   const GENDER_LABEL = {'여성':'여성','남성':'남성','기타/응답거부':'기타·응답거부'};
   const AGE_DEFAULT = ['미성년','20-29','30-39','40-49','50-59','60-69','70-79','80+'];
   const GENDER_DEFAULT = ['여성','남성','기타/응답거부'];
-  const AGE_PRESET = {
-    '노숙인': ['50-59','60-69','40-49','70-79','30-39','80+','20-29','미성년'],
-    '쪽방주민': ['60-69','70-79','80+','50-59','40-49','30-39','20-29','미성년'],
-    '가정폭력피해': ['30-39','40-49','20-29','50-59','미성년','60-69','70-79','80+'],
-    '취약노인': ['80+','70-79','60-69','50-59','40-49','30-39','20-29','미성년'],
-    '외국인노동자': ['30-39','20-29','40-49','50-59','60-69','70-79','80+','미성년'],
-    '위기가구': AGE_DEFAULT,
-    '기타': AGE_DEFAULT
-  };
-  const GENDER_PRESET = {
-    '노숙인': ['남성','여성','기타/응답거부'],
-    '쪽방주민': ['남성','여성','기타/응답거부'],
-    '가정폭력피해': ['여성','남성','기타/응답거부'],
-    '취약노인': ['여성','남성','기타/응답거부'],
-    '외국인노동자': ['남성','여성','기타/응답거부'],
-    '위기가구': GENDER_DEFAULT,
-    '기타': GENDER_DEFAULT
-  };
+  // v4-track a79: 대상유형별 연령대·성별 자동 기본값 프리셋(AGE_PRESET/GENDER_PRESET)은 더 이상 쓰이지
+  // 않아 삭제(renderAgeGender 참고 — 이제 항상 공란이 기본).
   let ageGroupTouched = false, genderTouched = false;
+  // v4-track a81: 메모(#memo)가 지금 "AI가 자동으로 정리해 넣은 내용"인지, "상담원이 직접 타이핑한 내용"인지
+  // 구분하는 플래그 — AI가 쓴 것이면(memoAiGenerated=true) 이전 단계를 수정하고 다시 진행할 때 최신
+  // 내용으로 자동 재생성해도 안전하지만, 상담원이 직접 쓴 메모라면 절대 조용히 덮어쓰면 안 됨.
+  let memoAiGenerated = false;
   // 목록 자체는 항상 자연스러운 순서(나이순/고정순)로 두고, "기본으로 선택되는 값"만 대상유형별로 바꿉니다.
   // (목록 순서까지 바뀌면 누를 때마다 위치가 달라져서 오히려 고르기 불편하다는 피드백 반영)
+  // v4-track a79: 연령대·성별은 대상유형에 따라 자동으로 한 값이 미리 선택돼 있었는데(구흥모님 결정으로
+  // 폐지) — 상담원이 직접 고르지 않으면 공란(선택 안 함)으로 남도록, 맨 앞에 빈 옵션을 넣고 기본값을
+  // 항상 빈 문자열로 둠(AI 음성/텍스트 추출이 값을 찾아내면 setSelectIfValid가 그 값으로 채움).
   function renderSelectOrder(id, naturalOrder, labelMap, defaultValue, applyDefault){
     const sel = document.getElementById(id);
     const prevValue = sel.value;
-    if(sel.options.length !== naturalOrder.length){
-      sel.innerHTML = naturalOrder.map(v=>'<option value="'+v+'">'+labelMap[v]+'</option>').join('');
+    const optCount = naturalOrder.length + 1;
+    if(sel.options.length !== optCount){
+      sel.innerHTML = '<option value="">선택 안 함</option>' + naturalOrder.map(v=>'<option value="'+v+'">'+labelMap[v]+'</option>').join('');
     }
     if(applyDefault || !prevValue) sel.value = defaultValue;
     else sel.value = prevValue;
@@ -3477,11 +3422,10 @@
     }
   }
   function renderAgeGender(forceDefault){
-    const t = document.getElementById('targetType').value;
-    const ageDefault = (AGE_PRESET[t]||AGE_DEFAULT)[0];
-    const genderDefault = (GENDER_PRESET[t]||GENDER_DEFAULT)[0];
-    renderSelectOrder('ageGroup', AGE_DEFAULT, AGE_LABEL, ageDefault, forceDefault || !ageGroupTouched);
-    renderSelectOrder('gender', GENDER_DEFAULT, GENDER_LABEL, genderDefault, forceDefault || !genderTouched);
+    // v4-track a79: 대상유형별 자동 기본값(AGE_PRESET/GENDER_PRESET) 적용을 폐지 — 이제 항상 빈 값(공란)이
+    // 기본이고, 상담원이 직접 고르거나 AI가 추출한 값이 있을 때만 채워짐.
+    renderSelectOrder('ageGroup', AGE_DEFAULT, AGE_LABEL, '', forceDefault || !ageGroupTouched);
+    renderSelectOrder('gender', GENDER_DEFAULT, GENDER_LABEL, '', forceDefault || !genderTouched);
   }
 
   function onTargetTypeChange(){
@@ -3818,10 +3762,21 @@
     if(lastRunData) buildDoc();
   }
 
+  // v4-track a81: 메모(대개 AI가 상담내용·상담의견·조치사항 세 항목으로 정리해 넣은 여러 줄 텍스트)를
+  // "6. 상담내용·상담의견·조치사항" 섹션 안에 다른 섹션들과 같은 들여쓰기로 보이게 하는 헬퍼.
+  function indentLines(text){
+    return String(text||'').split('\n').join('\n   ');
+  }
   // ---------- 상담일지 초안 ----------
   let lastRunData = null;
+  // v4-track a81: 상담원이 ⑦ 상담일지 초안 화면에서 "저장"을 눌러 직접 고친 내용을 담아두는 곳.
+  // docManualOverrideActive가 true면 downloadHwpx()가 새로 계산한 값 대신 이 저장된 본문을 그대로
+  // 사용 — 예비판단이 다시 실행돼 문서가 새로 그려지면(buildDoc) 저장한 내용이 최신 값과 어긋날 수
+  // 있으므로 자동으로 꺼짐(다시 확인 후 저장해야 함).
+  let docManualOverrideActive = false, docManualOverrideText = '';
   function buildDoc(){
     if(!lastRunData) return;
+    docManualOverrideActive = false; // 값이 다시 계산됐으니 이전에 저장해둔 수정본은 최신이 아닐 수 있음
     const d = lastRunData;
     const orgLine = ORG_NAME; // v4-track a72: 상담원별 org 무시, 항상 고정 기관명
     const signName = (currentCounselor && currentCounselor.display_name) ? currentCounselor.display_name : '담당 상담원';
@@ -3850,7 +3805,7 @@ ${orgLine} · 초안(담당자 확인 후 확정)
 5. 법적 근거
    긴급복지지원법 제2조(위기상황)·제9조(지원의 종류)에 근거하여 긴급지원을 요청함.
    ※ 최종 지원 여부는 담당 기관/지자체의 조사·결정에 따름.
-${d.memo ? '\n메모: '+d.memo : ''}
+${d.memo ? '\n6. 상담내용·상담의견·조치사항\n   '+indentLines(d.memo) : ''}
 
 작성일 : ${d.today}
 작성자 : ${signName} (서명)
@@ -4009,7 +3964,7 @@ ${d.memo ? '\n메모: '+d.memo : ''}
       HEALTH_LINE: d.health.length ? d.health.join(', ') : '특이사항 없음',
       ITEMS_LINE: '[공적] '+d.itemTxt + (d.excluded.length ? '  (※ '+d.excluded.map(e=>e+'급여').join(', ')+' 기존 수급/이력으로 중복 항목 재검토 필요)' : ''),
       SELF_LINE: '[기관 자체·즉시] '+d.selfItems.join(', '),
-      MEMO_LINE: d.memo ? '메모: '+d.memo : '',
+      MEMO_LINE: d.memo || '', // v4-track a81: 메모 자체가 이미 "상담내용:/상담의견:/조치사항:"으로 구분되어 있어 "메모:" 접두어를 따로 붙이지 않음
       DATE_LINE: '작성일 : '+d.today,
       DATE_VALUE: d.today,
       // 소속은 v4-track a72부터 상담원별 입력을 받지 않고 항상 고정 기관명(ORG_NAME) — 작성자(이름)만
@@ -4118,32 +4073,53 @@ ${d.memo ? '\n메모: '+d.memo : ''}
   function hideDoneBar(){ var b=document.getElementById('doneBar'); if(b) b.classList.remove('on'); }
 
   async function downloadHwpx(){
-    const note = document.getElementById('hwpxNote');
+    // v4-track a81: .hwpx 파일 안내 note 블록을 화면에서 삭제해서(구흥모님 요청) 더 이상 오류 문구를
+    // 넣을 곳이 없음 — showTopToast()로 대체.
     if(!window.DecompressionStream){
-      note.innerHTML = '⚠ 이 브라우저는 .hwpx 생성에 필요한 기능(Compression Streams API)을 지원하지 않습니다. 최신 Chrome/Edge로 열거나, 대신 .txt 다운로드를 이용해 주세요.';
+      showTopToast('⚠ 이 브라우저는 .hwpx 생성에 필요한 기능(Compression Streams API)을 지원하지 않습니다. 최신 Chrome/Edge로 열거나, 대신 .txt 다운로드를 이용해 주세요.');
       return;
     }
-    const tokens = buildHwpxTokens();
-    if(!tokens){ note.innerHTML = '⚠ 먼저 "예비판단 실행"을 눌러 상담일지를 만들어 주세요.'; return; }
     try{
       const templateBytes = b64ToBytes(HWPX_TEMPLATE_B64);
       const {entries, names} = await parseZip(templateBytes);
       const origSection0 = new TextDecoder('utf-8').decode(entries['Contents/section0.xml']);
-      // v4-track a66: 메모(AI 초안)는 보통 여러 줄(문단)인데, 기존엔 fillHwpxTemplate의 단순 치환이라
-      // {{MEMO_LINE}} 한 자리에 줄바꿈 문자가 그대로 들어가 한 문단 안에 뭉쳐지거나 렌더링이 깨질 수
-      // 있었음 — AI 초안 전용 다운로드(downloadAiDraftHwpx)와 동일하게 fillHwpxTemplateWithMulti로
-      // 줄마다 별도 문단으로 펼쳐서 넣도록 통일(같은 buildAiHwpxParagraphs를 쓰므로 위에서 고친
-      // paraPrIDRef=0 수정도 이 다운로드에 동일하게 적용됨).
-      const filledSection0 = tokens.MEMO_LINE
-        ? fillHwpxTemplateWithMulti(origSection0, tokens, 'MEMO_LINE', tokens.MEMO_LINE)
-        : fillHwpxTemplate(origSection0, tokens);
+      let filledSection0;
+      if(docManualOverrideActive && docManualOverrideText){
+        // v4-track a81: 상담원이 ⑦ 화면에서 직접 고친 뒤 "저장"을 눌렀다면, 표 형태의 개별 항목 칸
+        // (성별·위기사유·소득재산 판정 등)을 새로 계산해 채우는 대신, 지금 저장된 전체 내용을 하나의
+        // 이어지는 본문으로 통째로 담는다(AI 초안 전용 다운로드였던 구 downloadAiDraftHwpx와 동일한
+        // fillHwpxTemplateWithMulti 방식) — 표 칸과 본문에 같은 내용이 두 번 나오는 중복을 피하려고
+        // 표 칸은 전부 "-"로 비워둠. 개별 항목 값 자체를 표 칸에서 다시 정확히 맞추고 싶다면, 이전
+        // 단계로 돌아가 그 항목을 고치고 다시 진행해야 함(그러면 buildDoc()이 다시 그려지며 이 저장본은
+        // 자동으로 꺼짐 — 최신 값과 어긋난 저장본이 계속 쓰이는 일이 없게).
+        const baseTokens = {
+          GENDER:'-', AGE:'-', SIZE:'-', TARGET:'-', NAT:'-', REGION:'-', LIVING:'-',
+          URGENCY:'-', URGENCY2:'-', LOC:'해당 없음', CRISIS_LINES:'-', INCOME_LINE:'-', ASSET_LINE:'-', RESULT_LINE:'-',
+          HEALTH_LINE:'-', ITEMS_LINE:'-', SELF_LINE:'-',
+          ORG_LINE: ORG_NAME,
+          DATE_LINE:'작성일: '+new Date().toISOString().slice(0,10),
+          DATE_VALUE: new Date().toISOString().slice(0,10),
+          SIGN_NAME: (currentCounselor && currentCounselor.display_name) ? currentCounselor.display_name : '담당 상담원',
+          SIGN_LINE: '작성자 : '+((currentCounselor && currentCounselor.display_name) ? currentCounselor.display_name : '담당 상담원')+' (서명)'
+        };
+        filledSection0 = fillHwpxTemplateWithMulti(origSection0, baseTokens, 'MEMO_LINE', docManualOverrideText);
+      } else {
+        const tokens = buildHwpxTokens();
+        if(!tokens){ showTopToast('⚠ 먼저 "예비판단 실행"을 눌러 상담일지를 만들어 주세요.'); return; }
+        // v4-track a66: 메모(AI 초안)는 보통 여러 줄(문단)인데, 기존엔 fillHwpxTemplate의 단순 치환이라
+        // {{MEMO_LINE}} 한 자리에 줄바꿈 문자가 그대로 들어가 한 문단 안에 뭉쳐지거나 렌더링이 깨질 수
+        // 있었음 — fillHwpxTemplateWithMulti로 줄마다 별도 문단으로 펼쳐서 넣도록 통일.
+        filledSection0 = tokens.MEMO_LINE
+          ? fillHwpxTemplateWithMulti(origSection0, tokens, 'MEMO_LINE', tokens.MEMO_LINE)
+          : fillHwpxTemplate(origSection0, tokens);
+      }
       entries['Contents/section0.xml'] = new TextEncoder().encode(filledSection0);
       const orderedNames = ['mimetype', ...names.filter(n=>n!=='mimetype')];
       const outBytes = buildStoredZip(orderedNames, entries);
       const blob = new Blob([outBytes], {type:'application/hwp+zip'});
       await saveBlob(blob, buildDocFilename('hwpx'));
     }catch(e){
-      note.innerHTML = '⚠ .hwpx 파일 생성 중 오류가 발생했습니다(' + escHtml(e.message) + '). 대신 .txt 다운로드를 이용해 주세요.';
+      showTopToast('⚠ .hwpx 파일 생성 중 오류가 발생했습니다(' + escHtml(e.message) + '). 대신 .txt 다운로드를 이용해 주세요.');
     }
   }
 
@@ -4183,8 +4159,17 @@ ${d.memo ? '\n메모: '+d.memo : ''}
     const regionDistrict = regionDistrictEl ? regionDistrictEl.value.trim() : '';
     // v4-track a64: 재산기준(regionTier)은 시·도 단위로만 구분되므로 구·군은 판정 계산에는 영향 없음 —
     // 표시·문서용 전체 지명(regionFullLabel)에만 반영.
-    const regionFullLabel = regionName + (regionDistrict ? ' '+regionDistrict : '');
-    const regionTier = safeChecked('rural') ? '농어촌' : (REGION_TIER[regionName] || '중소도시');
+    // v4-track a78: 거주지역은 필수 입력이 아니므로(구흥모님 요청) 시·도를 선택하지 않으면 regionName이
+    // 빈 문자열일 수 있음 — 그 경우 표시용 문구는 "미입력"(구·군만 입력했으면 구·군만) 으로 보여주고,
+    // 판정에 필요한 재산기준(regionTier)은 알 수 없으므로 임의로 서울(대도시) 기준을 적용하지 않고
+    // 안전한 쪽인 '중소도시' 기준으로 계산(대도시보다 재산 상한이 낮아 더 보수적으로 판정됨).
+    const regionFullLabel = regionName
+      ? (regionName + (regionDistrict ? ' '+regionDistrict : ''))
+      : (regionDistrict || '미입력');
+    // v4-track a80: 거주지역을 선택하지 않았을 때의 재산기준 기본값을 '중소도시'(a78)에서 '인천광역시'
+    // 기준(대도시)으로 변경 — 현재 시범사용 중인 전 기관이 인천 소재 기관이라, 지역을 안 정해도 실제
+    // 사용 현장과 같은 기준으로 계산되게 하는 게 더 적절하다는 구흥모님 판단.
+    const regionTier = safeChecked('rural') ? '농어촌' : (REGION_TIER[regionName] || REGION_TIER['인천광역시']);
     const livingType = safeVal('livingType');
     const size = +safeVal('size') || 1;
     const children = +safeVal('children') || 0;
@@ -4236,7 +4221,7 @@ ${d.memo ? '\n메모: '+d.memo : ''}
 
     const basis = document.getElementById('basis'); basis.innerHTML='';
     const add = t => { const li=document.createElement('li'); li.innerHTML=t; basis.appendChild(li); };
-    add('대상유형: '+targetType+' · 긴급성: '+URGENCY_LABEL[urgency]+' · 연령대: '+AGE_LABEL[ageGroup]+' · 성별: '+gender+(children>0?' · 동반아동 '+children+'명':''));
+    add('대상유형: '+targetType+' · 긴급성: '+URGENCY_LABEL[urgency]+' · 연령대: '+(AGE_LABEL[ageGroup]||'미입력')+' · 성별: '+(gender||'미입력')+(children>0?' · 동반아동 '+children+'명':''));
     add('위기사유: ' + (crisisMet ? '해당 — '+crisis.join(', ') : '선택된 위기사유 없음'));
     if(health.length) add('건강상태: '+health.join(', '));
     add(incomeEntered
@@ -4288,7 +4273,7 @@ ${d.memo ? '\n메모: '+d.memo : ''}
     lastRunData = {
       targetType, urgency, urgencyLabel:(urgency==='date' ? ('지정일: '+(safeVal('urgencyDate') || '미지정')) : (URGENCY_LABEL[urgency]||'')), crisis, crisisMet, regionName, regionDistrict, regionFullLabel, regionTier, livingType, size, children,
       income, std, incomeOk, assetCalc, assetLimit, assetOk, incomeEntered, assetInfoEntered,
-      ageGroupLabel:AGE_LABEL[ageGroup], gender, nationalityLabel:(nationalityLabelMap[nationality]||nationality),
+      ageGroupLabel:(AGE_LABEL[ageGroup]||'미입력'), gender:(gender||'미입력'), nationalityLabel:(nationalityLabelMap[nationality]||nationality),
       health: health.length? health.filter(h=>h!=='해당없음') : [], itemTxt, excluded, selfItems: currentGiftItems(), memo, today, firstInputHHMM,
       verdict // 저장/이어하기(saveCaseProgress)에서 그대로 재사용 — 재도출하지 않음
     };
@@ -4540,14 +4525,23 @@ ${d.memo ? '\n메모: '+d.memo : ''}
 
   // v4-track a74: "상담 자리에서 꼭 확인하세요" 팝업 — 새 상담을 시작할 때마다 뜨되, "1주일간 보지
   // 않기"를 누르면 그 기기에서 7일간 다시 뜨지 않게 함(localStorage에 "이 시각까지 숨김" 타임스탬프 저장).
+  // v4-track a82: 구흥모님 재신고(2026-09-15) — "1주일간 보지 않기"를 눌러도 새로고침하면 다시 뜸.
+  // 실제 배포된 페이지를 열어 확인해보니(브라우저 자동화로 재현) localStorage에 스누즈 시각은 정확히
+  // 저장돼 있었는데도 새로고침 직후 팝업이 떠 있었음 — 원인은 #precheckOverlay의 정적 HTML class가
+  // "gateOverlay on"으로 이미 "켜진" 상태로 내려오고 있었던 것(협업자 동시 작업 중 병합 과정에서
+  // 섞여 들어간 것으로 보임). 지금까지 이 함수는 "보여줘야 할 때만 .on을 추가"했을 뿐 "보여주면 안 될
+  // 때 .on을 지운다"는 반대 방향은 하지 않고 있었어서, 처음부터 켜진 채로 내려온 HTML을 아무도 끄지
+  // 않은 채 그대로 남아있었음. 앞으로 정적 HTML이 어떤 상태로 오든 항상 정확한 상태가 되도록, 스누즈
+  // 기간이 아직 안 지났을 때도 명시적으로 .on을 제거하도록 수정(방어적으로 항상 최종 상태를 강제).
   var PRECHECK_SNOOZE_KEY = 'ieojim_precheck_snooze_until';
   function showPrecheckIfNeeded(){
+    var p = document.getElementById('precheckOverlay');
+    if(!p) return;
     try{
       var until = Number(localStorage.getItem(PRECHECK_SNOOZE_KEY) || '0');
-      if(until && Date.now() < until) return; // 아직 스누즈 기간 안 지남
+      if(until && Date.now() < until){ p.classList.remove('on'); return; } // 아직 스누즈 기간 안 지남 — 확실히 꺼둠
     }catch(e){}
-    var p = document.getElementById('precheckOverlay');
-    if(p) p.classList.add('on');
+    p.classList.add('on');
   }
   function closePrecheck(snoozeOneWeek){
     if(snoozeOneWeek){
