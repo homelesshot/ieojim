@@ -127,8 +127,13 @@
   .toptitle .tsub{display:none} /* 상단바에는 "이어짐 프로토타입" 글자만 남기고 부제는 숨김(2026-09-04) */
 
   /* 진행 단계 표시 — 막대 배경/테두리를 없애고 색깔 있는 점 모양만 떠있게(2026-09-04). #stepLabel(1/7 숫자)은
-     JS(setStep/markDone)가 계속 textContent를 써서 요소 자체는 남겨두되 화면에는 안 보이게 숨김만 함. */
-  .stepbar{display:flex;align-items:center;justify-content:center;gap:5px;padding:6px 16px;background:transparent;border-bottom:0;flex:none}
+     JS(setStep/markDone)가 계속 textContent를 써서 요소 자체는 남겨두되 화면에는 안 보이게 숨김만 함.
+     v4-track a95: 첫 화면(welcome, 아직 상담 시작 전)에는 이 표시가 필요 없다는 지적(구흥모님) — 기본은
+     숨김(display:none)으로 바꾸고, 실제로 "① 위기사유·긴급성" 카드가 뜨는 시점(showStepBar() 호출)에만
+     보이도록 전환. 녹음/텍스트 인식 확인 화면(아직 welcome이 사라지고 ①카드가 뜨기 전 중간 단계)에서는
+     보이지 않음. */
+  .stepbar{display:none;align-items:center;justify-content:center;gap:5px;padding:6px 16px;background:transparent;border-bottom:0;flex:none}
+  .stepbar.show{display:flex}
   .stepbar .s{width:20px;height:5px;border-radius:6px;background:var(--line);transition:background .2s}
   .stepbar .s.on{background:var(--accent)}
   .stepbar .s.done{background:var(--ok)}
@@ -542,15 +547,7 @@
       <button class="iconbtn" onclick="closeAiPrivacyInfo()">✕</button>
     </div>
     <div class="vmodal-body">
-      <div style="font-weight:800;margin-bottom:.4rem;font-size:1.4rem">🤖 AI를 쓴다는 게, 정보가 새어나간다는 뜻은 아니에요</div>
-      <div class="note" style="margin-bottom:.8rem;line-height:1.65">이어짐은 상담 내용을 글로 옮기고 항목을 정리하는 데 AI(인공지능)를 사용해요. 옆에서 타이핑을 도와주는 <b>보조 도구</b>를 쓰는 것과 비슷하다고 생각하시면 돼요.</div>
-      <div class="note" style="background:var(--surface-2);border-radius:10px;padding:10px 12px;margin-bottom:.6rem;line-height:1.6"><b>✅ AI가 이 대화를 "기억"하거나 다른 사람에게 보여주지 않아요.</b><br>그 순간 내용을 정리하는 데만 잠깐 쓰이고, AI 학습에는 전혀 사용되지 않아요.<br><span style="font-size:1.05rem;color:var(--mut)">— 출처: OpenAI(AI 처리 업체) 개인정보 처리방침</span></div>
-      <div class="note" style="background:var(--surface-2);border-radius:10px;padding:10px 12px;margin-bottom:.6rem;line-height:1.6"><b>✅ 계속 저장되는 게 아니에요.</b><br>정리에 쓰인 뒤 악용 방지 목적으로 잠깐 보관되고, 최대 30일 안에 자동으로 삭제돼요.<br><span style="font-size:1.05rem;color:var(--mut)">— 출처: OpenAI(AI 처리 업체) 개인정보 처리방침</span></div>
-      <div class="note" style="background:var(--surface-2);border-radius:10px;padding:10px 12px;margin-bottom:1rem;line-height:1.6"><b>✅ 아무나 볼 수 있는 게 아니에요.</b><br>상담 기록은 암호화되어 저장되고, 담당 상담원만 열어볼 수 있어요.<br><span style="font-size:1.05rem;color:var(--mut)">— 출처: 이어짐 자체 보안 설계(Supabase 암호화·접근제한)</span></div>
-      <div class="note" style="background:var(--bad-bg);color:var(--bad);border-radius:10px;padding:10px 12px;margin-bottom:.6rem;line-height:1.6;font-weight:700">🚫 단, 주민등록번호는 절대 안 돼요.<br><span style="font-weight:500">위 안내와 별개로, 주민등록번호는 대상자 동의를 받아도 AI로 처리할 수 없어요 — 법령에 정해진 예외 상황이 아닌 한 그 자체로 위반이에요.</span><br><span style="font-size:1.05rem">— 근거: 개인정보보호법 제24조의2(주민등록번호 처리의 제한), 위반 시 과태료 최대 3천만원</span></div>
-      <div class="note" style="background:var(--accent-soft);color:var(--accent-ink);border-radius:10px;padding:10px 12px;margin-bottom:1rem;line-height:1.6"><b>ℹ️ 그럼 이름·주소·연락처는요?</b><br>주민등록번호와 달리 이름·주소·연락처 같은 일반 개인정보는, <b>지금처럼 AI 처리·30일 삭제·국외 이전 사실을 미리 안내</b>하면 별도 동의 없이도 AI 처리에 활용할 수 있어요.<br><span style="font-size:1.05rem">— 근거: 개인정보보호법 제28조의8 제1항 제3호(계약 이행을 위한 처리위탁·사전공개)</span></div>
-      <div style="font-weight:700;margin-bottom:.3rem">💬 대상자에게는 이렇게 설명해보세요</div>
-      <div class="note" style="background:var(--accent-soft);color:var(--accent-ink);border-radius:10px;padding:10px 12px;font-weight:600;line-height:1.6;margin-bottom:.8rem">"요즘 병원에서 진료 내용을 녹음해서 자동으로 기록 정리하는 것처럼, 저희도 AI로 대화 내용을 빠르게 정리하는 데 쓰고 있어요. 다른 데 쓰이거나 계속 저장되는 게 아니라, 정리가 끝나면 금방 지워지니까 편하게 말씀하셔도 돼요."</div>
+      <div id="aiPrivacyBody"></div>
       <div style="text-align:center;margin-top:.4rem"><button class="policyLink" onclick="openPolicy()">🔒 개인정보 처리방침(AI 처리·저장 안내)</button></div>
     </div>
   </div>
@@ -573,7 +570,7 @@
       <div class="small">이 안내는 상담원이 이 기기에서 이어짐을 처음 사용할 때 한 번만 표시됩니다.</div>
       <div class="small">상담 중 녹음·입력한 내용은 AI(OpenAI)로 전송되어 항목 정리·초안 작성에 사용되고, <b>AI 학습에는 사용되지 않으며</b> 처리 후 <b>최대 30일 이내 삭제</b>됩니다. 상담 기록 자체는 국내(서울) 서버에 암호화되어 저장됩니다.</div>
       <div class="say">💬 상담 시작 전 대상자에게 이렇게 안내해주세요:<br>"지금 나누는 이야기는 AI가 정리하는 데 활용되고, AI 학습에는 사용되지 않으며, 처리 후 30일 이내에 삭제됩니다."</div>
-      <div class="small">자세한 내용은 화면 하단의 <b>개인정보 처리방침</b>에서 언제든 다시 볼 수 있어요.</div>
+      <div class="small">자세한 내용은 첫 화면의 <b>🤖 AI·개인정보 안내</b> 또는 <b>설정 › 개인정보 처리방침</b>에서 언제든 다시 볼 수 있어요.</div>
       <button class="gateOk" onclick="ackGate()">확인했습니다</button>
     </div>
   </div>
@@ -718,19 +715,7 @@
       </div>
           </div>
           <div class="setPane" id="setPaneAi" hidden>
-      <div style="font-weight:800;margin-bottom:.4rem;font-size:1.4rem">🤖 AI를 쓴다는 게, 정보가 새어나간다는 뜻은 아니에요</div>
-      <div class="note" style="margin-bottom:.8rem;line-height:1.65">이어짐은 상담 내용을 글로 옮기고 항목을 정리하는 데 AI(인공지능)를 사용해요. 옆에서 타이핑을 도와주는 <b>보조 도구</b>를 쓰는 것과 비슷하다고 생각하시면 돼요.</div>
-
-      <div class="note" style="background:var(--surface-2);border-radius:10px;padding:10px 12px;margin-bottom:.6rem;line-height:1.6"><b>✅ AI가 이 대화를 "기억"하거나 다른 사람에게 보여주지 않아요.</b><br>그 순간 내용을 정리하는 데만 잠깐 쓰이고, AI 학습에는 전혀 사용되지 않아요.<br><span style="font-size:1.05rem;color:var(--mut)">— 출처: OpenAI(AI 처리 업체) 개인정보 처리방침</span></div>
-      <div class="note" style="background:var(--surface-2);border-radius:10px;padding:10px 12px;margin-bottom:.6rem;line-height:1.6"><b>✅ 계속 저장되는 게 아니에요.</b><br>정리에 쓰인 뒤 악용 방지 목적으로 잠깐 보관되고, 최대 30일 안에 자동으로 삭제돼요.<br><span style="font-size:1.05rem;color:var(--mut)">— 출처: OpenAI(AI 처리 업체) 개인정보 처리방침</span></div>
-      <div class="note" style="background:var(--surface-2);border-radius:10px;padding:10px 12px;margin-bottom:1rem;line-height:1.6"><b>✅ 아무나 볼 수 있는 게 아니에요.</b><br>상담 기록은 암호화되어 저장되고, 담당 상담원만 열어볼 수 있어요.<br><span style="font-size:1.05rem;color:var(--mut)">— 출처: 이어짐 자체 보안 설계(Supabase 암호화·접근제한)</span></div>
-
-      <div class="note" style="background:var(--bad-bg);color:var(--bad);border-radius:10px;padding:10px 12px;margin-bottom:.6rem;line-height:1.6;font-weight:700">🚫 단, 주민등록번호는 절대 안 돼요.<br><span style="font-weight:500">위 안내와 별개로, 주민등록번호는 대상자 동의를 받아도 AI로 처리할 수 없어요 — 법령에 정해진 예외 상황이 아닌 한 그 자체로 위반이에요.</span><br><span style="font-size:1.05rem">— 근거: 개인정보보호법 제24조의2(주민등록번호 처리의 제한), 위반 시 과태료 최대 3천만원</span></div>
-
-      <div class="note" style="background:var(--accent-soft);color:var(--accent-ink);border-radius:10px;padding:10px 12px;margin-bottom:1rem;line-height:1.6"><b>ℹ️ 그럼 이름·주소·연락처는요?</b><br>주민등록번호와 달리 이름·주소·연락처 같은 일반 개인정보는, <b>지금처럼 AI 처리·30일 삭제·국외 이전 사실을 미리 안내</b>하면 별도 동의 없이도 AI 처리에 활용할 수 있어요.<br><span style="font-size:1.05rem">— 근거: 개인정보보호법 제28조의8 제1항 제3호(계약 이행을 위한 처리위탁·사전공개)</span></div>
-
-      <div style="font-weight:700;margin-bottom:.3rem">💬 대상자에게는 이렇게 설명해보세요</div>
-      <div class="note" style="background:var(--accent-soft);color:var(--accent-ink);border-radius:10px;padding:10px 12px;font-weight:600;line-height:1.6;margin-bottom:.8rem">"요즘 병원에서 진료 내용을 녹음해서 자동으로 기록 정리하는 것처럼, 저희도 AI로 대화 내용을 빠르게 정리하는 데 쓰고 있어요. 다른 데 쓰이거나 계속 저장되는 게 아니라, 정리가 끝나면 금방 지워지니까 편하게 말씀하셔도 돼요."</div>
+      <div id="setPaneAiBody"></div>
           </div>
           <div class="setPane" id="setPaneKey" hidden>
       <div style="font-weight:800;margin-bottom:.4rem">🔐 개인정보 비밀키</div>
@@ -811,15 +796,21 @@
   var media = {rec:null, chunks:[], timer:null, secs:0, autoStopped:false};
   var _wakeLock = null; // 녹음 중 화면 꺼짐 방지용 Screen Wake Lock sentinel
 
-  /* ===== 음성→텍스트(STT) — Supabase Edge Function 프록시 경유, OpenAI gpt-4o-transcribe-diarize ===== */
+  /* ===== 음성→텍스트(STT) — Supabase Edge Function 프록시 경유. 실제 사용 모델은 서버(Edge Function)
+     쪽 코드에서 관리되며(이 파일에는 없음), 2026-09-07부로 화자분리(diarize)는 포기하고 OpenAI
+     whisper-1로 전환된 상태(항목 추출은 별도로 gpt-4o-mini + Structured Outputs 사용) — 이 파일의
+     주석이 낡은 모델명을 적어두면 나중에 헷갈리므로, 서버 쪽 모델을 바꿀 때는 이 주석도 함께 갱신할 것. ===== */
   var STT_URL = 'https://ueidoudgwhuanrtowudy.supabase.co/functions/v1/stt-transcribe';
   var STT_ANON_KEY = 'sb_publishable_cnEU0Ly-lTtcR8Avmfjk7Q_wOEUT37s';
 
   /* ===== 상담원 로그인 + 상담내역 저장/이어하기 (Supabase Auth + DB) =====
      로그인 없이도 판단 흐름은 100% 그대로 동작해야 함 — 모든 DB 호출은 로그인 세션이
      없거나 네트워크/DB 오류가 나도 절대 판단 흐름을 막지 않도록 try/catch로 감쌈. */
-  // v4-track a72: 소속(기관명)은 문서 위조 방지를 위해 상담원별 자유입력이 아니라 앱 전체가
-  // 공유하는 고정 상수로 전환. 다른 기관이 이 코드를 가져다 쓸 때는 이 한 줄만 바꾸면 됨.
+  // v4-track a72에서 문서 위조 방지를 위해 소속(기관명)을 상담원별 자유입력이 아닌 이 고정 상수로
+  // 한 번 잠갔었으나, a89에서 구흥모님 재요청으로 다시 상담원별 자유입력(#authOrg/#setOrg)으로
+  // 되돌림 — 이 상수는 이제 "로그인한 상담원이 소속을 따로 저장하지 않았을 때의 기본값"으로만 쓰임
+  // (문서 위조 방지 기능은 더 이상 없음, 구흥모님 확인 후 결정). 다른 기관이 이 코드를 가져다 쓸 때는
+  // 이 한 줄만 바꾸면 기본값이 바뀜.
   var ORG_NAME = '사단법인 인천내일을여는집';
   var SUPABASE_URL = 'https://ueidoudgwhuanrtowudy.supabase.co';
   var sb = null;
@@ -910,6 +901,7 @@
   }
   function goToCrisisWithHint(matched, urgency){
     _activeRecCard = null; // 녹음 단계는 끝났으므로 참조 해제(다음에 다시 녹음하면 새 카드로 시작)
+    showStepBar(); // v4-track a95: "① 위기사유·긴급성" 카드가 실제로 뜨는 시점에 진행순서 점 표시 시작
     botCard('① 위기사유·긴급성', '<div style="font-size:1.11rem;color:var(--mut);margin-bottom:10px">긴급성과 해당하는 위기사유를 선택해 주세요.</div>' + TPL_CRISIS, '다음 ▸', ()=>goHousehold(), 'crisis');
     renderCrisis();
     if(matched){ applyFreeTextChecks(matched, urgency); }
@@ -1294,6 +1286,7 @@
     // ① 위기사유·긴급성 — v4-track a77: #targetType이 이제 이 카드 안(TPL_CRISIS)에서 만들어지므로,
     // AI가 인식한 대상유형을 그 값에 반영하려면 카드를 먼저 만든 뒤에 해야 한다(이전엔 첫 화면에
     // #targetType이 항상 이미 있어서 순서가 상관없었음).
+    showStepBar(); // v4-track a95: "① 위기사유·긴급성" 카드가 실제로 뜨는 시점에 진행순서 점 표시 시작
     botCard('① 위기사유·긴급성', '<div style="font-size:1.11rem;color:var(--mut);margin-bottom:10px">긴급성과 해당하는 위기사유를 선택해 주세요.</div>' + TPL_CRISIS, '다음 ▸', ()=>goHousehold(), 'crisis');
     // v4-track a48: 상담사가 이미 직접 유형을 고른 경우, 녹음에서 AI가 추론한 값으로 덮어쓰지 않는다.
     if(!targetTypeManuallySet && ex.targetType && TARGETTYPE_LIST_V4.indexOf(ex.targetType)!==-1){
@@ -1398,7 +1391,8 @@
 
     if(!ex){
       botMsgHTML(freeTextHintText(hint.matched));
-      botCard('① 위기사유·긴급성', '<div style="font-size:1.11rem;color:var(--mut);margin-bottom:10px">긴급성과 해당하는 위기사유를 선택해 주세요.</div>' + TPL_CRISIS, '다음 ▸', ()=>goHousehold(), 'crisis');
+      showStepBar(); // v4-track a95: "① 위기사유·긴급성" 카드가 실제로 뜨는 시점에 진행순서 점 표시 시작
+    botCard('① 위기사유·긴급성', '<div style="font-size:1.11rem;color:var(--mut);margin-bottom:10px">긴급성과 해당하는 위기사유를 선택해 주세요.</div>' + TPL_CRISIS, '다음 ▸', ()=>goHousehold(), 'crisis');
       renderCrisis();
       applyFreeTextChecks(hint.matched, hint.urgency);
       return;
@@ -2037,6 +2031,7 @@
     if(!state) return;
     try{
       if(welcome){ welcome.remove(); welcome=null; }
+      showStepBar(); // v4-track a95: 저장된 사례를 이어할 때는 welcome 화면 없이 바로 진행 중이므로 표시
       chat.innerHTML = state.chatHTML || '';
       lastFreeText = state.lastFreeText || '';
       resultDone = !!state.resultDone;
@@ -2184,6 +2179,8 @@
      VERSION_LOG 배열 맨 앞에 새 항목을 추가할 것. 같은 날 여러 건이면 tag만 올려서(v0.x) 여러 줄 추가.
      "나중에 몰아서 기록"은 누락으로 이어지므로, 수정 직후 그 자리에서 바로 추가할 것. */
   var VERSION_LOG = [
+    {tag:'v4-track a96', date:'2026-09-16', title:'"🤖 AI·개인정보 안내" 내용을 한 곳(AI_PRIVACY_HTML_V4)에서만 관리하도록 통합 + 안내 텍스트 전체 점검·오래된 내용 수정', desc:'구흥모님 요청 2가지. [1 — 내용 통합] "🤖 AI·개인정보 안내"가 첫 화면 팝업(aiPrivacyModal)과 설정 탭(setPaneAi) 두 군데에 완전히 같은 내용이 하드코딩되어 있어서, 나중에 문구를 고칠 때 한쪽만 고치고 다른 쪽을 깜빡하면 두 화면 내용이 어긋날 위험이 있었음(구흥모님 지적 — "앞으로 수정할 때 두 화면이 일치하도록 해야 한다"). 내용을 새 JS 상수 AI_PRIVACY_HTML_V4 하나로 합치고, 두 화면 모두 페이지 로드 시 이 상수로 내용을 채워 넣도록 변경(#aiPrivacyBody/#setPaneAiBody 컨테이너에 innerHTML 주입) — 이제 이 상수만 고치면 두 화면에 자동으로 함께 반영됨. 첫 화면 팝업에만 있던 맨 아래 "🔒 개인정보 처리방침" 버튼(a92에서 설정 쪽엔 이미 별도 메뉴로 분리됨)은 상수에 포함하지 않고 aiPrivacyModal 쪽에서만 별도로 유지. [2 — 안내 텍스트 전체 점검] 구흥모님 요청으로 안내성 텍스트를 전체적으로 다시 읽어보며 최신 상태와 어긋난 부분을 발견·수정: (a) "이어짐 정보"의 APP_INFO_TEXT_V1이 a46(9/10, 아직 판정 로직이 UI 시안 단계였을 때) 문구를 그대로 쓰고 있어서 "실제 판정 로직은 현장 도입 시 정식으로 연결될 예정"이라고 완성도를 실제보다 낮게 설명하고 있었음 — 그 사이 실제 소득·재산 판정 로직과 실제 사유서(.hwpx) 생성까지 이미 구현되어 동작 중이므로 문구를 사실에 맞게 수정. (b) 최초 1회 안내 게이트(gateOverlay)의 "자세한 내용은 화면 하단의 개인정보 처리방침에서 다시 볼 수 있다"는 문구 — a89/a92에서 화면 하단의 독립 처리방침 버튼 자체가 없어지고 🤖 AI·개인정보 안내 팝업 또는 설정 메뉴 안으로 옮겨갔는데 이 안내문이 갱신되지 않고 남아있었음, 실제 위치(첫 화면 🤖 AI·개인정보 안내 / 설정 › 개인정보 처리방침)로 수정. (c) ORG_NAME 선언부의 낡은 주석("문서 위조 방지를 위해 고정 상수로 전환")이 a89에서 이미 뒤집힌 a72 결정을 여전히 현재형으로 설명하고 있어서, 지금 상태(다시 자유입력, 이 상수는 기본값 용도)를 반영하도록 수정. (d) 음성인식(STT) 관련 코드 주석이 낡은 모델명(diarize)을 적어두고 있어서 현재 실제 모델(whisper-1, 항목추출은 gpt-4o-mini)로 갱신 — 사용자에게 보이는 문구는 원래부터 "OpenAI"로만 표기해 모델명을 노출하지 않으므로 영향 없음. v4.html 내부만으로 완결(서버/DB 변경 없음). (구흥모님 요청)'},
+    {tag:'v4-track a95', date:'2026-09-16', title:'첫 화면(welcome)에는 진행순서 점(①~⑦) 표시를 숨기고, "① 위기사유·긴급성" 카드부터 보이게 변경', desc:'구흥모님 요청: "이어짐 v4" 상단 제목 아래 뜨는 진행순서 점 표시가 아직 상담을 시작하지 않은 첫 화면에는 필요 없고, 녹음/텍스트 인식 확인 화면도 순서에 포함할 필요 없이 "① 위기사유·긴급성" 카드가 실제로 뜨는 시점부터 보이면 된다는 요청. .stepbar 기본 CSS를 display:none으로 바꾸고 .stepbar.show일 때만 보이도록 전환(#steps에 이 클래스가 없으면 숨김). 새 함수 showStepBar()/hideStepBar() 추가 — "① 위기사유·긴급성" botCard가 실제로 렌더링되는 4곳(자동추출 성공/실패, 텍스트 자동판정, "상황 입력 없이 바로 진행" 버튼) 모두에서 showStepBar()를 호출해 그 시점에 처음 표시되게 하고, 저장된 사례를 이어할 때(restoreCaseState(), welcome 화면 없이 바로 진행 중 상태로 복원됨)도 표시. 반대로 resetChat()(새 상담 시작, 첫 화면으로 되돌아감)에서는 hideStepBar()를 호출해 다시 숨김. 정적 HTML의 #steps에도 기본적으로 .show 클래스가 없어 페이지를 처음 열었을 때부터 숨겨진 상태로 시작. v4.html 내부만으로 완결(서버/DB 변경 없음). (구흥모님 요청)'},
     {tag:'v4-track a94', date:'2026-09-16', title:'상단바·브라우저 탭 제목의 "이어짐 프로토타입" 표기를 "이어짐 v4"로 변경', desc:'구흥모님 요청: 화면 상단바(.toptitle .ttl)와 브라우저 탭 제목(<title>)에 남아있던 "이어짐 프로토타입" 이름을 "이어짐 v4"로 통일. v4.html 내부만으로 완결(서버/DB 변경 없음). (구흥모님 요청)'},
     {tag:'v4-track a93', date:'2026-09-16', title:'설정의 "🔒 개인정보 처리방침" 메뉴를 별도 팝업 대신 설정 창 안에서(크기 변화 없이) 열리게 변경', desc:'a92에서 처리방침을 설정 좌측 메뉴로 옮기긴 했지만, 누르면 여전히 openPolicy()로 별도 팝업(policyModal, 설정 창 위에 겹쳐 뜸)이 뜨는 방식이었음 — 구흥모님 요청: "AI·개인정보 안내"처럼 설정 창 크기를 바꾸지 않고 설정 창 "안에서" 열리게 해달라고 함. "🔒 개인정보 처리방침" 메뉴를 다른 메뉴(계정/AI·개인정보 안내/보안)와 완전히 같은 방식의 네 번째 패널(setPanePolicy)로 바꿈 — SETTINGS_PANES 배열에 policy를 추가하고, 버튼 클릭도 openPolicy() 대신 switchSettingsPane("policy")로 변경. 패널 내용은 기존 POLICY_TEXT_V1(전체 처리방침 텍스트)을 그대로 표시(openSettings()를 열 때마다 setPolicyBody에 채워 넣음). policy 패널도 SETTINGS_PANES에 포함되므로 a91의 applySettingsFixedHeight()가 "계정" 탭 기준 고정 높이를 잴 때 자동으로 함께 숨겨졌다 복원되어, 이 패널로 전환해도 설정 창 크기가 커지거나 작아지지 않고 내용은 그 안에서 스크롤됨(다른 탭과 동일한 동작). 화면 하단(첫 화면 composer)의 별도 처리방침 버튼과 policyModal 자체(openPolicy/closePolicy)는 그대로 남겨둠(그 위치는 여전히 독립 팝업 방식 유지 — 이번 변경은 설정 창 안 메뉴에 한함). v4.html 내부만으로 완결(서버/DB 변경 없음). (구흥모님 요청)'},
     {tag:'v4-track a92', date:'2026-09-16', title:'설정의 "🔒 개인정보 처리방침"을 좌측 메뉴(탭)로 이동 — a91에서 AI·개인정보 안내/보안 탭 하단에 넣었던 건 요청 취지와 다른 위치였음', desc:'구흥모님이 a91에서 요청한 "설정에 🔒 개인정보 처리방침 버튼 추가"는 "AI·개인정보 안내" 탭 안 하단이 아니라, 설정 좌측 메뉴(계정/AI·개인정보 안내/보안과 같은 레벨)에 별도 메뉴 항목으로 넣어달라는 뜻이었음(설명 부족으로 오해 발생, 구흥모님이 바로잡음). a91에서 "AI·개인정보 안내" 탭 맨 아래와 "보안(암호화 키)" 탭 맨 아래 두 곳에 넣었던 인라인 버튼을 모두 제거하고, 설정 좌측 메뉴(.setNav)에 "🔒 개인정보 처리방침" 항목을 하나 추가 — 다른 메뉴(계정/AI·개인정보 안내/보안)처럼 별도 패널로 전환하는 게 아니라, 누르면 바로 기존 전체 처리방침 팝업(openPolicy(), POLICY_TEXT_V1)이 뜨도록 함(SETTINGS_PANES 배열에는 넣지 않음 — 콘텐츠 패널이 없는 즉시 실행 메뉴이므로 applySettingsFixedHeight()의 높이 측정 로직과도 무관). v4.html 내부만으로 완결(서버/DB 변경 없음). (구흥모님 요청/정정)'},
@@ -2870,7 +2867,8 @@
     lockMainInput();
     botTyping(function(){
       botMsgHTML('상황 입력 없이 진행합니다. 아래에서 긴급성·위기사유를 직접 선택해 주세요.');
-      botCard('① 위기사유·긴급성', '<div style="font-size:1.11rem;color:var(--mut);margin-bottom:10px">긴급성과 해당하는 위기사유를 선택해 주세요.</div>' + TPL_CRISIS, '다음 ▸', ()=>goHousehold(), 'crisis');
+      showStepBar(); // v4-track a95: "① 위기사유·긴급성" 카드가 실제로 뜨는 시점에 진행순서 점 표시 시작
+    botCard('① 위기사유·긴급성', '<div style="font-size:1.11rem;color:var(--mut);margin-bottom:10px">긴급성과 해당하는 위기사유를 선택해 주세요.</div>' + TPL_CRISIS, '다음 ▸', ()=>goHousehold(), 'crisis');
       renderCrisis();
     });
   }
@@ -3110,6 +3108,10 @@
   function scroll(){ var c=document.getElementById('chat'); c.scrollTop=c.scrollHeight; }
 
   /* 단계 표시 */
+  /* v4-track a95: 진행순서 점(#steps)을 첫 화면(welcome)에서는 숨기고, "① 위기사유·긴급성" 카드가
+     실제로 뜨는 시점(및 저장된 사례를 이어할 때)에만 보이게 함. */
+  function showStepBar(){ var sb=document.getElementById('steps'); if(sb) sb.classList.add('show'); }
+  function hideStepBar(){ var sb=document.getElementById('steps'); if(sb) sb.classList.remove('show'); }
   function setStep(i){
     step=i; var els=document.querySelectorAll('#steps .s');
     els.forEach(function(s,idx){ s.classList.toggle('done', idx<i); s.classList.toggle('on', idx===i); });
@@ -3130,7 +3132,7 @@
     memoAiGenerated = false; docManualOverrideActive = false; docManualOverrideText = ''; // v4-track a81: 새 상담이므로 메모·저장된 hwpx 수정본도 초기화
 
     _activeRecCard = null; // 새 상담이므로 이전 녹음결과 카드 참조를 끊어서 다음 녹음이 새 카드로 시작되게 함
-    step=0; setStep(0);
+    step=0; setStep(0); hideStepBar(); // v4-track a95: 새 상담 시작(첫 화면)에서는 진행순서 점을 다시 숨김
     chat.innerHTML=''; var w=document.createElement('div'); w.className='welcome';
     w.innerHTML='<div class="wmark">'+LOGO_HTML+'</div><h1>어떤 이웃을 만나셨나요?</h1><p>대상자 유형을 고르고, 상황을 <b>말하거나('+MICSVG+') 입력</b>하면<br>긴급지원 판단부터 상담일지까지 단계별로 도와드려요.</p>'
       +'<button onclick="skipToFlow()" style="margin-top:16px;background:var(--accent-soft);color:var(--accent-ink);border:1.5px solid var(--accent);border-radius:22px;padding:10px 20px;font-size:1.17rem;font-weight:700;cursor:pointer;font-family:inherit">상황 입력 없이 바로 진행 ▸</button>'
@@ -4613,10 +4615,15 @@ ${d.memo ? '\n6. 상담내용·상담의견·조치사항\n   '+indentLines(d.me
     + "6. 문의처\n   사단법인 인천내일을여는집 — homenaeil@naver.com\n\n"
     + "※ 이 안내는 서비스 운영 중 지속적으로 보완됩니다. 최신 버전은 이 화면에서 항상 확인할 수 있습니다.";
 
+  /* v4-track a96: "지금은 프로토타입이라 실제 판정 로직은 현장 도입 시 정식으로 연결될 예정"이라는
+     문구는 a46(2026-09-10) 시점, 즉 판정 로직이 아직 실제로 붙기 전 UI 시안 단계에서 쓴 것인데,
+     그 이후(v4-track 여러 버전을 거치며) 실제 긴급복지지원 소득·재산 기준 판정 로직과 실제 사유서
+     (.hwpx) 양식 생성까지 이미 다 구현되어 지금은 그대로 동작 중임 — 문구가 실제 완성도를 실제보다
+     낮게 설명하고 있어서 바로잡음(구흥모님 요청으로 안내 텍스트 전체 점검 중 발견). */
   var APP_INFO_TEXT_V1 =
 "이어짐은 거리 노숙인·쪽방 주민·위기가구 등 현장에서 이웃을 만나는 상담원을 위한 웹 앱이에요.\n" +
-"상황을 말하거나 입력하면 AI가 내용을 정리해서 긴급복지 지원 대상 여부를 빠르게 확인하고, 상담일지 초안까지 자동으로 만들어드려요.\n\n" +
-"지금은 <AI 챌린지 해> 해커톤을 위해 만든 프로토타입이에요 — 실제 판정 로직과 서비스 연계는 현장 도입 시 정식으로 연결될 예정입니다.\n\n" +
+"상황을 말하거나 입력하면 AI가 내용을 정리해서 긴급복지 지원 대상 여부(소득·재산 기준)를 실제 판정 로직으로 확인하고, 실제 사유서 양식(.hwpx) 초안까지 자동으로 만들어드려요.\n\n" +
+"<AI 챌린지 해> 해커톤 본선 과제로 개발 중인 서비스로, 지금도 현장에서 직접 써보며 계속 다듬고 있어요 — 다른 기관과의 정식 연계·배포는 챌린지 이후 별도로 계획할 예정입니다.\n\n" +
 "로그인하면 상담 기록이 계정에 저장되어 다음에 이어서 진행할 수 있어요(로그인하지 않아도 사용은 가능해요).\n\n" +
 "개발 이력은 📜 버전 기록에서, 개인정보 처리 방식은 🔒 개인정보 처리방침에서 확인할 수 있어요.\n\n" +
 "제작: 사단법인 인천내일을여는집";
@@ -4640,6 +4647,26 @@ ${d.memo ? '\n6. 상담내용·상담의견·조치사항\n   '+indentLines(d.me
     var bd = document.getElementById('policyBackdrop'); if(bd) bd.classList.remove('on');
     var md = document.getElementById('policyModal'); if(md) md.classList.remove('open');
   }
+  /* v4-track a96: "🤖 AI·개인정보 안내" 내용을 첫 화면 팝업(aiPrivacyModal)과 설정 > AI·개인정보 안내
+     탭(setPaneAi)에 각각 따로 하드코딩해뒀더니, 나중에 내용을 고칠 때 한쪽만 고치고 다른 쪽을 깜빡할
+     위험이 있음(구흥모님 지적 — 앞으로 이 안내를 수정할 일이 있을 텐데 두 화면 내용이 어긋나지 않게
+     해달라고 요청). 내용을 이 상수 하나로 통일하고, 두 화면 모두 여기서 채워 넣도록 변경 — 앞으로는
+     이 AI_PRIVACY_HTML_V4만 고치면 두 화면에 자동으로 함께 반영됨(설정 쪽은 맨 아래 처리방침 버튼이
+     이제 별도 메뉴로 빠졌으므로 이 상수에는 포함하지 않고, 첫 화면 팝업에서만 그 버튼을 별도로 붙임). */
+  var AI_PRIVACY_HTML_V4 =
+      '<div style="font-weight:800;margin-bottom:.4rem;font-size:1.4rem">🤖 AI를 쓴다는 게, 정보가 새어나간다는 뜻은 아니에요</div>'
+    + '<div class="note" style="margin-bottom:.8rem;line-height:1.65">이어짐은 상담 내용을 글로 옮기고 항목을 정리하는 데 AI(인공지능)를 사용해요. 옆에서 타이핑을 도와주는 <b>보조 도구</b>를 쓰는 것과 비슷하다고 생각하시면 돼요.</div>'
+    + '<div class="note" style="background:var(--surface-2);border-radius:10px;padding:10px 12px;margin-bottom:.6rem;line-height:1.6"><b>✅ AI가 이 대화를 "기억"하거나 다른 사람에게 보여주지 않아요.</b><br>그 순간 내용을 정리하는 데만 잠깐 쓰이고, AI 학습에는 전혀 사용되지 않아요.<br><span style="font-size:1.05rem;color:var(--mut)">— 출처: OpenAI(AI 처리 업체) 개인정보 처리방침</span></div>'
+    + '<div class="note" style="background:var(--surface-2);border-radius:10px;padding:10px 12px;margin-bottom:.6rem;line-height:1.6"><b>✅ 계속 저장되는 게 아니에요.</b><br>정리에 쓰인 뒤 악용 방지 목적으로 잠깐 보관되고, 최대 30일 안에 자동으로 삭제돼요.<br><span style="font-size:1.05rem;color:var(--mut)">— 출처: OpenAI(AI 처리 업체) 개인정보 처리방침</span></div>'
+    + '<div class="note" style="background:var(--surface-2);border-radius:10px;padding:10px 12px;margin-bottom:1rem;line-height:1.6"><b>✅ 아무나 볼 수 있는 게 아니에요.</b><br>상담 기록은 암호화되어 저장되고, 담당 상담원만 열어볼 수 있어요.<br><span style="font-size:1.05rem;color:var(--mut)">— 출처: 이어짐 자체 보안 설계(Supabase 암호화·접근제한)</span></div>'
+    + '<div class="note" style="background:var(--bad-bg);color:var(--bad);border-radius:10px;padding:10px 12px;margin-bottom:.6rem;line-height:1.6;font-weight:700">🚫 단, 주민등록번호는 절대 안 돼요.<br><span style="font-weight:500">위 안내와 별개로, 주민등록번호는 대상자 동의를 받아도 AI로 처리할 수 없어요 — 법령에 정해진 예외 상황이 아닌 한 그 자체로 위반이에요.</span><br><span style="font-size:1.05rem">— 근거: 개인정보보호법 제24조의2(주민등록번호 처리의 제한), 위반 시 과태료 최대 3천만원</span></div>'
+    + '<div class="note" style="background:var(--accent-soft);color:var(--accent-ink);border-radius:10px;padding:10px 12px;margin-bottom:1rem;line-height:1.6"><b>ℹ️ 그럼 이름·주소·연락처는요?</b><br>주민등록번호와 달리 이름·주소·연락처 같은 일반 개인정보는, <b>지금처럼 AI 처리·30일 삭제·국외 이전 사실을 미리 안내</b>하면 별도 동의 없이도 AI 처리에 활용할 수 있어요.<br><span style="font-size:1.05rem">— 근거: 개인정보보호법 제28조의8 제1항 제3호(계약 이행을 위한 처리위탁·사전공개)</span></div>'
+    + '<div style="font-weight:700;margin-bottom:.3rem">💬 대상자에게는 이렇게 설명해보세요</div>'
+    + '<div class="note" style="background:var(--accent-soft);color:var(--accent-ink);border-radius:10px;padding:10px 12px;font-weight:600;line-height:1.6;margin-bottom:.8rem">"요즘 병원에서 진료 내용을 녹음해서 자동으로 기록 정리하는 것처럼, 저희도 AI로 대화 내용을 빠르게 정리하는 데 쓰고 있어요. 다른 데 쓰이거나 계속 저장되는 게 아니라, 정리가 끝나면 금방 지워지니까 편하게 말씀하셔도 돼요."</div>';
+  (function fillAiPrivacyContent(){
+    var a = document.getElementById('aiPrivacyBody'); if(a) a.innerHTML = AI_PRIVACY_HTML_V4;
+    var b = document.getElementById('setPaneAiBody'); if(b) b.innerHTML = AI_PRIVACY_HTML_V4;
+  })();
   function openAiPrivacyInfo(){
     var bd = document.getElementById('aiPrivacyBackdrop'); if(bd) bd.classList.add('on');
     var md = document.getElementById('aiPrivacyModal'); if(md) md.classList.add('open');
