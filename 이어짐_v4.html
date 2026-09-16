@@ -116,6 +116,11 @@
   .floatBtn{position:fixed;top:8px;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow-md);z-index:20;display:grid;place-items:center;font-size:1.1rem;cursor:pointer;color:var(--ink)}
   .floatBtn.left{left:8px}
   .floatBtn.right{right:8px}
+  /* v4-track a88: 처음 접속한 사람에게만(로그인/사이드바 존재를 모를 수 있어) 좌상단 메뉴 버튼을
+     가리키는 말풍선 — .privBubble과 같은 모양이지만 버튼 "아래"에 떠서 위쪽을 가리키도록 꼬리 위치만 반대 */
+  .menuHintBubble{position:fixed;top:52px;left:8px;max-width:190px;background:var(--ink);color:var(--surface);font-size:1.02rem;line-height:1.5;padding:9px 11px;border-radius:10px;box-shadow:var(--shadow-md);z-index:21;display:none;font-weight:600}
+  .menuHintBubble.show{display:block}
+  .menuHintBubble::after{content:'';position:absolute;top:-5px;left:16px;width:10px;height:10px;background:var(--ink);transform:rotate(45deg)}
   .iconbtn:hover{background:var(--surface-2)}
   .toptitle{flex:1;min-width:0;text-align:center;line-height:1.15}
   .toptitle .ttl{font-weight:800;font-size:1.1rem;letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -427,6 +432,7 @@
   <!-- 메뉴(☰)·버전기록(📜) 버튼 — 화면 위에 떠있는 별도 버튼(2026-09-04, 상단바 폭을 줄이기 위해 분리) -->
   <button class="floatBtn left" onclick="toggleSide()" title="메뉴">☰</button>
   <button class="floatBtn right" onclick="openVersion()" title="버전 기록">📜</button>
+  <div class="menuHintBubble" id="menuHintBubble">👆 여기를 눌러<br>로그인/회원가입 하세요</div>
 
   <!-- 메인 -->
   <main class="main">
@@ -1376,8 +1382,25 @@
     runAutoFillStepsV4(ex);
   }
 
+  /* v4-track a88: 처음 접속한 사람은 사이드바가 있다는 것 자체를 모르고 로그인을 안 하고 지나쳐서(현장
+     피드백), 좌상단 메뉴 버튼(☰)을 가리키는 말풍선을 최초 1회만 띄워줌 — 메뉴 버튼을 누르거나(사이드바가
+     열리거나) 화면 아무 곳이나 한 번 누르면 다시는 안 뜨도록 localStorage에 기록. */
+  var MENU_HINT_KEY = 'ieojim_menu_hint_seen_v1';
+  function showMenuHintIfNeeded(){
+    try{ if(localStorage.getItem(MENU_HINT_KEY)) return; }catch(e){}
+    var b = document.getElementById('menuHintBubble');
+    if(b) b.classList.add('show');
+    try{ document.addEventListener('click', dismissMenuHint, {once:true, capture:true}); }catch(e){}
+  }
+  function dismissMenuHint(){
+    try{ localStorage.setItem(MENU_HINT_KEY, String(Date.now())); }catch(e){}
+    var b = document.getElementById('menuHintBubble');
+    if(b) b.classList.remove('show');
+  }
+
   /* 사이드바 (기본 숨김 · 오버레이) */
   function toggleSide(){
+    dismissMenuHint();
     var s=document.getElementById('side'), b=document.getElementById('backdrop'), r=document.getElementById('rail');
     var opening = !s.classList.contains('open');
     s.classList.toggle('open', opening);
@@ -2096,6 +2119,7 @@
      VERSION_LOG 배열 맨 앞에 새 항목을 추가할 것. 같은 날 여러 건이면 tag만 올려서(v0.x) 여러 줄 추가.
      "나중에 몰아서 기록"은 누락으로 이어지므로, 수정 직후 그 자리에서 바로 추가할 것. */
   var VERSION_LOG = [
+    {tag:'v4-track a88', date:'2026-09-16', title:'좌상단 메뉴(☰) 버튼을 처음 접속한 사람에게 알려주는 말풍선 추가 — "여기를 눌러 로그인/회원가입 하세요"', desc:'구흥모님 현장 피드백: 휴대폰 화면에서는 사이드바가 기본적으로 숨겨져 있고 좌상단에 작은 메뉴 버튼(☰)만 있어서, 처음 쓰는 사람은 사이드바가 있는지 자체를 몰라 로그인을 안 하고 지나침. 좌상단 메뉴 버튼(.floatBtn.left) 바로 아래에 "👆 여기를 눌러 로그인/회원가입 하세요" 말풍선(#menuHintBubble)을 추가해서, 처음 접속(최초 1회, localStorage ieojim_menu_hint_seen_v1)에만 보이게 함. 메뉴 버튼을 누르거나(사이드바 열림) 화면 아무 곳이나 한 번 클릭하면 즉시 사라지고 다시는 뜨지 않음(document 클릭 캡처 리스너 1회용 + toggleSide() 안에서도 명시적으로 dismiss). 최초 방문이라 "시작 전 확인해주세요" 정책 게이트(gateOverlay)가 함께 뜨는 경우, 게이트가 화면 최상단(z-index 9999)을 덮고 있어 말풍선은 그 뒤에 가려 실제로는 안 보이는데, 게이트 확인 버튼을 누르는 그 클릭이 document 캡처 리스너에 걸려 "봤음"으로 잘못 기록돼버리는 문제를 피하기 위해, 말풍선 노출은 게이트가 이미 확인된 재방문자는 showGateIfNeeded()에서 바로, 게이트를 방금 확인한 최초 방문자는 ackGate()에서 게이트를 닫은 다음에 띄우도록 분리함. v4.html 내부만으로 완결(서버/DB 변경 없음). (구흥모님 요청)'},
     {tag:'v4-track a87', date:'2026-09-16', title:'AI·개인정보 안내를 로그인 없이도 첫 화면에서 볼 수 있게 이동 + 녹음 시간 표시 위치를 채팅 입력창에서 마이크 버튼 아래로 변경', desc:'구흥모님 요청 2가지. [1 — AI·개인정보 안내 위치] 기존에는 설정(⚙️)의 "AI·개인정보 안내" 탭에 있는 자세한 안내(이 대화를 기억하지 않는다/30일 삭제/암호화 저장 등)가 로그인해야만 볼 수 있는 구조였음(v0.22부터 설정은 로그인 안 하면 로그인 화면부터 뜸) — 정작 유익한 내용인데 로그인 안 한 사람은 볼 수 없었던 문제. 첫 화면(환영 화면)의 기존 "🔒 개인정보 처리방침(AI 처리·저장 안내)" 한 줄 버튼 자리에, 설정 AI 탭과 같은 내용의 "🤖 AI·개인정보 안내" 펼침(details/summary, 기본은 접힌 상태)을 새로 추가해서 로그인 여부와 무관하게 누구나 펼쳐볼 수 있게 함. 기존에 그 자리에 있던 전체 법적 처리방침(POLICY_TEXT_V1) 버튼은 이 펼침 안 맨 아래로 그대로 옮김(내용·기능 동일, openPolicy() 그대로 사용). 설정(⚙️) → AI·개인정보 안내 탭 쪽은 기존 안내 내용은 그대로 두고, 맨 아래 "전체 개인정보 처리방침 자세히 보기" 링크를 첫 화면과 똑같은 문구·모양의 "🔒 개인정보 처리방침(AI 처리·저장 안내)" 버튼으로 맞춰서(기능은 동일, openPolicy()) 두 화면의 안내 형태를 통일함. [2 — 녹음 시간 표시 위치] 녹음 버튼을 누르면 빨갛게 바뀌면서 뜨는 녹음 시간(●00:00, #recTimer)이 화면 아래쪽 채팅 입력창(composer) 옆에 떠서 마이크 버튼과 멀리 떨어져 있어 알아보기 어렵다는 지적 — #recTimer를 입력창에서 완전히 빼서, 마이크 버튼 바로 아래 "눌러서 상황을 말로 녹음하기" 문구가 있던 자리로 옮김. 평소엔 이 안내 문구(#micHintText)가 보이고, 녹음을 시작하면(toggleRec 시작 시점) 문구가 사라지고 그 자리에 빨간 "●00:00" 타이머가 나타나며, 녹음이 끝나면(onstop) 다시 안내 문구로 돌아오도록 두 지점 모두에 micHintText 표시/숨김 토글을 추가. 정적 HTML(첫 진입 화면)과 resetChat()이 매번 새로 만드는 환영 화면 템플릿 문자열 양쪽 모두에 동일하게 반영(안 그러면 두 번째 상담부터는 안 바뀜 — a62에서 겪었던 것과 같은 유형의 함정이라 미리 둘 다 수정). v4.html 내부만으로 완결(서버/DB 변경 없음). (구흥모님 요청)'},
     {tag:'v4-track a86', date:'2026-09-16', title:'⑦ 상담일지 화면 — "저장" 버튼을 편집 안내 문구보다 위로 순서 변경 + 안내 문구 글자 크기 축소', desc:'구흥모님 요청: "상담일지 초안에서 저장 버튼을 [편집 가능 안내 문구]와 순서 바꿔줘 + 이 글자 텍스트 조금만 작게 해줘". 기존에는 "✏️ 위 상담일지 초안은 직접 고칠 수 있어요..." 안내 문구가 먼저 나오고 그 아래 "저장" 버튼이 있었는데, 순서를 바꿔 "저장" 버튼이 먼저 나오고 안내 문구가 그 아래로 오도록 수정(안내 문구 안의 "고친 뒤 아래 저장을 누르면"도 버튼이 이제 위에 있으므로 "고친 뒤 위 저장을 누르면"으로 함께 수정). 또한 이 안내 문구의 글자 크기를 기존 note 기본 크기보다 살짝 작게(font-size:0.92em) 줄임. v4.html 내부만으로 완결(서버/DB 변경 없음). (구흥모님 요청)'},
     {tag:'v4-track a85', date:'2026-09-16', title:'사진·서류 첨부 버튼 삭제(미구현 UI 시안이었음) + 시작 시 뜨는 팝업 중 "1주일간 보지 않기" 체크리스트 팝업 완전 삭제', desc:'구흥모님 요청: "사진/문서 첨부기능 삭제해줘. 시작 시 팝업 뜨는거 두개 있는데 1주일간 뜨지 않는 팝업창은 지워줘". [1 — 사진·서류 첨부] 입력 바 ＋메뉴의 "🖼️ 사진·서류 첨부" 버튼은 실제로 사진·서류를 첨부하는 기능이 아니라 클릭하면 "이 기능은 사이드바에 숨겨뒀다(UI 시안)"는 안내만 뜨는 미구현 자리표시자였음(sideInfo() 호출) — 버튼과, 더 이상 쓰이는 곳이 없어진 sideInfo() 함수를 함께 삭제. ＋메뉴에는 이제 원래 실제로 동작하는 "🎧 녹음 파일 올리기"만 남음. [2 — 팝업 삭제] 시작 시 뜨는 두 팝업 중 "1주일간 보지 않기" 버튼이 있던 쪽은 a74에서 만든 "📋 상담 자리에서 꼭 확인하세요" 체크리스트 팝업(precheckOverlay)이었음(다른 하나인 개인정보 처리방침 최초 안내 게이트(gateOverlay)는 "1주일간 보지 않기" 버튼이 없으므로 그대로 유지) — precheckOverlay의 HTML(팝업 박스·닫기/1주일간 보지 않기 버튼), showPrecheckIfNeeded()/closePrecheck() 함수, PRECHECK_SNOOZE_KEY 변수, 그리고 이를 호출하던 세 지점(showGateIfNeeded 내부, ackGate 끝, resetChat 끝)을 모두 삭제 — showGateIfNeeded()/ackGate()는 원래의 "최초 1회 개인정보처리방침 안내"만 담당하도록 단순화됨. a74~a84에 걸쳐 이 팝업의 스누즈 버그를 찾고 고치던 이력(a82·a83·a84)은 VERSION_LOG에 그대로 남겨둠(기능 자체가 삭제됐지만 그 과정에서 배운 디버깅 교훈은 기록으로서 가치가 있어 보존). 모두 v4.html 내부만으로 완결(서버/DB 변경 없음). (구흥모님 요청)'},
@@ -4547,12 +4571,18 @@ ${d.memo ? '\n6. 상담내용·상담의견·조치사항\n   '+indentLines(d.me
 
   var GATE_ACK_KEY = 'ieojim_policy_ack_v1';
   function showGateIfNeeded(){
-    try{ if(localStorage.getItem(GATE_ACK_KEY)) { return; } }catch(e){}
+    // v4-track a88: 게이트가 이미 확인된(재방문) 경우에만 여기서 바로 메뉴 말풍선을 띄움 — 최초
+    // 방문이라 게이트가 새로 뜨는 경우는 ackGate()에서 게이트를 닫은 "다음"에 띄워야, 게이트 확인
+    // 버튼을 누르는 그 클릭이 document 캡처 리스너에 걸려 말풍선을 보여주기도 전에 "봤음"으로
+    // 잘못 기록해버리는 문제(z-index상 말풍선이 게이트 뒤에 가려 있어 실제로는 안 보였는데도 클릭 한 번에
+    // 사라짐)를 피할 수 있음.
+    try{ if(localStorage.getItem(GATE_ACK_KEY)) { showMenuHintIfNeeded(); return; } }catch(e){}
     var g = document.getElementById('gateOverlay');
     if(g) g.classList.add('on');
   }
   function ackGate(){
     try{ localStorage.setItem(GATE_ACK_KEY, String(Date.now())); }catch(e){}
+    showMenuHintIfNeeded();
     var g = document.getElementById('gateOverlay');
     if(g) g.classList.remove('on');
   }
