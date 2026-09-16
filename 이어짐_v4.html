@@ -674,6 +674,7 @@
           <button class="setNavBtn active" data-pane="acct" onclick="switchSettingsPane('acct')">👤<span>계정</span></button>
           <button class="setNavBtn" data-pane="ai" onclick="switchSettingsPane('ai')">🤖<span>AI·개인정보 안내</span></button>
           <button class="setNavBtn" data-pane="key" onclick="switchSettingsPane('key')">🔐<span>보안(암호화 키)</span></button>
+          <button class="setNavBtn" data-pane="policy" onclick="openPolicy()">🔒<span>개인정보 처리방침</span></button>
         </div>
         <div class="setPanes">
           <div class="setPane" id="setPaneAcct">
@@ -730,8 +731,6 @@
 
       <div style="font-weight:700;margin-bottom:.3rem">💬 대상자에게는 이렇게 설명해보세요</div>
       <div class="note" style="background:var(--accent-soft);color:var(--accent-ink);border-radius:10px;padding:10px 12px;font-weight:600;line-height:1.6;margin-bottom:.8rem">"요즘 병원에서 진료 내용을 녹음해서 자동으로 기록 정리하는 것처럼, 저희도 AI로 대화 내용을 빠르게 정리하는 데 쓰고 있어요. 다른 데 쓰이거나 계속 저장되는 게 아니라, 정리가 끝나면 금방 지워지니까 편하게 말씀하셔도 돼요."</div>
-
-      <div style="text-align:center;margin-top:.4rem"><button class="policyLink" onclick="openPolicy()">🔒 개인정보 처리방침(AI 처리·저장 안내)</button></div>
           </div>
           <div class="setPane" id="setPaneKey" hidden>
       <div style="font-weight:800;margin-bottom:.4rem">🔐 개인정보 비밀키</div>
@@ -793,8 +792,6 @@
           <button class="btn small secondary" onclick="toggleKeyRecoverMode()">취소</button>
         </div>
       </div>
-      <div style="border-top:1px solid var(--line);margin:1rem 0 .8rem"></div>
-      <div style="text-align:center"><button class="policyLink" onclick="openPolicy()">🔒 개인정보 처리방침(AI 처리·저장 안내)</button></div>
           </div>
         </div>
       </div>
@@ -2183,6 +2180,7 @@
      VERSION_LOG 배열 맨 앞에 새 항목을 추가할 것. 같은 날 여러 건이면 tag만 올려서(v0.x) 여러 줄 추가.
      "나중에 몰아서 기록"은 누락으로 이어지므로, 수정 직후 그 자리에서 바로 추가할 것. */
   var VERSION_LOG = [
+    {tag:'v4-track a92', date:'2026-09-16', title:'설정의 "🔒 개인정보 처리방침"을 좌측 메뉴(탭)로 이동 — a91에서 AI·개인정보 안내/보안 탭 하단에 넣었던 건 요청 취지와 다른 위치였음', desc:'구흥모님이 a91에서 요청한 "설정에 🔒 개인정보 처리방침 버튼 추가"는 "AI·개인정보 안내" 탭 안 하단이 아니라, 설정 좌측 메뉴(계정/AI·개인정보 안내/보안과 같은 레벨)에 별도 메뉴 항목으로 넣어달라는 뜻이었음(설명 부족으로 오해 발생, 구흥모님이 바로잡음). a91에서 "AI·개인정보 안내" 탭 맨 아래와 "보안(암호화 키)" 탭 맨 아래 두 곳에 넣었던 인라인 버튼을 모두 제거하고, 설정 좌측 메뉴(.setNav)에 "🔒 개인정보 처리방침" 항목을 하나 추가 — 다른 메뉴(계정/AI·개인정보 안내/보안)처럼 별도 패널로 전환하는 게 아니라, 누르면 바로 기존 전체 처리방침 팝업(openPolicy(), POLICY_TEXT_V1)이 뜨도록 함(SETTINGS_PANES 배열에는 넣지 않음 — 콘텐츠 패널이 없는 즉시 실행 메뉴이므로 applySettingsFixedHeight()의 높이 측정 로직과도 무관). v4.html 내부만으로 완결(서버/DB 변경 없음). (구흥모님 요청/정정)'},
     {tag:'v4-track a91', date:'2026-09-16', title:'설정 창이 탭 바꿀 때마다 위아래로 커졌다 작아지던 문제 수정 + "보안(암호화 키)" 탭 맨 아래에도 처리방침 버튼 추가', desc:'구흥모님 지적 2건. [1 — 설정 창 크기 요동] 설정(⚙️)에서 "AI·개인정보 안내" 탭을 누르면 그 탭 내용이 길어서 창이 위아래로 늘어나고, 다시 "계정" 탭으로 돌아오면 줄어드는 문제 — 원인은 .setWrap이 flex:1로 부모(vmodal-body)의 남는 공간을 채우도록만 돼 있고 자체 높이가 없어서, 실제로는 그 순간 화면에 보이는 탭의 내용물 높이에 따라 부모(.vmodal, max-height만 있고 고정 height는 없음)까지 같이 커졌다 작아졌던 것. 새 함수 applySettingsFixedHeight()를 만들어, 설정을 열 때마다(로그인 여부가 바뀌었을 수 있으므로 매번) "계정" 탭을 잠깐 보이는 상태로 만들어 그 실제 내용 높이(scrollHeight)를 재고(다른 탭은 숨긴 채로 잰 뒤 원래 상태로 복원), 그 값(최소 340px, 화면 높이의 70% 상한)을 .setWrap에 고정 height로 박아넣음(flex는 none으로). 이제 "계정" 탭 기준 크기로 창이 고정되고, 그보다 내용이 긴 "AI·개인정보 안내" 탭은 창 크기를 키우지 않고 .setPanes 안에서만 스크롤됨. openSettings()에서 switchSettingsPane() 호출 전에 이 함수를 호출하도록 배치. [2 — 처리방침 버튼 위치] a90에서 이중 스크롤 문제를 고쳐 "AI·개인정보 안내" 탭 맨 아래 "🔒 개인정보 처리방침(AI 처리·저장 안내)" 버튼은 이제 스크롤하면 보이지만(코드상 삭제된 적 없음, a86부터 계속 존재), 구흥모님이 "보안(암호화 키)" 탭 아래에도 있어야 하지 않겠냐고 제안 — 찾기 쉽도록 "보안(암호화 키)" 탭(setPaneKey) 맨 아래에도 같은 버튼을 추가(기존 AI 탭 것은 그대로 유지, 두 곳 모두에 있음). v4.html 내부만으로 완결(서버/DB 변경 없음). (구흥모님 요청)'},
     {tag:'v4-track a90', date:'2026-09-16', title:'설정 화면 "AI·개인정보 안내" 탭 맨 아래 "🔒 개인정보 처리방침" 버튼이 스크롤해도 안 보이던 진짜 원인 발견·수정(이중 스크롤 어긋남)', desc:'구흥모님 재신고: 설정에 다시 넣어달라고 한 "🔒 개인정보 처리방침(AI 처리·저장 안내)" 버튼이 코드에는 있는데도(a86부터 계속 존재, 삭제된 적 없음) 화면에서 스크롤해도 안 보임. 라이브 배포 사이트를 브라우저 자동화로 직접 열어 DOM·레이아웃을 측정해 원인 확정: 설정 화면은 바깥 스크롤(#settingsModal .vmodal-body)과 안쪽 스크롤(.setPanes) 두 겹으로 스크롤되는 구조인데, 안쪽 콘텐츠 영역(.setWrap)에 부모(vmodal-body)의 실제 사용 가능 높이와 무관하게 독립적으로 max-height:70vh를 고정해 둬서, 실제로는 그보다 좁은 부모 공간보다 setWrap이 더 커지는 경우가 생겼음(이번 경우 부모는 약 476px인데 setWrap은 70vh인 약 520px로 44px 더 큼). 그 결과 안쪽 스크롤(.setPanes)을 아무리 끝까지 내려도, 그 안에 있던 맨 아래 콘텐츠(처리방침 버튼)가 바깥 스크롤이 채워주지 않은 44px만큼 뷰포트 아래로 밀려나 화면 밖에 걸려버림 — "스크롤은 끝까지 내렸는데 실제로는 화면 밖" 상태라 사용자 입장에서는 그냥 "안 보인다"로만 느껴졌던 것(실제 좌표를 재서 확인: 안쪽 스크롤 끝까지 내린 버튼의 화면상 bottom 좌표가 뷰포트 높이보다 컸음). 수정: #settingsModal .vmodal-body를 세로 flex 컨테이너로 만들어 바깥 스크롤을 아예 없애고(overflow:hidden), .setWrap은 고정 vh 값 대신 flex:1로 부모가 실제로 내어주는 공간만큼만 정확히 채우도록 변경 — 이제 스크롤은 오직 .setPanes 한 곳에서만 일어나고, 그 스크롤을 끝까지 내리면 실제로 뷰포트 안에 다 들어옴(라이브 페이지에 수정 CSS를 직접 주입해 좌표로 재검증 완료: 스크롤 후 버튼 bottom 좌표가 뷰포트 높이 이내로 들어옴 확인). 계정·보안(암호화 키) 탭 등 다른 탭들도 내용이 길어지면 같은 문제를 겪을 수 있었는데 이번 수정으로 전부 함께 해소됨. v4.html 내부만으로 완결(서버/DB 변경 없음, 배포 사이트에서 원인 확정 후 로컬 파일에 반영). (구흥모님 재신고 대응)'},
     {tag:'v4-track a89', date:'2026-09-16', title:'메뉴 말풍선 z-index 수정 + AI·개인정보 안내를 팝업으로 변경 + 사이드바 계정 메뉴 정리("설정" 이름 변경·로그인 없이 열림) + 소속(org)을 다시 자유입력으로 되돌림(a72 반대) + 계정 저장 버튼 통합', desc:'구흥모님 요청 여러 건을 한 번에 처리. [1] a88에서 추가한 좌상단 메뉴 말풍선(#menuHintBubble)이 사이드바(.side, z-index 40)보다 아래(21)에 있어 사이드바가 펼쳐져 있으면 가려지던 문제 — z-index를 46(사이드바 계정 팝업 메뉴 .acctMenu와 같은 값)으로 올려 항상 위에 뜨게 수정. [2] 첫 화면의 "🤖 AI·개인정보 안내"가 a87에서는 details/summary로 펼치면 화면 안에서 아래로 밀리며 스크롤이 생기는 방식이었는데, 이를 다른 안내들(개인정보 처리방침·이어짐 정보)과 통일된 팝업(바텀시트, #aiPrivacyModal/openAiPrivacyInfo)으로 변경 — 설정 > AI·개인정보 안내 탭과 완전히 같은 내용을 담되 별도 id로 분리해 두 화면이 서로 영향 없이 동작. resetChat()이 매번 새로 그리는 환영 화면 템플릿에도 이 버튼을 빠뜨리지 않고 반영(a87에서 정적 HTML에만 넣고 이 템플릿엔 못 넣었던 걸 이번에 같이 바로잡음 — 안 그러면 새 상담부터는 버튼 자체가 사라짐). [3] 사이드바 계정(▾) 팝업 메뉴 맨 위에 있던 "눌러서 로그인/회원가입"(로그인 전) 또는 이메일(로그인 후) 표시 줄을 삭제(불필요한 중복 정보 — 아래 이름/로그인 버튼으로 충분). "계정 설정" 항목 이름을 "설정"으로 변경. [4] 지금까지 openSettings()는 로그인 안 하면 설정 화면 자체를 못 열고 로그인 화면부터 띄웠는데, 설정 안의 "AI·개인정보 안내" 탭처럼 로그인과 무관하게 누구나 봐야 하는 내용까지 덩달아 막고 있었음(구흥모님 지적) — 이제 로그인 여부와 관계없이 항상 설정 화면이 열리고, "계정" 탭 안에서만 로그인 여부에 따라 이름·소속 입력 폼(로그인 시) 또는 "로그인/회원가입" 안내(비로그인 시)를 보여줌. 비로그인으로 열었을 때는 계정 탭 대신 "AI·개인정보 안내" 탭이 기본으로 먼저 보이게 함. [5] 소속(org): a72(어제, 2026-09-15)에서 "실제 상담원이 아닌 사람이 소속을 마음대로 입력해 상담일지에 그 기관명이 찍히는 문서 위조 위험"을 이유로 회원가입·계정설정 모두 고정값(ORG_NAME)으로 잠갔었는데, 구흥모님이 이번에 그 위험을 인지한 채로 다시 자유입력으로 풀어달라고 명시적으로 재확인함(질문으로 재확인 후 "그래도 자유입력으로 변경" 선택) — 회원가입 화면의 소속 입력칸을 고정 표시에서 다시 일반 입력창(#authOrg, 기본값만 ORG_NAME으로 채워두고 자유롭게 고칠 수 있음)으로, 계정 설정 화면도 동일하게(#setOrg) 되돌림. 상담일지(hwpx) 3곳의 ORG_LINE도 항상 ORG_NAME을 쓰던 것을 다시 "로그인한 상담원이 저장한 소속이 있으면 그 값, 없으면 ORG_NAME" 방식(a28 원래 설계)으로 되돌림 — 문서 위조 위험은 a72 이전 상태로 재발함(구흥모님 확인 완료). [6] 계정 설정의 "이름 저장" 버튼을 "저장"으로 이름 바꾸고, 이름과 소속을 함께 저장하도록 saveNameChange() 확장(소속도 비어있으면 저장 막음). v4.html 내부만으로 완결(서버/DB 변경 없음 — org는 이미 기존 counselor_profiles.org 컬럼 그대로 사용). (구흥모님 요청)'},
