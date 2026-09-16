@@ -2202,6 +2202,7 @@
      VERSION_LOG 배열 맨 앞에 새 항목을 추가할 것. 같은 날 여러 건이면 tag만 올려서(v0.x) 여러 줄 추가.
      "나중에 몰아서 기록"은 누락으로 이어지므로, 수정 직후 그 자리에서 바로 추가할 것. */
   var VERSION_LOG = [
+    {tag:'v4-track a103', date:'2026-09-16', title:'한글(.hwpx) "저장 후 다운로드" 안 열리는 문제 — a100~a102 세 차례 수정에도 계속 재현된다는 재신고 대응, 접근 자체를 바꿔 재작성(새 문단을 만들지 않고 기존 문단 안에서 줄바꿈만 처리) + 버전기록 화면이 a94에서 끊겨 보이던 원인도 함께 발견·수정', desc:'[hwpx] a100(linesegarray 추가)·a101(styleIDRef 타입 수정)·a102(paraPrIDRef를 실사용 검증값으로 교체)까지 세 번 고쳤는데도 구흥모님이 직접 만든 실제 파일이 계속 "손상" 오류로 안 열림 — 매번 "이 정도면 맞을 것"이라고 새 문단의 모양(어떤 paraPrIDRef·styleIDRef·charPrIDRef·linesegarray를 줘야 하는지)을 추정해서 채워 넣는 방식 자체가 근본적으로 불안정했다고 판단, 접근을 바꿈. 메모의 여러 줄을 각각 새 <hp:p> 문단으로 쪼개 넣는 대신(그러면 그 새 문단의 모양을 매번 추정해야 함), 원래 있던 문단({{MEMO_LINE}} 자리표시자 자신)은 손대지 않고 그 안의 텍스트에 <hp:lineBreak/>(문단 안 줄바꿈)만 넣는 방식으로 전환 — 마침 템플릿 안에 이미 이 방식으로 두 줄을 표현하는, 실제로 여는 예시가 있었음("[공적] 생계지원<hp:lineBreak/>[기관 자체·즉시] 식사대용..." 문단, linesegarray 안에 줄 수만큼 <hp:lineseg>가 반복됨). 이 방식은 문단 자체를 하나도 새로 만들지 않으므로(문단 수가 원본 템플릿과 항상 동일하게 유지됨), 지난 세 번의 수정이 매번 추정해야 했던 "새 문단의 올바른 모양"이라는 문제 자체가 아예 사라짐 — 원래 문단의 id·paraPrIDRef·styleIDRef·글머리표 run은 그대로 두고, {{MEMO_LINE}} 자리의 run 텍스트만 줄바꿈 포함 긴 텍스트로 바꾸고, 그 문단에 원래 있던 단 하나의 <hp:lineseg>를 형판 삼아 줄 수만큼 복제해 넣음(정확한 픽셀 좌표는 한글이 열 때 다시 계산하는 캐시 값으로 보여 줄 수만 맞춤). buildAiHwpxParagraphs()는 삭제하고 buildMultilineParagraph()로 교체, fillHwpxTemplateWithMulti()도 이에 맞춰 수정. Node.js 재현 검증: 수정 전에는 매번 "새 문단 22~23개, 그 문단들의 모양"이 문제였는데, 수정 후에는 전체 문서의 문단 수(45개)가 원본 템플릿과 정확히 일치하고 linesegarray도 45개로 1:1 대응, 생성된 새 문단은 0개(테스트 함수명은 fabricated-paragraph count로 확인) — zip 유효·XML well-formed도 재확인. [버전기록 화면 끊김] 별개로 구흥모님이 "버전기록이 a94에서 스크롤이 끝나는 것처럼 보인다"고 신고 — 확인해보니 VERSION_LOG 데이터 자체는 안 끊겼고(v0.1까지 다 있음), renderVersion()이 title·desc를 이스케이프 없이 그대로 innerHTML에 넣고 있던 게 원인이었음. a100~a102 항목을 작성하며 설명 중에 실제 hwpx XML 태그(<hp:p>, <hh:paraPr>, <hp:linesegarray> 등)를 코드 인용하듯 그대로 적었는데, 이게 진짜 HTML 태그로 해석되면서 그 지점부터 브라우저가 나머지 목록을 제대로 못 그리고 깨졌던 것(a94 근처가 마침 그 경계와 맞아떨어져 "거기서 끊긴 것"처럼 보였던 것). htmlEscapeForLog()를 추가해 tag·date·title·desc 네 필드 모두 화면에 넣기 전 <, >, & 를 이스케이프하도록 수정 — 앞으로 버전기록에 코드·태그를 그대로 인용해도 화면이 깨지지 않음. [정직한 한계] hwpx 쪽은 이번에도 실제 한글 프로그램으로 최종 확인은 못 했음 — 다만 이번엔 추정을 최소화하고(새 문단 모양을 아예 안 만듦) 템플릿에 이미 있던 실제 작동 패턴을 그대로 재사용했다는 점에서 지금까지 중 가장 근거가 탄탄한 수정. 그래도 재현되면 이번에도 실제 파일을 보내주세요. v4.html 내부만으로 완결(서버/DB 변경 없음). (구흥모님 재신고 대응, Claude 세션)'},
     {tag:'v4-track a102', date:'2026-09-16', title:'한글(.hwpx) "저장 후 다운로드" 안 열리는 문제 — a100·a101 반영본으로도 재현된다는 재확인(구흥모님이 그 코드로 만든 실제 파일을 다시 보내주심) 대응, 세 번째 원인 발견·수정 — 실제 문서에서는 단 한 번도 쓰인 적 없는 "정의만 있는" paraPrIDRef="0"을 문단 모양으로 참조하고 있었음', desc:'구흥모님이 a100·a101이 반영된 코드로 직접 만든 hwpx 파일을 다시 보내주셔서 확인해보니(파일에 이미 <hp:linesegarray> 정상 포함·styleIDRef="3" 완전히 제거된 상태였음, 즉 a100·a101은 제대로 적용됐는데도) 여전히 "손상" 오류가 재현됨을 확인. [재조사] 지금까지 근거 없이 "무난해 보인다"고 골랐던 paraPrIDRef="0"이 실제로 정상적으로 열리는 파일(working 참조본)이나 원본 템플릿 그 어디에도 단 한 번도 실제 문단에 쓰인 적이 없다는 걸 뒤늦게 확인함 — header.xml에 "정의"만 있을 뿐 한글이 실제로 저장한 문서에서는 한 번도 참조되지 않는 값이었다는 뜻이라, 문단에 이 값을 넣는 것 자체가 실제로 유효한지 검증된 적이 없었음(a66 때 "정의를 읽어보니 무난해 보인다"고 판단한 게 처음부터 실증 없는 추정이었음). 반면 애초에 템플릿에 있던 {{MEMO_LINE}} 자리표시자 문단 자체가 원래 paraPrIDRef="32"였고(글머리표 "•" 문단 모양), 이 값은 실제 열리는 문서에서 6번이나 반복 사용되는 검증된 값. [조치] buildAiHwpxParagraphs()의 paraPrIDRef를 "0"(정의만 있고 실사용 이력 없음)에서 "32"(원래 자리표시자 자신이 쓰던, 실제로 반복 검증된 문단 모양)로 교체. 함께 채워 넣었던 <hp:linesegarray> 값도 paraPrIDRef="32"를 실제로 쓰는 진짜 문단(작업 파일에서 그대로 추출)의 값(vertsize/baseline/spacing/horzpos/horzsize)으로 교체 — a100 때 임의로 조합했던 값 대신 실제 사용 사례를 그대로 복제. styleIDRef="0"·charPrIDRef="0"은 이번에 다시 확인해도 실제 문서에서 각각 반복 사용되는 값이라 그대로 유지. Node.js 재현으로 zip 유효·XML well-formed 유지 및 생성 문단 전부가 paraPrIDRef="32"로 바뀐 것을 확인. [정직한 한계] 이번에도 실제 한글 프로그램으로 최종 확인은 못 했음 — 다만 이번 선택은 추정이 아니라 "실제로 열리는 문서에 이미 여러 번 쓰인 값을 그대로 재사용"하는 방식이라 이전 두 차례보다 근거가 더 직접적임. 그래도 재현되면 이번에도 실제 파일을 보내주세요 — 계속 이런 식으로 하나씩 검증하며 좁혀가겠습니다. v4.html 내부만으로 완결(서버/DB 변경 없음). (구흥모님 재신고 대응, Claude 세션)'},
     {tag:'v4-track a101', date:'2026-09-16', title:'한글(.hwpx) "저장 후 다운로드" 안 열리는 문제 — a100(linesegarray 추가)으로도 해결 안 됐다는 재신고 대응, 두 번째 구조적 결함 발견·수정 — buildAiHwpxParagraphs()가 만드는 문단이 문자 스타일(CHAR)을 문단 스타일(styleIDRef)로 잘못 참조하고 있었음', desc:'구흥모님이 a100 반영 후에도 "전혀 해결 안 됨"이라고 재신고. [재조사] header.xml에 정의된 스타일 목록을 다시 열어 buildAiHwpxParagraphs()가 쓰던 styleIDRef="3"의 실제 정의를 확인해보니 `<hh:style id="3" type="CHAR" name="Body Text 2 Char" .../>` — 즉 "문자(CHAR) 서식" 스타일이었음. 그런데 이 값을 넣은 자리(<hp:p styleIDRef="3">)는 문단(PARA) 스타일을 가리켜야 하는 자리로, 문자 스타일 ID를 문단 스타일 자리에 넣은 것 자체가 스키마상 맞지 않는 참조였음(타입 불일치). 템플릿에 원래 있던 실제 본문 문단들은 모두 styleIDRef="0"(`<hh:style id="0" type="PARA" name="바탕글" .../>`, 정상적인 문단 스타일)을 쓰고 있어서 비교해보니 바로 드러남 — a100 때는 <hp:linesegarray> 누락에만 집중하느라 이 스타일 타입 불일치를 놓쳤던 것으로 보임(둘 다 실제 결함이었고, linesegarray 쪽만 고쳐서는 부족했던 것). [조치] buildAiHwpxParagraphs()의 styleIDRef를 "3"→"0"(템플릿의 실제 본문 문단과 동일한, 타입이 맞는 문단 스타일)으로 수정. paraPrIDRef="0"·charPrIDRef="0"은 이미 올바르게 참조되고 있어 그대로 유지. Node.js 재현 테스트로 수정 후에도 zip 유효·XML well-formed 유지되는 것과 styleIDRef="3" 참조가 완전히 사라진 것을 확인. [정직한 한계] 이번에도 샌드박스에 한글 프로그램이 없어 실제로 열리는지 최종 확인은 못 했음 — 문자 스타일을 문단 스타일 자리에 넣은 건 zip·XML 검증 도구로는 못 잡는 종류의 명백한 스키마 위반이라 근거는 있지만, 그래도 혹시 이번에도 안 열리면 바로 알려주세요(그럴 경우 파일을 다시 직접 보내주시면 더 정밀하게 비교할 수 있습니다). v4.html 내부만으로 완결(서버/DB 변경 없음). (구흥모님 재신고 대응, Claude 세션)'},
     {tag:'v4-track a100', date:'2026-09-16', title:'한글(.hwpx) "저장 후 다운로드" 시 한글에서 "문서가 손상되었거나 변조되었을 가능성" 오류로 안 열리던 문제의 실제 원인 발견·수정 — buildAiHwpxParagraphs()가 만드는 문단마다 <hp:linesegarray>(줄 배치 캐시)가 통째로 빠져 있었음', desc:'a99로 고친 XML 제어문자 문제로는 해결 안 됐다는 재신고(구흥모님이 실제로 안 열리는 hwpx 파일을 보내주심) 이후 이어서 진행한 조사. [결정적 단서] 구흥모님이 "①그냥 한글 다운로드(저장 안 누름) ②저장만 누르고(내용 수정 없이) 다운로드 ③내용 수정 후 저장하고 다운로드" 3개 파일을 순서대로 직접 테스트해 보내주심 — ①만 열리고 ②③은 둘 다 안 열림. 내용을 전혀 안 고친 ②도 실패한다는 게 핵심 단서로, 편집한 텍스트 내용이 아니라 "저장" 경로(다중 문단 치환, fillHwpxTemplateWithMulti→buildAiHwpxParagraphs) 자체의 구조적 결함임을 확정. [조사] 3개 파일 모두 파이썬 zipfile.testzip()·xml.dom.minidom 양쪽으로 재검증했지만 셋 다 zip 유효·XML well-formed로 나와 일반적인 검증 도구로는 문제를 못 잡음 — 그래서 ①(열림)과 ②(안 열림)의 section0.xml을 문단 단위로 정밀 비교. 템플릿에 원래 있던 모든 <hp:p> 문단은 예외 없이 <hp:linesegarray> 자식을 갖고 있는데(문단 수=linesegarray 수, 1:1 대응), buildAiHwpxParagraphs()가 메모의 각 줄마다 새로 만드는 <hp:p>에는 이 자식이 전혀 없었음(문단 22개 생성에 linesegarray 0개) — 한글이 이 누락을 "손상"으로 판단해 열기를 거부한 것으로 추정. 이전 회차(a99 직전)에 "같은 함수를 AI 초안 경로도 쓰니 거기서도 재현될 것"이라 봤던 판단은 틀렸음 — 실제로 비교 대상이었던 "정상" 파일은 메모가 짧아 다중 문단 치환 경로를 아예 타지 않고 단순 치환(fillHwpxTemplate)만 거쳤던 것으로 확인, 그래서 이 결함이 지금까지 드러나지 않았던 것. [조치] buildAiHwpxParagraphs()가 생성하는 각 <hp:p>에 템플릿의 실제 한 줄짜리 본문 문단(paraPrIDRef="37")이 쓰던 것과 같은 형태의 <hp:linesegarray><hp:lineseg .../></hp:linesegarray>를 추가. Node.js로 실제 앱 함수를 그대로 재현해 수정 전/후 문단 수 대 linesegarray 수를 비교 검증(수정 전 22:0 불일치 → 수정 후 212:212 완전 일치, 해당 zip·XML도 각각 재검증 통과). [정직한 한계] 샌드박스에 한글 프로그램이 없어 실제 한글에서 열리는지 최종 확인은 여전히 못 했음 — 그래도 구흥모님이 보내주신 3개 파일로 원인을 사실상 구조적으로 특정했고(전체 문단 중 "저장" 경로로 생성된 문단에서만 예외 없이 이 캐시가 빠져 있었음), 채워 넣은 lineseg 값은 템플릿의 실제 본문 문단 것을 그대로 재사용해 최소한 형식상 완전한 문단이 되도록 했음 — 재현되면 다시 알려주세요. v4.html 내부만으로 완결(서버/DB 변경 없음). (구흥모님 신고 대응, Claude 세션)'},
@@ -2353,11 +2354,21 @@
     {tag:'v0.2', date:'2026-08-31', title:'디자인 톤 다듬기', desc:'색상·그림자·모서리 다듬기, 메시지 등장 애니메이션, 다크모드 색상 버그 수정.'},
     {tag:'v0.1', date:'2026-08-31', title:'챗봇형 UI 시안 최초 작성', desc:'메인 입력창(유형선택)+마이크 녹음+파일업로드, 사이드바로 기능 숨김, 5단계(대상·상황→소득·재산→예비판단→지원·연계→상담일지) 클릭 진행 흐름.'}
   ];
+  // v4-track a103: "버전기록 화면이 a94에서 끊겨 보인다"는 신고 대응 — 실제로는 데이터가 안 끊겼고
+  // (v0.1까지 다 있음), renderVersion()이 VERSION_LOG의 title·desc를 이스케이프 없이 그대로
+  // innerHTML에 꽂아넣고 있던 게 원인. a100~a102 항목을 쓰면서 설명 중에 실제 hwpx XML 태그
+  // (<hp:p>, <hh:paraPr>, <hp:linesegarray> 등)를 코드처럼 그대로 인용했는데, innerHTML은 이걸
+  // 진짜 HTML 태그로 해석해버려서 그 지점부터 브라우저가 나머지 목록을 제대로 못 그리고 깨졌던 것
+  // (a94 근처에서 멈춘 것처럼 보인 것도 그 탓). 화면에 넣기 전 <, >, & 등을 이스케이프하는
+  // htmlEscapeForLog()를 추가해 tag·date·title·desc 네 필드 모두에 적용.
+  function htmlEscapeForLog(s){
+    return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
   function renderVersion(){
     var body=document.getElementById('vBody');
     body.innerHTML = VERSION_LOG.map(function(v){
-      return '<div class="vitem"><div class="vtop"><span class="vtag">'+v.tag+'</span><span class="vdate">'+v.date+'</span></div>'
-        +'<div class="vtitle">'+v.title+'</div><div class="vdesc">'+v.desc+'</div></div>';
+      return '<div class="vitem"><div class="vtop"><span class="vtag">'+htmlEscapeForLog(v.tag)+'</span><span class="vdate">'+htmlEscapeForLog(v.date)+'</span></div>'
+        +'<div class="vtitle">'+htmlEscapeForLog(v.title)+'</div><div class="vdesc">'+htmlEscapeForLog(v.desc)+'</div></div>';
     }).join('');
   }
   function openVersion(){
@@ -3480,26 +3491,51 @@
   // 본문 문단들과 동일)이라 이쪽으로 바꿔서 여러 줄을 반복 삽입해도 "제목처럼" 취급되지 않게 함.
   // 다만 이 확인은 XML 정의를 근거로 한 것이고 실제 한글 프로그램으로 렌더링까지 확인하지는 못했으니
   // (샌드박스에 한글 프로그램 없음), 그래도 이상하면 알려주세요.
-  function buildAiHwpxParagraphs(text){
-    // v4-track a100: "상담일지 화면에서 '저장' 누른 뒤 한글(.hwpx) 다운로드"가 "문서가 손상되었거나
-    // 변조되었을 가능성이 있습니다"로 한글에서 아예 안 열리던 문제의 실제 원인을 찾음(구흥모님이
-    // 내용 수정 없이 '저장'만 눌러도 재현된다는 걸 3개 파일 비교 테스트로 확인해주셔서 특정 가능했음 —
-    // 편집한 텍스트 내용과는 무관하고, '저장' 경로 자체의 구조적 결함이었음). 템플릿에 원래 있던 모든
-    // <hp:p> 문단은 예외 없이 <hp:linesegarray>(줄 배치 캐시) 자식을 갖고 있는데, 이 함수가 메모의
-    // 여러 줄을 각각 새 <hp:p>로 펼쳐 넣으면서 그 자식을 아예 빼먹고 있었음 — 일반 AI 초안 경로에서는
-    // 우연히 메모가 이 다중 문단 치환을 안 타는 경우가 많아 드러나지 않았던 것으로 보임. zip·XML
-    // 자체는 둘 다 유효해서(zipfile.testzip/minidom 통과) 일반적인 검증 도구로는 못 잡았고, 한글
-    // 프로그램만 이 누락을 "손상"으로 판단해 거부한 것으로 추정됨. 템플릿의 실제 한 줄짜리 본문
-    // 문단(paraPrIDRef="37")에서 쓰던 것과 같은 형태의 <hp:linesegarray>를 각 생성 문단에도 채워 넣음.
-    var normalized = String(text||'').replace(/\r\n/g,'\n').replace(/\n{2,}/g,'\n').replace(/^\n+|\n+$/g,'');
-    const lines = normalized.split('\n');
-    let id = 900000001;
-    return lines.map(function(line){
-      id += 37;
-      const t = line==='' ? '<hp:t/>' : '<hp:t>'+xmlEscape(line)+'</hp:t>';
-      const lineseg = '<hp:linesegarray><hp:lineseg textpos="0" vertpos="0" vertsize="1643" textheight="1643" baseline="1224" spacing="248" horzpos="1415" horzsize="46773" flags="393216"/></hp:linesegarray>';
-      return '<hp:p id="'+id+'" paraPrIDRef="32" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0"><hp:run charPrIDRef="0">'+t+'</hp:run>'+lineseg+'</hp:p>';
+  // v4-track a103: "저장 후 다운로드"가 세 차례(a100~a102) 수정에도 계속 "손상" 오류로 안 열린다는
+  // 재신고가 이어져, 접근 자체를 바꿈 — 그동안은 메모의 각 줄을 전부 새 <hp:p> 문단으로 쪼개 넣으면서
+  // 그 문단 모양(paraPrIDRef/styleIDRef/charPrIDRef/linesegarray)을 매번 "이 정도면 맞겠지" 하고
+  // 추정해서 채워 넣어야 했음(그 추정이 세 번 다 틀렸거나 불완전했던 것으로 보임). 그런데 템플릿 안에는
+  // 이미 "한 문단 안에서 여러 줄"을 표현하는 실제로 열리는 예시가 있었음 — 새 문단을 여러 개 만드는 게
+  // 아니라, 문단은 하나 그대로 두고 그 안의 텍스트에 <hp:lineBreak/>로 줄바꿈만 넣는 방식
+  // (예: 템플릿의 "[공적] 생계지원<hp:lineBreak/>[기관 자체·즉시] 식사대용..." 문단, linesegarray 안에
+  // 줄 수만큼 <hp:lineseg>가 반복됨). 이 방식은 새 문단의 모양을 추정할 필요가 아예 없음 — 원래
+  // {{MEMO_LINE}} 자리표시자 문단 자체(id·paraPrIDRef·styleIDRef·글머리표 run)를 그대로 두고, 그
+  // 안의 텍스트만 줄바꿈 포함 여러 줄로 바꾸는 것이기 때문. linesegarray도 그 문단에 원래 있던 단 하나의
+  // <hp:lineseg>를 "형판"으로 삼아 줄 수만큼 복제(수직 위치만 줄 높이만큼씩 내려가도록 계산)해서 채움 —
+  // 이 값들은 한글이 실제로 열 때 다시 계산하는 캐시 값이라 정확한 픽셀 단위까지 맞을 필요는 없어
+  // 보이지만(줄 수는 실제 줄 수와 맞춰둠), 그래도 재현되면 다시 알려주세요.
+  function buildMultilineParagraph(origPara, multiKey, multiText){
+    var normalized = String(multiText||'').replace(/\r\n/g,'\n').replace(/\n{2,}/g,'\n').replace(/^\n+|\n+$/g,'');
+    var lines = normalized.split('\n');
+    if(!lines.length) lines = [''];
+
+    // 문단에 원래 있던 <hp:lineseg .../>(있으면 첫 번째)를 값의 형판으로 재사용
+    var segM = /<hp:lineseg\s+([^>]*?)\/>/.exec(origPara);
+    var base = {};
+    if(segM){
+      var attrRe = /(\w+)="([^"]*)"/g, am;
+      while((am = attrRe.exec(segM[1]))){ base[am[1]] = am[2]; }
+    }
+    var vertsize = parseInt(base.vertsize || '1643', 10) || 1643;
+    var spacing = parseInt(base.spacing || '248', 10) || 0;
+    var vertposStart = parseInt(base.vertpos || '0', 10) || 0;
+    var lineStep = vertsize + spacing;
+
+    // {{MULTIKEY}} 자리에 들어갈 실제 텍스트: 줄마다 이스케이프한 뒤 <hp:lineBreak/>로 연결(문단은
+    // 하나 그대로 유지 — 새 문단을 만들지 않음)
+    var runText = lines.map(function(line){ return xmlEscape(line); }).join('<hp:lineBreak/>');
+    var withText = origPara.split('{{'+multiKey+'}}').join(runText);
+
+    // 줄 수만큼 <hp:lineseg> 반복 생성(형판 값 재사용, textpos는 줄 시작 기준으로 0부터 다시 셈 —
+    // 템플릿의 실제 예시에서도 글머리표 run이 앞에 있어도 다음 run의 첫 줄 textpos는 0이었음)
+    var textpos = 0;
+    var segs = lines.map(function(line, i){
+      var seg = '<hp:lineseg textpos="'+textpos+'" vertpos="'+(vertposStart + i*lineStep)+'" vertsize="'+vertsize+'" textheight="'+(base.textheight||vertsize)+'" baseline="'+(base.baseline||'1224')+'" spacing="'+spacing+'" horzpos="'+(base.horzpos||'1415')+'" horzsize="'+(base.horzsize||'46773')+'" flags="'+(base.flags||'393216')+'"/>';
+      textpos += line.length;
+      return seg;
     }).join('');
+    var newLinesegArray = '<hp:linesegarray>'+segs+'</hp:linesegarray>';
+    return withText.replace(/<hp:linesegarray>[\s\S]*?<\/hp:linesegarray>/, newLinesegArray);
   }
   function fillHwpxTemplateWithMulti(origXml, tokens, multiKey, multiText){
     let xml = origXml;
@@ -3512,7 +3548,9 @@
     if(idx===-1) return xml;
     const pStart = xml.lastIndexOf('<hp:p ', idx);
     const pEnd = xml.indexOf('</hp:p>', idx) + '</hp:p>'.length;
-    return xml.slice(0,pStart) + buildAiHwpxParagraphs(multiText) + xml.slice(pEnd);
+    const origPara = xml.slice(pStart, pEnd);
+    const newPara = buildMultilineParagraph(origPara, multiKey, multiText);
+    return xml.slice(0,pStart) + newPara + xml.slice(pEnd);
   }
   // v4-track a81: "저장" 버튼(⑦ 상담일지 초안 화면, 직접 고친 내용 아래) — 지금까지는 #doc(화면
   // 미리보기)을 손으로 고쳐도 "복사하기"·텍스트(.txt)에는 반영되지만 한글(.hwpx) 다운로드는 lastRunData
