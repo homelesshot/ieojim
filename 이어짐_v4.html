@@ -454,13 +454,15 @@
 
     <div class="stepbar" id="steps">
       <div class="s on" title="① 위기사유·긴급성"></div>
-      <div class="s" title="② 가구·인적사항"></div>
-      <div class="s" title="③ 소득·재산"></div>
-      <div class="s" title="④ 건강·특수상황"></div>
-      <div class="s" title="⑤ 예비판단"></div>
-      <div class="s" title="⑥ 지원·연계"></div>
-      <div class="s" title="⑦ 상담일지"></div>
-      <span class="slabel" id="stepLabel">1/7</span>
+      <div class="s" title="② 거주지 정보"></div>
+      <div class="s" title="③ 가구·인적사항"></div>
+      <div class="s" title="④ 소득·재산"></div>
+      <div class="s" title="⑤ 건강상태"></div>
+      <div class="s" title="⑥ 지원이력·특수상황"></div>
+      <div class="s" title="⑦ 예비판단"></div>
+      <div class="s" title="⑧ 지원·연계"></div>
+      <div class="s" title="⑨ 상담일지"></div>
+      <span class="slabel" id="stepLabel">1/9</span>
     </div>
 
     <div class="chat" id="chat">
@@ -1322,7 +1324,7 @@
     }
     STEP['household2'].btn.click();
 
-    // ③ 소득·재산 — AI가 값을 다 채웠어도(missing3가 비어 있어도) 더 이상 자동으로 다음 단계로
+    // ④ 소득·재산 — AI가 값을 다 채웠어도(missing3가 비어 있어도) 더 이상 자동으로 다음 단계로
     // 넘기지 않고 항상 이 화면에서 멈춘다. 소득·재산은 긴급복지 예비판단의 법적 핵심 근거라, 음성으로
     // 잘못 전달된 값이나 녹음 중 섞여든 문구를 AI가 실제 데이터로 오인해 채운 경우까지 사람이 반드시
     // 눈으로 확인한 뒤 직접 "다음"을 누르게 강제한다(v4-track a32, 적대적 리뷰 반영). 사람이 "다음"을
@@ -1344,7 +1346,7 @@
     }
   }
 
-  // 소득·재산 화면에서 사람이 직접 "다음"을 확인한 뒤 이어지는 나머지 자동 진행(④ 건강상태부터).
+  // 소득·재산 화면에서 사람이 직접 "다음"을 확인한 뒤 이어지는 나머지 자동 진행(⑤ 건강상태부터).
   // runAutoFillStepsV4에서 분리해서, 소득·재산만 항상 사람 확인을 거치도록 강제하면서도 그 이후
   // 단계의 기존 자동 진행 동작은 그대로 유지한다.
   function continueAutoFillAfterIncomeV4(ex){
@@ -2179,6 +2181,7 @@
      VERSION_LOG 배열 맨 앞에 새 항목을 추가할 것. 같은 날 여러 건이면 tag만 올려서(v0.x) 여러 줄 추가.
      "나중에 몰아서 기록"은 누락으로 이어지므로, 수정 직후 그 자리에서 바로 추가할 것. */
   var VERSION_LOG = [
+    {tag:'v4-track a97', date:'2026-09-16', title:'진행순서 점(①~⑨) — "이전" 버튼 눌러도 안 줄어들던 문제 수정 + 화면 순서와 어긋나 있던 번호(②가구·인적사항→③) 전체 재정렬', desc:'구흥모님 지적 2가지. [1 — 번호 불일치] "② 가구·인적사항"이 실제로는 세 번째로 뜨는 화면인데 번호가 "②"로 남아있던 것을 포함해, 화면에 실제로 뜨는 순서와 각 카드 제목의 번호가 어긋나 있었음. 전체 카드 제목을 실제 순서 그대로 다시 매김: ①위기사유·긴급성 → ②거주지 정보 → ③가구·인적사항 → ④소득·재산 → ⑤건강상태 → ⑥지원이력·특수상황 → ⑦예비판단 결과 → ⑧지원·연계 → ⑨상담일지 초안(총 9단계). 상단 진행순서 점(#steps)도 기존 7개에서 9개로 늘려 각 화면과 정확히 1:1로 대응시키고, setStep()의 "n/7" 표시도 점 개수(9)에 맞춰 하드코딩 대신 실제 개수를 쓰도록 고침. 결과 화면 3장(⑦⑧⑨)도 하나의 뭉뚱그린 "완료" 표시가 아니라 각자 자기 번호에 맞는 점으로 표시되도록 setStep()을 각 카드 생성 직전에 개별 호출. [2 — "이전" 눌러도 점이 안 줄어듦] setStep()이 지금까지 각 화면을 "새로 만들 때"만 호출되고 있어서, 위저드 "다음"으로 앞으로 갈 때는 점이 맞게 늘어났지만 "이전"(wzPrev→wzShow, 카드를 새로 만들지 않고 이미 만들어둔 카드를 다시 보여주기만 함)으로 뒤로 갈 때는 점이 줄어들지 않고 그대로 남아있었음. 각 카드가 만들어지는 순간(래핑된 botCard()) 그 시점의 진행순서(step)를 카드 자신에게 data-step 속성으로 저장해두고, wzShow()가 카드를 보여줄 때마다(앞으로든 뒤로든) 그 카드의 data-step으로 항상 다시 맞추도록 변경 — 이제 방향에 상관없이 항상 지금 보고 있는 화면과 점 표시가 일치함(마지막 화면 ⑨상담일지 초안으로 다시 들어올 때만 예외적으로 전체 "완료" 상태로 표시). v4.html 내부만으로 완결(서버/DB 변경 없음). (구흥모님 요청)'},
     {tag:'v4-track a96', date:'2026-09-16', title:'"🤖 AI·개인정보 안내" 내용을 한 곳(AI_PRIVACY_HTML_V4)에서만 관리하도록 통합 + 안내 텍스트 전체 점검·오래된 내용 수정', desc:'구흥모님 요청 2가지. [1 — 내용 통합] "🤖 AI·개인정보 안내"가 첫 화면 팝업(aiPrivacyModal)과 설정 탭(setPaneAi) 두 군데에 완전히 같은 내용이 하드코딩되어 있어서, 나중에 문구를 고칠 때 한쪽만 고치고 다른 쪽을 깜빡하면 두 화면 내용이 어긋날 위험이 있었음(구흥모님 지적 — "앞으로 수정할 때 두 화면이 일치하도록 해야 한다"). 내용을 새 JS 상수 AI_PRIVACY_HTML_V4 하나로 합치고, 두 화면 모두 페이지 로드 시 이 상수로 내용을 채워 넣도록 변경(#aiPrivacyBody/#setPaneAiBody 컨테이너에 innerHTML 주입) — 이제 이 상수만 고치면 두 화면에 자동으로 함께 반영됨. 첫 화면 팝업에만 있던 맨 아래 "🔒 개인정보 처리방침" 버튼(a92에서 설정 쪽엔 이미 별도 메뉴로 분리됨)은 상수에 포함하지 않고 aiPrivacyModal 쪽에서만 별도로 유지. [2 — 안내 텍스트 전체 점검] 구흥모님 요청으로 안내성 텍스트를 전체적으로 다시 읽어보며 최신 상태와 어긋난 부분을 발견·수정: (a) "이어짐 정보"의 APP_INFO_TEXT_V1이 a46(9/10, 아직 판정 로직이 UI 시안 단계였을 때) 문구를 그대로 쓰고 있어서 "실제 판정 로직은 현장 도입 시 정식으로 연결될 예정"이라고 완성도를 실제보다 낮게 설명하고 있었음 — 그 사이 실제 소득·재산 판정 로직과 실제 사유서(.hwpx) 생성까지 이미 구현되어 동작 중이므로 문구를 사실에 맞게 수정. (b) 최초 1회 안내 게이트(gateOverlay)의 "자세한 내용은 화면 하단의 개인정보 처리방침에서 다시 볼 수 있다"는 문구 — a89/a92에서 화면 하단의 독립 처리방침 버튼 자체가 없어지고 🤖 AI·개인정보 안내 팝업 또는 설정 메뉴 안으로 옮겨갔는데 이 안내문이 갱신되지 않고 남아있었음, 실제 위치(첫 화면 🤖 AI·개인정보 안내 / 설정 › 개인정보 처리방침)로 수정. (c) ORG_NAME 선언부의 낡은 주석("문서 위조 방지를 위해 고정 상수로 전환")이 a89에서 이미 뒤집힌 a72 결정을 여전히 현재형으로 설명하고 있어서, 지금 상태(다시 자유입력, 이 상수는 기본값 용도)를 반영하도록 수정. (d) 음성인식(STT) 관련 코드 주석이 낡은 모델명(diarize)을 적어두고 있어서 현재 실제 모델(whisper-1, 항목추출은 gpt-4o-mini)로 갱신 — 사용자에게 보이는 문구는 원래부터 "OpenAI"로만 표기해 모델명을 노출하지 않으므로 영향 없음. v4.html 내부만으로 완결(서버/DB 변경 없음). (구흥모님 요청)'},
     {tag:'v4-track a95', date:'2026-09-16', title:'첫 화면(welcome)에는 진행순서 점(①~⑦) 표시를 숨기고, "① 위기사유·긴급성" 카드부터 보이게 변경', desc:'구흥모님 요청: "이어짐 v4" 상단 제목 아래 뜨는 진행순서 점 표시가 아직 상담을 시작하지 않은 첫 화면에는 필요 없고, 녹음/텍스트 인식 확인 화면도 순서에 포함할 필요 없이 "① 위기사유·긴급성" 카드가 실제로 뜨는 시점부터 보이면 된다는 요청. .stepbar 기본 CSS를 display:none으로 바꾸고 .stepbar.show일 때만 보이도록 전환(#steps에 이 클래스가 없으면 숨김). 새 함수 showStepBar()/hideStepBar() 추가 — "① 위기사유·긴급성" botCard가 실제로 렌더링되는 4곳(자동추출 성공/실패, 텍스트 자동판정, "상황 입력 없이 바로 진행" 버튼) 모두에서 showStepBar()를 호출해 그 시점에 처음 표시되게 하고, 저장된 사례를 이어할 때(restoreCaseState(), welcome 화면 없이 바로 진행 중 상태로 복원됨)도 표시. 반대로 resetChat()(새 상담 시작, 첫 화면으로 되돌아감)에서는 hideStepBar()를 호출해 다시 숨김. 정적 HTML의 #steps에도 기본적으로 .show 클래스가 없어 페이지를 처음 열었을 때부터 숨겨진 상태로 시작. v4.html 내부만으로 완결(서버/DB 변경 없음). (구흥모님 요청)'},
     {tag:'v4-track a94', date:'2026-09-16', title:'상단바·브라우저 탭 제목의 "이어짐 프로토타입" 표기를 "이어짐 v4"로 변경', desc:'구흥모님 요청: 화면 상단바(.toptitle .ttl)와 브라우저 탭 제목(<title>)에 남아있던 "이어짐 프로토타입" 이름을 "이어짐 v4"로 통일. v4.html 내부만으로 완결(서버/DB 변경 없음). (구흥모님 요청)'},
@@ -2884,26 +2887,26 @@
     if(lastExtractionV4) fillHouseholdFieldsAV4(lastExtractionV4);
   }
   function goHousehold2(){
-    setStep(1); // 같은 단계(점)의 두 번째 화면
-    var wrap = botCard('② 가구·인적사항', TPL_HOUSEHOLD_B, '다음 ▸', ()=>goIncome(), 'household2');
+    setStep(2); // v4-track a97: 실제 화면 순서(3번째 화면)에 맞춰 번호를 ②→③으로 바로잡음
+    var wrap = botCard('③ 가구·인적사항', TPL_HOUSEHOLD_B, '다음 ▸', ()=>goIncome(), 'household2');
     renderAgeGender(true); // 연령대·성별 select이 이 화면에 있으므로 여기서 채움
     if(lastExtractionV4) fillHouseholdFieldsBV4(lastExtractionV4); // v4-track a67: AI 추출값 이어채움(가구원수·연령대·성별·국적)
   }
 
   function goIncome(){
-    setStep(2);
-    botCard('③ 소득·재산 (대략)', TPL_INCOME, '다음 ▸', ()=>goHealth(), 'income');
+    setStep(3);
+    botCard('④ 소득·재산 (대략)', TPL_INCOME, '다음 ▸', ()=>goHealth(), 'income');
     if(lastExtractionV4) fillIncomeFieldsV4(lastExtractionV4); // v4-track a67: AI 추출값 이어채움(월소득·보증금·금융재산·부채) — 소득·재산은 사람 확인 후 진행하는 정책은 그대로
   }
 
   function goHealth(){
-    setStep(3);
-    var wrap = botCard('④ 건강상태', TPL_HEALTH_A, '다음 ▸', ()=>goHealth2(), 'health');
+    setStep(4);
+    var wrap = botCard('⑤ 건강상태', TPL_HEALTH_A, '다음 ▸', ()=>goHealth2(), 'health');
     if(lastExtractionV4) fillHealthFieldsV4(lastExtractionV4); // v4-track a67: AI 추출값 이어채움(건강상태 체크)
   }
   function goHealth2(){
-    setStep(3); // 같은 단계(점)의 두 번째 화면
-    var wrap = botCard('④ 지원이력·특수상황', TPL_HEALTH_B, '예비판단 실행 ▸', ()=>goResult(), 'health2');
+    setStep(5); // v4-track a97: 실제 화면 순서(6번째 화면)에 맞춰 번호를 ④→⑥으로 바로잡음
+    var wrap = botCard('⑥ 지원이력·특수상황', TPL_HEALTH_B, '예비판단 실행 ▸', ()=>goResult(), 'health2');
     if(lastFreeText){
       var memo = document.getElementById('memo');
       if(memo && !memo.value) memo.value = lastFreeText;
@@ -2912,9 +2915,12 @@
 
   function goResult(){
     botTyping(function(){
-      var w1 = botCard('⑤ 예비판단 결과', TPL_RESULT1, null);
-      var w2 = botCard('⑥ 지원·연계', TPL_RESULT2, null);
-      var w3 = botCard('⑦ 상담일지 초안', TPL_DOC, null);
+      setStep(6);
+      var w1 = botCard('⑦ 예비판단 결과', TPL_RESULT1, null);
+      setStep(7);
+      var w2 = botCard('⑧ 지원·연계', TPL_RESULT2, null);
+      setStep(8);
+      var w3 = botCard('⑨ 상담일지 초안', TPL_DOC, null);
       resultCards = {r1:w1, r2:w2, r3:w3};
       w1.setAttribute('data-role','result1'); w2.setAttribute('data-role','result2'); w3.setAttribute('data-role','result3');
       try{ run(); }catch(e){ console.warn('run() 오류:', e); }  // 오류가 나도 완료 안내는 뜨게
@@ -3048,9 +3054,9 @@
     // 있었음("예비판단 완료 → 이전으로 앞 단계 수정 → 다시 진행" 시 결과 화면 전체가 빈 채로 보고됨).
     // "타이핑 중" 연출 없이 즉시 동기적으로 다시 그리고, run()을 try/catch로 감싸 실패해도 최소한
     // 왜 실패했는지 화면에 남기도록 고침(goResult()와 동일한 방어 패턴).
-    markCardBody(resultCards.r1, '⑤ 예비판단 결과', TPL_RESULT1);
-    markCardBody(resultCards.r2, '⑥ 지원·연계', TPL_RESULT2);
-    markCardBody(resultCards.r3, '⑦ 상담일지 초안', TPL_DOC);
+    markCardBody(resultCards.r1, '⑦ 예비판단 결과', TPL_RESULT1);
+    markCardBody(resultCards.r2, '⑧ 지원·연계', TPL_RESULT2);
+    markCardBody(resultCards.r3, '⑨ 상담일지 초안', TPL_DOC);
     var runOk = true;
     try{
       run();
@@ -3115,7 +3121,7 @@
   function setStep(i){
     step=i; var els=document.querySelectorAll('#steps .s');
     els.forEach(function(s,idx){ s.classList.toggle('done', idx<i); s.classList.toggle('on', idx===i); });
-    document.getElementById('stepLabel').textContent=(i+1)+'/7';
+    document.getElementById('stepLabel').textContent=(i+1)+'/'+els.length; // v4-track a97: 점 개수(9개)에 항상 맞도록 하드코딩(7) 대신 실제 개수 사용
   }
   function markDone(){ document.querySelectorAll('#steps .s').forEach(s=>{ s.classList.add('done'); s.classList.remove('on'); }); document.getElementById('stepLabel').textContent='완료'; }
 
@@ -3341,7 +3347,7 @@
     t.textContent = open ? '닫기 ▴' : '열기 ▾';
   }
   /* structuredDoc: 이어짐이 상담원 확인 항목(소득·재산 판정, 위기사유, 지원항목 등)으로 이미 만들어둔
-     "⑦ 상담일지 초안"(#doc) 텍스트 — 수치·판정은 이게 정답이므로 그대로 신뢰.
+     "⑨ 상담일지 초안"(#doc) 텍스트 — 수치·판정은 이게 정답이므로 그대로 신뢰.
      rawText: 음성/타이핑으로 받은 상담 원문을 가명 처리한 것 — 상담일지에 없는 경위·정황을 보강하는 참고자료.
      예전엔 rawText만 AI에 넘겨서, 타이핑을 짧게 하거나 원문이 없으면("s" 같은 테스트 입력 등) AI가
      상담일지에 이미 있는 실제 판정 결과(소득기준 충족 여부 등)조차 못 쓰고 "확인 필요"만 반복하는 문제가
@@ -4497,6 +4503,18 @@ ${d.memo ? '\n6. 상담내용·상담의견·조치사항\n   '+indentLines(d.me
     if(i<0||i>=wzCards.length) return;
     wzCards.forEach(function(c){ c.classList.remove('wz-cur'); });
     wzCards[i].classList.add('wz-cur'); wzCur=i;
+    // v4-track a97: "이전"으로 뒤로 갈 때 진행순서 점(#steps)이 안 줄어들던 문제(구흥모님 지적) — 지금까지는
+    // setStep()이 각 화면을 "새로 만들 때"만 호출돼서, 앞으로 가는 건 맞게 반영됐지만 뒤로 가는 건(카드를
+    // 새로 만들지 않고 기존 카드만 다시 보여주는 방식이라) 점이 그대로 남아있었음. 카드를 만들 때(아래
+    // botCard 래퍼) 그 시점의 step 값을 data-step으로 카드 자체에 저장해두고, 여기서 카드를 보여줄 때마다
+    // (앞으로든 뒤로든) 그 카드의 data-step으로 항상 다시 맞춰서 방향에 상관없이 항상 정확하게 표시되게 함.
+    // 결과(⑨상담일지 초안, 마지막 화면)로 다시 진입할 때만 예외적으로 markDone()으로 "완료" 상태를 보여줌.
+    var ds = wzCards[i].getAttribute('data-step');
+    if(ds !== null){
+      var n = parseInt(ds, 10);
+      var totalDots = document.querySelectorAll('#steps .s').length;
+      if(n === totalDots - 1) markDone(); else setStep(n);
+    }
     wzRefreshNav();
     var c=document.getElementById('chat'); if(c) c.scrollTop=0;
   }
@@ -4530,6 +4548,11 @@ ${d.memo ? '\n6. 상담내용·상담의견·조치사항\n   '+indentLines(d.me
   botCard = function(){
     var w=_wzBotCard.apply(this, arguments);
     document.body.classList.add('wz-flow');
+    // v4-track a97: 이 카드가 어느 진행순서 점(step)에 해당하는지 만들어지는 시점에 저장해둠 — 각
+    // go*() 함수가 botCard()를 부르기 직전에 항상 setStep()을 먼저 호출해두므로, 그 시점의 전역 step
+    // 값이 곧 이 카드의 "제자리"다. wzShow()가 "이전/다음"으로 이 카드를 다시 보여줄 때마다 이 값으로
+    // 점 표시를 다시 맞춘다(위 wzShow 주석 참고).
+    w.setAttribute('data-step', step);
     var hadBtn = w.querySelector('.nextbtn');
     wzCards.push(w);
     if(hadBtn){ wzShow(wzCards.length-1); }
