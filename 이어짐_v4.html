@@ -452,9 +452,6 @@
           <div class="wmark" id="wmark"></div>
           <h1>어떤 이웃을 만나셨나요?</h1>
           <p>대상자 유형을 고르고, 상황을 <b>말하거나(<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Z"/><path d="M19 11a7 7 0 0 1-14 0"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>) 입력</b>하면<br>긴급지원 판단부터 상담일지까지 단계별로 도와드려요.</p>
-          <!-- v4-track a74: "상담 자리에서 꼭 확인하세요" 안내는 여기 인라인 박스 대신 팝업(precheckOverlay)으로 뜸 —
-               인라인으로 두면 화면이 좁을 때 바로 아래 "주민번호 절대 말하지 마세요" 경고가 화면 밖으로 밀려나서
-               안 보이는 문제가 있었음(더 중요한 법적 경고가 덜 중요한 체크리스트에 가려짐). -->
           <button onclick="skipToFlow()" style="margin-top:16px;background:var(--accent-soft);color:var(--accent-ink);border:1.5px solid var(--accent);border-radius:22px;padding:10px 20px;font-size:1.17rem;font-weight:700;cursor:pointer;font-family:inherit">상황 입력 없이 바로 진행 ▸</button>
           <div style="margin-top:24px;display:flex;flex-direction:column;align-items:center;gap:8px">
             <span class="micwrap">
@@ -487,7 +484,6 @@
             <button class="cbtn" onclick="toggleMenu(event)" title="추가">＋</button>
             <div class="menu" id="menu">
               <button onclick="pickFile()">🎧 녹음 파일 올리기</button>
-              <button onclick="sideInfo('사진·서류 첨부')">🖼️ 사진·서류 첨부</button>
             </div>
             <input type="file" id="fileIn" accept="audio/*" style="display:none" onchange="onFile(this)">
           </div>
@@ -540,19 +536,6 @@
       <div class="say">💬 상담 시작 전 대상자에게 이렇게 안내해주세요:<br>"지금 나누는 이야기는 AI가 정리하는 데 활용되고, AI 학습에는 사용되지 않으며, 처리 후 30일 이내에 삭제됩니다."</div>
       <div class="small">자세한 내용은 화면 하단의 <b>개인정보 처리방침</b>에서 언제든 다시 볼 수 있어요.</div>
       <button class="gateOk" onclick="ackGate()">확인했습니다</button>
-    </div>
-  </div>
-
-  <!-- v4-track a74: 상담 시작 시 뜨는 "꼭 확인하세요" 체크리스트 팝업(닫기 / 1주일간 보지 않기) —
-       기존엔 첫 화면에 항상 보이는 박스라 화면이 좁으면 바로 아래 주민번호 경고를 밀어냈던 문제를
-       해결하기 위해, 인라인 박스를 없애고 새 상담을 시작할 때(resetChat) 뜨는 팝업으로 옮김. -->
-  <div class="gateOverlay" id="precheckOverlay">
-    <div class="gateBox">
-      <h2>📋 상담 자리에서 꼭 확인하세요</h2>
-      <div class="small">거리 상담은 나중에 다시 묻기 어렵습니다. 아래 항목은 지금 이 자리에서 확인해주세요.</div>
-      <div class="say">· <b>소득·재산</b>(밀린 월세·공과금 포함)<br>· <b>대상자와의 관계</b>(예: 가정폭력 피해/가해)<br>· <b>건강상태</b><br>· <b>다시 연락 가능 여부</b></div>
-      <button class="gateOk" onclick="closePrecheck(false)">닫기</button>
-      <button class="gateOk" style="margin-top:8px;background:transparent;color:var(--mut);border:1px solid var(--line)" onclick="closePrecheck(true)">1주일간 보지 않기</button>
     </div>
   </div>
 
@@ -1386,12 +1369,6 @@
     b.classList.toggle('on', opening);
     if(r) r.classList.toggle('hide', opening); // PC 아이콘 레일은 사이드바가 펼쳐진 동안만 숨김
   }
-  function sideInfo(name){
-    botCard('사이드바 · '+name, '이 기능은 메인 화면을 단순하게 유지하려고 <b>사이드바에 숨겨</b> 두었습니다. 실제 통합 시 여기서 '+name+' 화면이 열립니다. <span style="color:var(--mut)">(UI 시안)</span>', null);
-    var s=document.getElementById('side');
-    if(s.classList.contains('open')) toggleSide();
-  }
-
   /* ================= 상담원 로그인/회원가입 (Supabase Auth) ================= */
   var authMode = 'signin'; // 'signin' | 'signup' — 로그인 바텀시트가 지금 어느 모드인지
   function switchAuthMode(mode){
@@ -2104,6 +2081,7 @@
      VERSION_LOG 배열 맨 앞에 새 항목을 추가할 것. 같은 날 여러 건이면 tag만 올려서(v0.x) 여러 줄 추가.
      "나중에 몰아서 기록"은 누락으로 이어지므로, 수정 직후 그 자리에서 바로 추가할 것. */
   var VERSION_LOG = [
+    {tag:'v4-track a85', date:'2026-09-16', title:'사진·서류 첨부 버튼 삭제(미구현 UI 시안이었음) + 시작 시 뜨는 팝업 중 "1주일간 보지 않기" 체크리스트 팝업 완전 삭제', desc:'구흥모님 요청: "사진/문서 첨부기능 삭제해줘. 시작 시 팝업 뜨는거 두개 있는데 1주일간 뜨지 않는 팝업창은 지워줘". [1 — 사진·서류 첨부] 입력 바 ＋메뉴의 "🖼️ 사진·서류 첨부" 버튼은 실제로 사진·서류를 첨부하는 기능이 아니라 클릭하면 "이 기능은 사이드바에 숨겨뒀다(UI 시안)"는 안내만 뜨는 미구현 자리표시자였음(sideInfo() 호출) — 버튼과, 더 이상 쓰이는 곳이 없어진 sideInfo() 함수를 함께 삭제. ＋메뉴에는 이제 원래 실제로 동작하는 "🎧 녹음 파일 올리기"만 남음. [2 — 팝업 삭제] 시작 시 뜨는 두 팝업 중 "1주일간 보지 않기" 버튼이 있던 쪽은 a74에서 만든 "📋 상담 자리에서 꼭 확인하세요" 체크리스트 팝업(precheckOverlay)이었음(다른 하나인 개인정보 처리방침 최초 안내 게이트(gateOverlay)는 "1주일간 보지 않기" 버튼이 없으므로 그대로 유지) — precheckOverlay의 HTML(팝업 박스·닫기/1주일간 보지 않기 버튼), showPrecheckIfNeeded()/closePrecheck() 함수, PRECHECK_SNOOZE_KEY 변수, 그리고 이를 호출하던 세 지점(showGateIfNeeded 내부, ackGate 끝, resetChat 끝)을 모두 삭제 — showGateIfNeeded()/ackGate()는 원래의 "최초 1회 개인정보처리방침 안내"만 담당하도록 단순화됨. a74~a84에 걸쳐 이 팝업의 스누즈 버그를 찾고 고치던 이력(a82·a83·a84)은 VERSION_LOG에 그대로 남겨둠(기능 자체가 삭제됐지만 그 과정에서 배운 디버깅 교훈은 기록으로서 가치가 있어 보존). 모두 v4.html 내부만으로 완결(서버/DB 변경 없음). (구흥모님 요청)'},
     {tag:'v4-track a84', date:'2026-09-16', title:'가상 케이스 22~42(추가 21건) 검증 — a73 수정에도 재발한 오류 패턴 + 새 오류 패턴 발견·프롬프트 추가 보강', desc:'구흥모님이 9/15 전달한 추가 가상 인터뷰 21건(사례 22~42, H04-06/R04-06/D04-06/E04-06/F04-06/C04-06/O04-06)을 이 기기가 아니라 라이브 배포 사이트의 실제 requestExtractionV4()를 통해 직접 실행해 원문과 대조 검증(예약된 확인 작업으로 실행, 매 요청 사이 지연을 둬 시간당 API 호출한도는 걸리지 않음 — 21건 전부 성공). a73(1차, 사례 4~20)에서 이미 고쳤다고 봤던 오류 유형 여럿이 실제로는 재발했고, 새로운 오류 유형도 발견됨. [재발한 오류] (1) providedItems에 "이미 받고 있는 기존 복지급여"(한부모지원·아동수당)가 다시 채워짐(사례 C05) — a73에서 명시적으로 금지했던 바로 그 오류. (2) debt에 "받아야 할 돈"(체불임금 등 미수금)을 반대로 채운 오류 재발(사례 F06, 한 달 반 치 미수령 임금을 debt로 잘못 채움). (3) 만원 단위 10배 계산 오류 재발(사례 C05, "통장에 52만 원 정도"를 520,000이 아니라 5,200,000으로 계산). [새로 발견된 오류] (4) income·deposit·debt 중 일부만(전부가 아니라) 원문 근거 없이 0으로 채우는 오류가 검증 대상 21건 중 대다수에서 발생 — 기존 안전장치(sanitizeZeroFinancialsV4)는 "4개 전부 0이고 원문에 부정 표현이 전혀 없을 때"만 null로 되돌리는데, 실제로는 "1~2개만 0"으로 채우는 부분적 오류가 훨씬 흔했고 이건 클라이언트 안전장치로 못 잡음(프롬프트 보강으로 대응). (5) debt에 원문에 아예 없는 구체적 금액을 지어내는 오류(사례 R04·R05·O04·O05 — "월세가 밀렸다"는 사실만 있고 금액이 전혀 안 나왔는데도 임의 숫자를 채움). (6) livingType이 공원·차 안·24시간 세탁방 등에서 노숙 중인 상황을 "임시주거(쉼터 등)"로 잘못 채움(사례 H04·H05) — "쉼터"는 실제 보호시설을 뜻하므로 구분 필요. (7) 임대 사기로 잃어버린 돈을 deposit(보유 자산)으로 잘못 채움(사례 H05, 사기당한 180만 원을 보증금 자산으로 기재). (8) 공동숙소를 쓰는 동료를 가구원수(size)에 포함(사례 F06, 동료 3명+본인을 4인 가구로 채움) 및 오래전에 연락이 끊긴 성인 자녀를 children(동반 미성년 자녀)으로 잘못 채움(사례 H05). [대응] buildExtractionPrompt()에 "2차 검증에서 새로 발견된 오류" 절을 추가해 위 8가지 각각에 구체적 예시와 판단 기준을 명시(재발한 3가지는 재차 강조, 새로 발견된 5가지는 신규 추가) — extractionJsonSchemaV4()의 필드 구조는 이번에도 변경 없음. [정직한 한계] (a) 프롬프트 보강은 a73 때도 100% 근절하지 못하고 일부가 재발했듯, 이번 보강도 재검증 없이는 실제 개선 여부를 보장 못 함 — 다음 세션에서 같은 21건(또는 새 사례)으로 재실행해 확인 필요. (b) R04(당뇨 환자가 주사를 못 맞고 손이 떨리는 명백한 의료 응급 신호)에서 health가 "해당없음"으로 채워진, 안전상 중요한 미스도 발견됐으나 이번 보강 범위에는 아직 반영하지 못함(다음 차수 과제로 남김). 상세 사례별 대조 결과는 프로젝트 문서 `claude/가상케이스-추가사례집-22-42-결과정리.md` 참고. v4.html 내부만으로 완결(서버/DB 변경 없음). (구흥모님이 예약해둔 확인 작업 실행, Claude 세션)'},
     {tag:'v4-track a83', date:'2026-09-15', title:'"1주일간 보지 않기"가 새로고침하면 다시 뜨던 버그 — 진짜 원인 발견 및 수정(a82는 원인 오판이었음)', desc:'구흥모님 재재신고(2026-09-15): a82로 배포한 수정이 실제로는 문제를 고치지 못함. 배포된 라이브 사이트를 브라우저 자동화로 직접 반복 재현해 진짜 원인을 찾음 — a82의 가설("정적 HTML class가 이미 켜진 채로 내려온다")은 틀렸고, 실제 원인은 변수 선언 순서였음: PRECHECK_SNOOZE_KEY 변수의 대입(var PRECHECK_SNOOZE_KEY = ...)이 코드상 showGateIfNeeded() 호출보다 한참 아래(showPrecheckIfNeeded 함수 바로 위)에 있었는데, 페이지 로드 시 맨 아래에서 showGateIfNeeded()가 실행되는 시점은 그보다 앞선 코드 위치라서, 이 시점엔 PRECHECK_SNOOZE_KEY가 var 호이스팅으로 "선언"만 돼있고 아직 "대입"은 안 된 상태(undefined)였음. 그 결과 showPrecheckIfNeeded() 내부의 localStorage.getItem(PRECHECK_SNOOZE_KEY)가 사실상 localStorage.getItem(undefined)가 되어 항상 null을 반환 → 스누즈 시각이 멀쩡히 저장돼 있어도 "스누즈 없음"으로 읽혀 매번 다시 팝업이 켜짐. 페이지 로드 후 콘솔에서 같은 함수를 수동으로 다시 호출하면 이때는 변수가 이미 대입된 뒤라 정상 동작해서, "함수 로직 자체는 맞는데 자동 실행만 실패"하는 것처럼 보였던 것(a82 조사 당시 이 부분에서 혼란이 있었음). PRECHECK_SNOOZE_KEY 대입을 GATE_ACK_KEY 옆(showGateIfNeeded 호출보다 반드시 앞)으로 옮겨서 실행 순서 문제를 해소. 수정 후 브라우저 자동화로 "스누즈 설정 → 새로고침 → 팝업 안 뜸"을 반복 재현해 확인 완료. v4.html 내부만으로 완결(서버/DB 변경 없음). (구흥모님 재재신고 대응)'},
     {tag:'v4-track a82', date:'2026-09-15', title:'"상담 자리에서 꼭 확인하세요" 팝업 — "1주일간 보지 않기"를 눌러도 새로고침하면 다시 뜨던 버그 수정', desc:'구흥모님 재신고(2026-09-15): "1주일간 보지 않기" 눌러도 새로고침하면 또 뜸. 배포된 실제 페이지를 브라우저 자동화로 직접 열어 재현·확인 — localStorage에 스누즈 시각(ieojim_precheck_snooze_until)은 정확히 저장돼 있었는데도, 새로고침 직후 #precheckOverlay의 정적 HTML class가 이미 "gateOverlay on"(켜진 상태)으로 내려오고 있었음(협업자와 동시에 같은 파일을 작업하는 중 병합 과정에서 섞여 들어간 것으로 추정). showPrecheckIfNeeded()는 지금까지 "보여줘야 할 때만 .on 추가"만 했지 "보여주면 안 될 때 .on 제거"는 하지 않고 있어서, 처음부터 켜진 채로 내려온 HTML을 아무도 꺼주지 않은 채 그대로 남아있었던 것 — 스누즈 기간이 안 지났을 때도 명시적으로 .on을 제거하도록 수정해, 정적 HTML이 어떤 상태로 내려오든 항상 정확한 최종 상태가 되도록 방어적으로 고침. v4.html 내부만으로 완결(서버/DB 변경 없음). (구흥모님 재신고 대응)'},
@@ -3053,7 +3031,6 @@
     if(s.classList.contains('open')) toggleSide();
     unlockMainInput();
     hideDoneBar();
-    showPrecheckIfNeeded(); // v4-track a74: 새 상담 시작할 때마다 "꼭 확인하세요" 체크리스트 팝업(스누즈 안 됐으면) 표시
   }
 
   /* 상담(위기사유 단계) 진행 중에는 채팅 입력창/마이크/파일첨부를 잠가서
@@ -4549,9 +4526,8 @@ ${d.memo ? '\n6. 상담내용·상담의견·조치사항\n   '+indentLines(d.me
   }
 
   var GATE_ACK_KEY = 'ieojim_policy_ack_v1';
-  var PRECHECK_SNOOZE_KEY = 'ieojim_precheck_snooze_until'; // v4-track a83: showGateIfNeeded()보다 먼저 선언되어야 함(아래 설명 참고)
   function showGateIfNeeded(){
-    try{ if(localStorage.getItem(GATE_ACK_KEY)) { showPrecheckIfNeeded(); return; } }catch(e){}
+    try{ if(localStorage.getItem(GATE_ACK_KEY)) { return; } }catch(e){}
     var g = document.getElementById('gateOverlay');
     if(g) g.classList.add('on');
   }
@@ -4559,39 +4535,8 @@ ${d.memo ? '\n6. 상담내용·상담의견·조치사항\n   '+indentLines(d.me
     try{ localStorage.setItem(GATE_ACK_KEY, String(Date.now())); }catch(e){}
     var g = document.getElementById('gateOverlay');
     if(g) g.classList.remove('on');
-    showPrecheckIfNeeded(); // v4-track a74: 최초 안내(개인정보 처리방침) 확인 직후, 이어서 상담 전 체크리스트 팝업도 표시
   }
   showGateIfNeeded();
-
-  // v4-track a74: "상담 자리에서 꼭 확인하세요" 팝업 — 새 상담을 시작할 때마다 뜨되, "1주일간 보지
-  // 않기"를 누르면 그 기기에서 7일간 다시 뜨지 않게 함(localStorage에 "이 시각까지 숨김" 타임스탬프 저장).
-  // v4-track a82: 구흥모님 재신고(2026-09-15) — "1주일간 보지 않기"를 눌러도 새로고침하면 다시 뜸.
-  // a82에서는 #precheckOverlay 정적 HTML class 문제로 보고 "스누즈 중에도 명시적으로 .on 제거"하도록
-  // 고쳤으나, 실제 배포 사이트를 브라우저로 재현해보니 그 수정이 배포된 뒤에도 여전히 재현됨.
-  // v4-track a83: 진짜 원인 발견 — PRECHECK_SNOOZE_KEY 변수 선언(대입)이 이 줄보다 훨씬 아래에 있어서,
-  // 페이지 로드 시 맨 아래 showGateIfNeeded() 호출이 실행되는 시점에는 PRECHECK_SNOOZE_KEY가 아직
-  // undefined였음(var 호이스팅으로 "선언"만 끌어올려지고 "대입"은 코드 순서대로 실행되기 때문).
-  // 그 결과 showPrecheckIfNeeded() 내부의 localStorage.getItem(PRECHECK_SNOOZE_KEY)가
-  // localStorage.getItem(undefined)가 되어 항상 null을 반환 → 스누즈 시각이 있어도 "없음"으로 읽혀서
-  // 매번 팝업이 다시 켜졌던 것. PRECHECK_SNOOZE_KEY 대입을 showGateIfNeeded() 호출보다 앞(위의
-  // GATE_ACK_KEY 옆)으로 옮겨서 해결. 아래 "항상 최종 상태를 강제" 방어 로직도 원인이 밝혀진 지금은
-  // 여전히 안전망으로 유지.
-  function showPrecheckIfNeeded(){
-    var p = document.getElementById('precheckOverlay');
-    if(!p) return;
-    try{
-      var until = Number(localStorage.getItem(PRECHECK_SNOOZE_KEY) || '0');
-      if(until && Date.now() < until){ p.classList.remove('on'); return; } // 아직 스누즈 기간 안 지남 — 확실히 꺼둠
-    }catch(e){}
-    p.classList.add('on');
-  }
-  function closePrecheck(snoozeOneWeek){
-    if(snoozeOneWeek){
-      try{ localStorage.setItem(PRECHECK_SNOOZE_KEY, String(Date.now() + 7*24*60*60*1000)); }catch(e){}
-    }
-    var p = document.getElementById('precheckOverlay');
-    if(p) p.classList.remove('on');
-  }
 
 </script>
 </body>
