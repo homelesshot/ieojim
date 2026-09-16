@@ -2,6 +2,8 @@
 
 녹음 한 번으로, 현장 상담을 **예비판단부터 상담일지 초안까지** 자동으로 이어주는 AI 솔루션. 현장에서 "기억에 의존해 사무실에서 다시 쓰던" 이중기록을 없애고, 상담원이 놓치던 공적 지원 연계를 돕습니다.
 
+> **▶ [이어짐 본선 데모영상 보기](https://github.com/homelesshot/ieojim/blob/main/ieojim-incheon-demo-final.mp4)** (약 2분 15초) · **[바로 실행](https://homelesshot.github.io/ieojim/이어짐_v4.html)** (로그인 없이 즉시 사용)
+
 ---
 
 ## 1. 팀 기본 정보
@@ -45,7 +47,7 @@
 | 소스코드 또는 결과물 원본 | 본 제출 저장소에 `이어짐_v4.html`(단일 HTML 파일) 업로드 |
 | 타기관 피드백 폼 | https://homelesshot.github.io/ieojim/feedback.html (외부 기관 실사용 피드백 수집용) |
 | 발표·데모 슬라이드 | 본 저장소 `이어짐_본선_데모_슬라이드.pptx` (실사용 흐름 시연, 가상 사례) |
-| 데모 영상(선택) | *(선택 — 필요 시 추가)* |
+| 데모 영상 | [▶ 이어짐 본선 데모영상 보기](https://github.com/homelesshot/ieojim/blob/main/ieojim-incheon-demo-final.mp4) (약 2분 15초, 실제 흐름 시연 · 가상 사례) |
 | 테스트 계정(선택) | 로그인 없이 판단·상담일지 생성 전 기능 사용 가능 (저장·이어하기만 로그인 필요) |
 
 #### 설치 및 실행 방법
