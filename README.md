@@ -56,7 +56,7 @@
 | 데모 영상(선택) | [▶ 이어짐 본선 데모영상 보기](https://homelesshot.github.io/ieojim/ieojim-incheon-demo-final.mp4) (약 2분 15초, 실제 흐름 시연 · 가상 사례) |
 | 테스트 계정(선택) | 로그인 없이 판단·상담일지 생성 전 기능 사용 가능 (저장·이어하기만 로그인 필요) |
 
-그 외 참고 자료: 이어짐 사용 피드백 폼([feedback.html](https://homelesshot.github.io/ieojim/feedback.html), 구글시트로 자동 누적) · 발표·데모 슬라이드(본 저장소 `이어짐_본선_데모_슬라이드.pptx`) · 이용자·관리자 가이드([📗 이용자 가이드](https://homelesshot.github.io/ieojim/guide-user.html) · [📘 관리자 가이드](https://homelesshot.github.io/ieojim/guide-admin.html))
+그 외 참고 자료: 이어짐 사용 피드백 폼([feedback.html](https://homelesshot.github.io/ieojim/feedback.html), 구글시트로 자동 누적) · 이용자·관리자 가이드([📗 이용자 가이드](https://homelesshot.github.io/ieojim/guide-user.html) · [📘 관리자 가이드](https://homelesshot.github.io/ieojim/guide-admin.html))
 
 #### 설치 및 실행 방법
 - **별도 설치 없음.** 최신 브라우저(모바일 크롬/사파리·삼성인터넷, PC 크롬/엣지)에서 링크만 열면 즉시 사용.
