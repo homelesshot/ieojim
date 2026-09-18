@@ -54,7 +54,7 @@
 | 솔루션 실행 링크 | **https://homelesshot.github.io/ieojim/이어짐_v4.html** (GitHub Pages, 로그인 없이 즉시 사용) |
 | 소스코드 또는 결과물 원본 | [이어짐_v4.html 다운로드](https://raw.githubusercontent.com/homelesshot/ieojim/main/이어짐_v4.html)(단일 HTML 파일, 브라우저에 그대로 열리면 우클릭 → 다른 이름으로 저장) |
 | 데모 영상(선택) | [▶ 이어짐 본선 데모영상 보기](https://homelesshot.github.io/ieojim/ieojim-incheon-demo-final.mp4) (약 2분 15초, 실제 흐름 시연 · 가상 사례) |
-| 테스트 계정(선택) | 로그인 없이 판단·상담일지 생성 전 기능 사용 가능 (저장·이어하기만 로그인 필요) |
+| 테스트 계정(선택) | test@ieojim.com / test1234 |
 
 그 외 참고 자료: 이어짐 사용 피드백 폼([feedback.html](https://homelesshot.github.io/ieojim/feedback.html), 구글시트로 자동 누적) · 이용자·관리자 가이드([📗 이용자 가이드](https://homelesshot.github.io/ieojim/guide-user.html) · [📘 관리자 가이드](https://homelesshot.github.io/ieojim/guide-admin.html))
 
